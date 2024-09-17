@@ -82,7 +82,7 @@
                                 <Class-Path>./</Class-Path>
                             </manifestEntries>
                             <manifest>
-                                <mainClass>se.umu.cs.ads.App</mainClass>
+                                <mainClass>se.umu.cs.ads.Backend</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
