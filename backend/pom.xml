@@ -90,7 +90,7 @@
                                 <Class-Path>./</Class-Path>
                             </manifestEntries>
                             <manifest>
-                                <mainClass>se.umu.cs.ads.Main</mainClass>
+                                <mainClass>se.umu.cs.ads.Backend</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
