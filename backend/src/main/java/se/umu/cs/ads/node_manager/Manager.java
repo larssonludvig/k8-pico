@@ -8,6 +8,7 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
 import org.jgroups.View;
+import se.umu.cs.ads.podengine.PodEngine;
 
 /**
  * Class for cluster management
@@ -86,9 +87,15 @@ public class Manager {
         @Override
         public void receive(Message msg) {
             ArrayList<String> obj = msg.getObject();
+            String imgName = obj.get(0);
+            String contName = obj.get(1);
 
-            for (String s : obj) {
-                System.out.println(s);
+            PodEngine engine = new PodEngine();
+            try {
+                String id = engine.runContainer(imgName, contName);
+                System.out.println("Container started sucessfully!");
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
             }
         }
 
