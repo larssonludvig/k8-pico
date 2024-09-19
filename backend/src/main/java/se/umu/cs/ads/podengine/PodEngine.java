@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.core.DockerContextMetaFile;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
 import com.github.dockerjava.core.exec.LogContainerCmdExec;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import se.umu.cs.ads.exception.PicoException;
 
 public class PodEngine {
     private final DockerClient client;
@@ -39,6 +41,9 @@ public class PodEngine {
 
     //container name, container id
     private final HashMap<String, String> containerNames;
+
+    //container name, pod
+    private final HashMap<String, Pod> pods;
 
     private final static Logger logger = LogManager.getLogger(PodEngine.class.getName());
 
@@ -57,6 +62,7 @@ public class PodEngine {
         client = DockerClientImpl.getInstance(config, httpClient);
         containerIDs = new HashMap<>();
         containerNames = new HashMap<>();
+        pods = new HashMap<>();
         pool = Executors.newCachedThreadPool();
 
         //Configure host config
@@ -71,11 +77,24 @@ public class PodEngine {
         return conf;
     }
 
-    public void pullImage(String imageName) throws InterruptedException {
+    /**
+     * Pull a specific image: "image:version"
+     * @param imageName its name including version.
+     * @throws InterruptedException
+     */
+    public void pullImage(String imageName) throws PicoException {
         logger.info("Pulling container image {}", imageName);
-        client.pullImageCmd(imageName).start().awaitCompletion();
+        try {
+            client.pullImageCmd(imageName).start().awaitCompletion();
+        } catch (InterruptedException e) {
+            throw new PicoException(String.format("Unable to pull image %s, cause: %s", imageName, e.getMessage()));
+        }
     }
 
+    /**
+     * Fetch all available containers from the deamon.
+     * Similar ot running $ docker container ls -a
+     */
     public void refreshContainers() {
         List<Container> containers = client.listContainersCmd().withShowAll(true).exec();
 
@@ -94,60 +113,137 @@ public class PodEngine {
     }
 
 
-    public boolean isRunning(String containerId) {
-        List<Container> conts = client.listContainersCmd()
-                .withIdFilter(Collections.singleton(containerId))
-                .exec();
+    public Container getContainer(String id) throws PicoException {
+        List<Container> conts = client.listContainersCmd().withShowAll(true).exec();
 
-        int size = conts.size();
-        if (size > 1)
-            throw new IllegalStateException("Searched for container with id " + containerId + " and found " + size + " container. Only one should be possible.");
+        for (Container cont : conts) {
+            if (cont.getId().equals(id))
+                return cont;
+        }
 
-        return size == 1;
+        return null;
     }
-    public String runContainer(String imageName, String containerName) throws Exception {
-        
-		try {
-            if (!containerIDs.containsKey(imageName)) {
-                pullImage(imageName);
-            } else
-                logger.info("Container image {} already pulled since start, skipping.", imageName);
 
 
-            if (!containerNames.containsKey(containerName)) {
-                logger.info("Creating container with name {}", containerName);
-                CreateContainerResponse resp = client.createContainerCmd(imageName)
-                        .withHostConfig(hostConfig)
-                        .withName(containerName)
-                        .exec();
-                containerNames.put(containerName, resp.getId());
-            } else {
-                logger.info("Found existing container with name {}", containerName);
+    /**
+     * Check if a container is running
+     * @param id the id of the container
+     * @return true or false
+     * @throws PicoException If the operation failed
+     */
+    public boolean isRunning(String id) throws PicoException {
+        return getContainer(id) != null;
+    }
+
+    /**
+     * Create a new container given the image and the container name
+     *
+     * <p>
+     *     This function will take care if the provided image is not found, and pull if required.
+     * </p>
+     * @param imageName the name of the image, including its version seperated by colon ':'
+     * @param containerName the name if the new image
+     * @return The newly created pod
+     * @throws PicoException if the underlying operations failed
+     */
+    public Pod createContainer(String imageName, String containerName) throws PicoException {
+
+        //Pull the image if it doesn't exist
+        if (!containerIDs.containsKey(imageName))
+            pullImage(imageName);
+        else
+            logger.info("Container image {} already pulled since start, skipping.", imageName);
+
+
+        if (pods.containsKey(containerName))
+            return pods.get(containerName);
+
+
+        logger.info("Creating container with name {}...", containerName);
+        CreateContainerResponse resp;
+        try {
+            resp = client.createContainerCmd(imageName)
+                    .withHostConfig(hostConfig)
+                    .withName(containerName)
+                    .exec();
+        } catch (DockerException e) {
+            String message = parseDockerException(e);
+            throw new PicoException(message);
+        }
+        String id = resp.getId();
+        //containerNames.put(containerName, id);
+        logger.info("Container {} has id {}", containerName, id);
+
+        //we need to re-read it to know port numbers...
+        Container cont = getContainer(id);
+        try {
+            while (cont == null) {
+                Thread.sleep(5);
+                cont = getContainer(id);
             }
+        } catch (InterruptedException e) {
+            throw new PicoException("Interrupted while creating new container");
+        }
 
-            String id = containerNames.get(containerName);
-            logger.info(String.format("Container has id: %s", id));
-            containerIDs.putIfAbsent(containerName, id);
+        ContainerPort[] ports = cont.getPorts();
+        int[] external = new int[ports.length];
+        int[] internal = new int[ports.length];
 
-            if (isRunning(id))
-                restartContainer(containerName);
-            else
-                client.startContainerCmd(id).exec();
+        for (int i = 0; i < ports.length; i++) {
+            external[i] = ports[i].getPublicPort();
+            internal[i] = ports[i].getPrivatePort();
+        }
 
-            return id;
-
-		} catch (DockerException e) {
-            e.printStackTrace();
-			throw new Exception(parseDockerException(e));
-		}
+        Pod pod = new Pod(id).setImage(imageName).setName(containerName).setPorts(external, internal);
+        pods.put(pod.getName(), pod);
+        return pod;
     }
 
-    public void restartContainer(String containerName) {
-        String id = containerNames.get(containerName);
+    /**
+     * Start a container
+     *
+     * @param name the name of the container to be started.
+     * @return
+     * @throws PicoException
+     */
+    public Pod runContainer(String name) throws PicoException {
+        Pod pod;
+		if (!pods.containsKey(name))
+            throw new PicoException(String.format("No pod with name %s was found. Create it first!", name));
+        else
+            pod = pods.get(name);
+
+        String id = pod.getId();
+        logger.info("Container has id {}", id);
+
+        if (isRunning(id))
+            return pod;
+
+        try {
+            client.startContainerCmd(id).exec();
+        } catch (DockerException e) {
+            String msg = parseDockerException(e);
+            throw new PicoException(String.format("Unable to start container %s, cause: %s", name, msg));
+        }
+        return pod;
+    }
+
+    /**
+     * Restart a container
+     * @param name name of the container to be restarted
+     */
+    public void restartContainer(String name) throws PicoException {
+        String id = pods.get(name).getId();
         if (id == null)
             return; //TODO: better error checking
 
-        client.restartContainerCmd(id).exec();
+        try {
+            logger.info("Restarting container {}", name);
+            client.restartContainerCmd(id).exec();
+        } catch (DockerException e) {
+            String msg = parseDockerException(e);
+            throw new PicoException(String.format("Unable to restart container %s with cause: %s", name, msg));
+        }
     }
 
     private String parseDockerException(RuntimeException e) {
@@ -161,20 +257,30 @@ public class PodEngine {
         return o.getString("message");
     }
 
-    public void stopContainer(String containerName) {
-        String id = containerIDs.get(containerName);
-        client.stopContainerCmd(id).exec();
+    public void stopContainer(String containerName) throws PicoException {
+        try {
+            String id = pods.get(containerName).getId();
+            client.stopContainerCmd(id).exec();
+        } catch (DockerException e) {
+            String msg = parseDockerException(e);
+            throw new PicoException(String.format("Unable to stop container %s, cause: %s", containerName, msg));
+        }
     }
 
-    public void removeContainer(String containerName) {
-        String id = containerIDs.get(containerName);
-        stopContainer(containerName);
-        client.removeContainerCmd(id).exec();
+    public void removeContainer(String containerName) throws PicoException {
+        String id = pods.get(containerName).getId();
+        try {
+            stopContainer(containerName);
+            client.removeContainerCmd(id).exec();
+            pods.remove(containerName);
+        } catch (DockerException e) {
+            String msg = parseDockerException(e);
+            throw new PicoException(String.format("Failed to remove container %s, cause: %s", containerName, msg));
+        }
     }
 
     public List<String> containerLog(String containerName) throws InterruptedException, IOException {
-        System.out.println("LOLOLOLOLOLOLOL");
-        String id = containerIDs.get(containerName);
+        String id = pods.get(containerName).getId();
         List<String> logs = new ArrayList<>();
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -220,21 +326,8 @@ public class PodEngine {
             latch.countDown();
         }
 
-        /**
-         * Closes this stream and releases any system resources associated
-         * with it. If the stream is already closed then invoking this
-         * method has no effect.
-         *
-         * <p> As noted in {@link AutoCloseable#close()}, cases where the
-         * close may fail require careful attention. It is strongly advised
-         * to relinquish the underlying resources and to internally
-         * <em>mark</em> the {@code Closeable} as closed, prior to throwing
-         * the {@code IOException}.
-         *
-         * @throws IOException if an I/O error occurs
-         */
         @Override
-        public void close() throws IOException {
+        public void close() {
             latch.countDown();
         }
     }

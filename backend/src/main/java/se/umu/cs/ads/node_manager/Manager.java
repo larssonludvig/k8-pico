@@ -8,6 +8,7 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
 import org.jgroups.View;
+import se.umu.cs.ads.podengine.Pod;
 import se.umu.cs.ads.podengine.PodEngine;
 
 /**
@@ -92,7 +93,9 @@ public class Manager {
 
             PodEngine engine = new PodEngine();
             try {
-                String id = engine.runContainer(imgName, contName);
+                Pod pod = engine.createContainer(imgName, contName);
+                pod = engine.runContainer(contName);
+                String id = pod.getId();
                 System.out.println("Container started sucessfully!");
             } catch (Exception e) {
                 System.err.println(e.getMessage());

@@ -12,11 +12,18 @@ public class Main {
             System.err.println("Usage: <img name> <container name>");
         }
 
+        String imgName = args[0];
+        String contName = args[1];
         engine.refreshContainers();
-        engine.runContainer(args[0], args[1]);
-        List<String> logs = engine.containerLog(args[1]);
+        engine.createContainer(imgName, contName);
+        engine.runContainer(contName);
 
-        System.out.println(String.join("\n", logs));
+        engine.restartContainer(contName);
+
+
+        List<String> logs = engine.containerLog(contName);
         System.out.println("Number of entries: " + logs.size());
+
+        engine.removeContainer(contName);
     }
 }
