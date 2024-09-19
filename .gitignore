@@ -27,3 +27,7 @@ replay_pid*
 # mvn target and bin folders
 *target/
 *bin/
+
+# IDE files
+.idea/
+.vscode/
