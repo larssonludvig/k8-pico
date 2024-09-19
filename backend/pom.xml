@@ -78,11 +78,11 @@
         </dependency>
 
         <!-- K8-pico common package -->
-        <dependency>
-            <groupId>se.umu.cs.ads</groupId>
-            <artifactId>K8-pico-common</artifactId>
-            <version>1.0</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>se.umu.cs.ads</groupId>-->
+<!--            <artifactId>K8-pico-common</artifactId>-->
+<!--            <version>1.0</version>-->
+<!--        </dependency>-->
     </dependencies>
     <build>
         <extensions>
