@@ -2,21 +2,21 @@ package se.umu.cs.ads;
 
 import se.umu.cs.ads.podengine.PodEngine;
 
+import java.util.List;
+
 public class Main {
     public static void main(String[] args) throws Exception {
-        System.out.println("Hello there!");
         PodEngine engine = new PodEngine();
 
-        for (int i = 0; i < 4; i++) {
-            engine.runContainer("nginx:alpine", "test-" + i);
+        if (args.length < 2) {
+            System.err.println("Usage: <img name> <container name>");
         }
 
-        System.out.println("Containers started!");
-        Thread.sleep(10_000);
+        engine.refreshContainers();
+        engine.runContainer(args[0], args[1]);
+        List<String> logs = engine.containerLog(args[1]);
 
-        for (int i = 0; i < 4; i++) {
-            engine.stopContainer( "test-" + i);
-        }
-        System.out.println("Containers stopped!");
+        System.out.println(String.join("\n", logs));
+        System.out.println("Number of entries: " + logs.size());
     }
 }
