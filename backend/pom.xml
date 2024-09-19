@@ -24,6 +24,7 @@
         <slf4j.version>2.0.16</slf4j.version>
         <jgroups.version>4.0.10.Final</jgroups.version>
         <json.version>20240303</json.version>
+        <log4j.version>2.24.0</log4j.version>
     </properties>
     <dependencies>
         <!-- For docker-java-->
@@ -49,6 +50,18 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
 
         <!-- JGroups -->
@@ -90,7 +103,7 @@
                                 <Class-Path>./</Class-Path>
                             </manifestEntries>
                             <manifest>
-                                <mainClass>se.umu.cs.ads.Backend</mainClass>
+                                <mainClass>se.umu.cs.ads.Main</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
