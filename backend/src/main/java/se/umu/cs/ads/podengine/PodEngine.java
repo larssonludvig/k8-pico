@@ -3,27 +3,20 @@ package se.umu.cs.ads.podengine;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.LogContainerCmd;
 import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.core.DockerContextMetaFile;
-import com.github.dockerjava.core.command.LogContainerResultCallback;
-import com.github.dockerjava.core.exec.LogContainerCmdExec;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 
 import com.github.dockerjava.api.exception.*;
 
-import jdk.vm.ci.code.site.Call;
-import org.apache.hc.core5.net.Host;
 import org.json.*;
 
 import java.io.*;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -36,12 +29,8 @@ public class PodEngine {
     private final DockerClient client;
     private final Executor pool;
     private final HostConfig hostConfig;
-    //image name, container id
-    private final HashMap<String, String> containerIDs;
 
-    //container name, container id
-    private final HashMap<String, String> containerNames;
-
+    private final HashSet<String> pulledImages;
     //container name, pod
     private final HashMap<String, Pod> pods;
 
@@ -60,14 +49,13 @@ public class PodEngine {
                 .build();
 
         client = DockerClientImpl.getInstance(config, httpClient);
-        containerIDs = new HashMap<>();
-        containerNames = new HashMap<>();
         pods = new HashMap<>();
         pool = Executors.newCachedThreadPool();
-
+        pulledImages = new HashSet<>();
         //Configure host config
         hostConfig = configureHost();
-
+        refreshImages();
+        refreshContainers();
     }
 
     private HostConfig configureHost() {
@@ -104,17 +92,22 @@ public class PodEngine {
             String image = cont.getImage();
             logger.info("Found container {} of image {} with id {}", name, image, id);
 
-            if (name.startsWith("/"))
-                name = name.substring(1);
-
-            containerNames.put(name, id);
-            containerIDs.put(image, id);
+            Pod pod = new Pod(cont);
+            pods.put(pod.getName(), pod);
         }
     }
 
 
-    public Container getContainer(String id) throws PicoException {
-        List<Container> conts = client.listContainersCmd().withShowAll(true).exec();
+    public void refreshImages() {
+        List<Image> images = client.listImagesCmd().withShowAll(true).exec();
+        for (Image img : images) {
+            String[] tags = img.getRepoTags();
+            this.pulledImages.addAll(Arrays.asList(tags));
+        }
+    }
+
+    public Container getContainer(String id, boolean showAll) throws PicoException {
+        List<Container> conts = client.listContainersCmd().withShowAll(showAll).exec();
 
         for (Container cont : conts) {
             if (cont.getId().equals(id))
@@ -132,7 +125,7 @@ public class PodEngine {
      * @throws PicoException If the operation failed
      */
     public boolean isRunning(String id) throws PicoException {
-        return getContainer(id) != null;
+        return getContainer(id, false) != null;
     }
 
     /**
@@ -149,7 +142,7 @@ public class PodEngine {
     public Pod createContainer(String imageName, String containerName) throws PicoException {
 
         //Pull the image if it doesn't exist
-        if (!containerIDs.containsKey(imageName))
+        if (!pulledImages.contains(imageName))
             pullImage(imageName);
         else
             logger.info("Container image {} already pulled since start, skipping.", imageName);
@@ -175,11 +168,11 @@ public class PodEngine {
         logger.info("Container {} has id {}", containerName, id);
 
         //we need to re-read it to know port numbers...
-        Container cont = getContainer(id);
+        Container cont = getContainer(id, true);
         try {
             while (cont == null) {
                 Thread.sleep(5);
-                cont = getContainer(id);
+                cont = getContainer(id, true);
             }
         } catch (InterruptedException e) {
             throw new PicoException("Interrupted while creating new container");
@@ -216,8 +209,10 @@ public class PodEngine {
         String id = pod.getId();
         logger.info("Container has id {}", id);
 
-        if (isRunning(id))
+        if (isRunning(id)) {
+            logger.warn("Trying to start a container that is already running");
             return pod;
+        }
 
         try {
             client.startContainerCmd(id).exec();
@@ -260,6 +255,7 @@ public class PodEngine {
     public void stopContainer(String containerName) throws PicoException {
         try {
             String id = pods.get(containerName).getId();
+            logger.info("Stopping container {} with id {}", containerName, id);
             client.stopContainerCmd(id).exec();
         } catch (DockerException e) {
             String msg = parseDockerException(e);

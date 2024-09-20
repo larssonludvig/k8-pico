@@ -1,11 +1,16 @@
 package se.umu.cs.ads.podengine;
 
+import com.github.dockerjava.api.model.Container;
+import com.github.dockerjava.api.model.ContainerPort;
+import com.github.dockerjava.api.model.PortBinding;
+
 public class Pod {
     private final String id;
     private String name;
     private String image;
     private int[] externalPorts;
     private int[] internalPorts;
+
     public String getName() {
         return name;
     }
@@ -36,5 +41,23 @@ public class Pod {
 
     public Pod(String id) {
         this.id = id;
+    }
+
+    public Pod(Container container) {
+        this.id = container.getId();
+        this.name = container.getNames()[0];
+
+        if (name.startsWith("/"))
+            name = name.substring(1);
+
+        this.image = container.getImage();
+        ContainerPort[] ports = container.getPorts();
+        this.internalPorts = new int[ports.length];
+        this.externalPorts = new int[ports.length];
+
+        for (int i = 0; i < ports.length; i++) {
+            this.externalPorts[i] = ports[i].getPublicPort();
+            this.internalPorts[i] = ports[i].getPrivatePort();
+        }
     }
 }

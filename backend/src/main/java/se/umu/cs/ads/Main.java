@@ -1,5 +1,6 @@
 package se.umu.cs.ads;
 
+import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.podengine.PodEngine;
 
 import java.util.List;
@@ -12,18 +13,24 @@ public class Main {
             System.err.println("Usage: <img name> <container name>");
         }
 
-        String imgName = args[0];
-        String contName = args[1];
-        engine.refreshContainers();
-        engine.createContainer(imgName, contName);
-        engine.runContainer(contName);
+        SystemMetric metric = new SystemMetric();
+        System.out.println("Current cpu load: " + metric.getCPULoad());
+        System.out.println("Current free mem: " + metric.getFreeMemory());
+        int imax = 8;
+        for (int i = 0; i <= imax; i++) {
+            engine.createContainer("cpuload:latest", "load-" + i);
+            engine.runContainer("load-" + i);
+        }
 
-        engine.restartContainer(contName);
+        Thread.sleep(20_000);
+
+        System.out.println("Current cpu load: " + metric.getCPULoad());
+        System.out.println("Current free mem: " + metric.getFreeMemory());
+
+        for (int i = 0; i <= imax; i++) {
+            engine.stopContainer("load-" + i);
+        }
 
 
-        List<String> logs = engine.containerLog(contName);
-        System.out.println("Number of entries: " + logs.size());
-
-        engine.removeContainer(contName);
     }
 }
