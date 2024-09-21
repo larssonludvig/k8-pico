@@ -3,6 +3,7 @@ package se.umu.cs.ads.types;
 public class Message {
     private MessageType type;
     private Object payload;
+    private String sender;
 
     public Message() {
         this.type = MessageType.EMPTY;
@@ -28,5 +29,13 @@ public class Message {
 
     public Object getPayload() {
         return this.payload;
+    }
+
+    public void setSender(String sender) {
+        this.sender = sender;
+    }
+
+    public String getSender() {
+        return this.sender;
     }
 }

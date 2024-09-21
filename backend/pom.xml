@@ -4,10 +4,10 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>se.umu.cs.ads</groupId>
-    <artifactId>K8-pico</artifactId>
+    <artifactId>K8-pico-backend</artifactId>
     <packaging>jar</packaging>
     <version>1.0</version>
-    <name>K8-pico</name>
+    <name>K8-pico-backend</name>
     <url>http://maven.apache.org</url>
 
     <repositories>
@@ -78,11 +78,11 @@
         </dependency>
 
         <!-- K8-pico common package -->
-<!--        <dependency>-->
-<!--            <groupId>se.umu.cs.ads</groupId>-->
-<!--            <artifactId>K8-pico-common</artifactId>-->
-<!--            <version>1.0</version>-->
-<!--        </dependency>-->
+       <dependency>
+           <groupId>se.umu.cs.ads</groupId>
+           <artifactId>K8-pico-common</artifactId>
+           <version>1.0</version>
+       </dependency>
     </dependencies>
     <build>
         <extensions>
@@ -109,7 +109,7 @@
                                 <Class-Path>./</Class-Path>
                             </manifestEntries>
                             <manifest>
-                                <mainClass>se.umu.cs.ads.Main</mainClass>
+                                <mainClass>se.umu.cs.ads.Backend</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
