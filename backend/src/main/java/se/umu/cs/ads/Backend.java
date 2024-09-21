@@ -3,13 +3,14 @@ package se.umu.cs.ads;
 import java.sql.SQLOutput;
 import java.util.ArrayList;
 
-import se.umu.cs.ads.node_manager.Manager;
+import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.podengine.PodEngine;
+import se.umu.cs.ads.types.*;
 
 public class Backend {
     public static void main(String[] args) {
         try {
-            Manager man = new Manager();
+            NodeManager man = new NodeManager();
             man.start("k8-pico", args[0]);
 
 
@@ -27,13 +28,13 @@ public class Backend {
 
                     String imgName = line.split(" ")[0];
                     String contName = line.split(" ")[1];
-                    ArrayList<String> data = new ArrayList<>();
 
-                    data.add(imgName);
-                    data.add(contName);
-                    man.broadcast(data);
+                    JMessage message = new JMessage(
+                            MessageType.CREATE_CONTAINER,
+                            new String[]{imgName, contName}
+                    );
 
-
+                    man.broadcast(message);
                 }
             }
 

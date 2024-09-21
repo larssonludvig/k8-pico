@@ -3,10 +3,10 @@ package se.umu.cs.ads.types;
 public enum MessageType {
     // Fetches
     FETCH_NODES,
-    FETCH_POD_NAMES,
+    FETCH_CONTAINER_NAMES,
 
     // Creates
-    CREATE_POD,
+    CREATE_CONTAINER,
     
     // Empty as dummy
     EMPTY
