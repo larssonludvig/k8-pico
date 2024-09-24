@@ -2,7 +2,6 @@ package se.umu.cs.ads.podengine;
 
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerPort;
-import com.github.dockerjava.api.model.PortBinding;
 
 public class Pod {
     private final String id;

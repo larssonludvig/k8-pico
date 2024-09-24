@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,10 +53,17 @@ public class PodEngine {
         pods = new HashMap<>();
         pool = Executors.newCachedThreadPool();
         pulledImages = new HashSet<>();
-        //Configure host config
         hostConfig = configureHost();
         refreshImages();
         refreshContainers();
+    }
+
+    /**
+     * Returns a list of all names currently used by the podengine
+     * @return
+     */
+    public List<String> getPodNames() {
+        return pods.values().stream().map(Pod::getName).toList();
     }
 
     private HostConfig configureHost() {
@@ -113,7 +121,6 @@ public class PodEngine {
             if (cont.getId().equals(id))
                 return cont;
         }
-
         return null;
     }
 
@@ -158,13 +165,13 @@ public class PodEngine {
             resp = client.createContainerCmd(imageName)
                     .withHostConfig(hostConfig)
                     .withName(containerName)
+                    .withHostName(containerName)
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
             throw new PicoException(message);
         }
         String id = resp.getId();
-        //containerNames.put(containerName, id);
         logger.info("Container {} has id {}", containerName, id);
 
         //we need to re-read it to know port numbers...
@@ -210,7 +217,7 @@ public class PodEngine {
         logger.info("Container has id {}", id);
 
         if (isRunning(id)) {
-            logger.warn("Trying to start a container that is already running");
+            logger.warn("Trying to start a container that is already running. Skipping.");
             return pod;
         }
 
