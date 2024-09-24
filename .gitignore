@@ -28,6 +28,9 @@ replay_pid*
 *target/
 *bin/
 
+# python virtual environment
+**/venv
+
 # IDE files
 .idea/
 .vscode/
