@@ -1,4 +1,4 @@
-package se.umu.cs.ads.node_manager;
+package se.umu.cs.ads.nodemanager;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -11,10 +11,12 @@ import org.jgroups.View;
 import se.umu.cs.ads.podengine.Pod;
 import se.umu.cs.ads.podengine.PodEngine;
 
+import se.umu.cs.ads.types.*;
+
 /**
  * Class for cluster management
  */
-public class Manager {
+public class NodeManager {
     private JChannel ch = null;
     
     /**
@@ -87,18 +89,36 @@ public class Manager {
          */
         @Override
         public void receive(Message msg) {
-            ArrayList<String> obj = msg.getObject();
-            String imgName = obj.get(0);
-            String contName = obj.get(1);
+            if (msg.getObject() instanceof JMessage) {
+                JMessage jmsg = (JMessage) msg.getObject();
+                switch (jmsg.getType()) {
+                    case FETCH_NODES:
+                        System.out.println("FETCH_NODES");
+                        break;
+                    case FETCH_CONTAINER_NAMES:
+                        System.out.println("FETCH_CONTAINER_NAMES");
+                        break;
+                    case CREATE_CONTAINER:
+                        PodEngine engine = new PodEngine();
+                        Pod pod = (Pod) jmsg.getPayload();
 
-            PodEngine engine = new PodEngine();
-            try {
-                Pod pod = engine.createContainer(imgName, contName);
-                pod = engine.runContainer(contName);
-                String id = pod.getId();
-                System.out.println("Container started sucessfully!");
-            } catch (Exception e) {
-                System.err.println(e.getMessage());
+                        try {
+                            pod = engine.createContainer(pod.getImage(), pod.getName());
+                            pod = engine.runContainer(pod.getName());
+                            String id = pod.getId();
+                            System.out.println("Container started sucessfully!");
+                        } catch (Exception e) {
+                            System.err.println(e.getMessage());
+                        }
+
+                        break;
+                    case EMPTY:
+                        System.out.println("EMPTY");
+                        break;
+                    default:  
+                        System.out.println("Unknown message type");
+                        break;
+                }
             }
         }
 
