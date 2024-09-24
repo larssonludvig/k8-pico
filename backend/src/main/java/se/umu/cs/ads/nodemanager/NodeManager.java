@@ -8,10 +8,11 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
 import org.jgroups.View;
-import se.umu.cs.ads.podengine.Pod;
-import se.umu.cs.ads.podengine.PodEngine;
 
-import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.podengine.PodEngine;
+import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.JMessage;
+import se.umu.cs.ads.types.MessageType;
 
 /**
  * Class for cluster management

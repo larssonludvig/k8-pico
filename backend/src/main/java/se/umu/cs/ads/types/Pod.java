@@ -1,4 +1,4 @@
-package se.umu.cs.ads.podengine;
+package se.umu.cs.ads.types;
 
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerPort;
