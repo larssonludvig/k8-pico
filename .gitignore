@@ -27,6 +27,7 @@ replay_pid*
 # mvn target and bin folders
 *target/
 *bin/
+*obj/
 
 # python virtual environment
 **/venv
