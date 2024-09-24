@@ -59,4 +59,13 @@ public class Pod {
             this.internalPorts[i] = ports[i].getPrivatePort();
         }
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Pod) {
+            Pod pod = (Pod) obj;
+            return pod.getName().equals(this.name);
+        }
+        return false;
+    }
 }
