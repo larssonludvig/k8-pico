@@ -17,12 +17,13 @@
         <jgroups.version>4.0.10.Final</jgroups.version>
         <json.version>20240303</json.version>
         <log4j.version>2.24.0</log4j.version>
+		<spring.version>3.3.4</spring.version>
     </properties>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.3</version>
+		<version>3.3.4</version>
  	</parent>
 
     <dependencies>
@@ -67,7 +68,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot</artifactId>
-			<version>3.3.3</version>
    	 	</dependency>
 
     	<dependency>
@@ -127,7 +127,7 @@
                                 <Class-Path>./</Class-Path>
                             </manifestEntries>
                             <manifest>
-                                <mainClass>se.umu.cs.ads.Backend</mainClass>
+                                <mainClass>se.umu.cs.ads.Main</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>

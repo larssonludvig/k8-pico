@@ -143,44 +143,35 @@ public class PodEngine {
         return getContainer(id, false) != null;
     }
 
-    /**
-     * Create a new container given the image and the container name
-     *
-     * <p>
-     *     This function will take care if the provided image is not found, and pull if required.
-     * </p>
-     * @param imageName the name of the image, including its version seperated by colon ':'
-     * @param containerName the name if the new image
-     * @return The newly created pod
-     * @throws PicoException if the underlying operations failed
-     */
-    public Pod createContainer(String imageName, String containerName) throws PicoException {
 
-        //Pull the image if it doesn't exist
-        if (!pulledImages.contains(imageName))
-            pullImage(imageName);
+	public Pod createContainer(Pod container) {
+		String name = container.getName();
+		String image = container.getImage();
+    	//Pull the image if it doesn't exist
+        if (!pulledImages.contains(name))
+            pullImage(image);
         else
-            logger.info("Container image {} already pulled since start, skipping.", imageName);
+            logger.info("Container image {} already pulled since start, skipping.", imgage);
 
 
-        if (pods.containsKey(containerName))
-            return pods.get(containerName);
+        if (pods.containsKey(name))
+            return pods.get(name);
 
 
-        logger.info("Creating container with name {}...", containerName);
+        logger.info("Creating container with name {}...", name);
         CreateContainerResponse resp;
         try {
-            resp = client.createContainerCmd(imageName)
+            resp = client.createContainerCmd(image)
                     .withHostConfig(hostConfig)
-                    .withName(containerName)
-                    .withHostName(containerName)
+                    .withName(name)
+                    .withHostName(name)
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
             throw new PicoException(message);
         }
         String id = resp.getId();
-        logger.info("Container {} has id {}", containerName, id);
+        logger.info("Container {} has id {}", name, id);
 
         //we need to re-read it to know port numbers...
 		//TODO: FIX
@@ -203,10 +194,27 @@ public class PodEngine {
             internal[i] = ports[i].getPrivatePort();
         }
 
-        Pod pod = new Pod(id).setImage(imageName).setName(containerName).setPorts(external, internal);
+        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(external, internal);
         pods.put(pod.getName(), pod);
         return pod;
-    }
+
+	}
+
+    /**
+     * Create a new container given the image and the container name
+     *
+     * <p>
+     *     This function will take care if the provided image is not found, and pull if required.
+     * </p>
+     * @param imageName the name of the image, including its version seperated by colon ':'
+     * @param containerName the name if the new image
+     * @return The newly created pod
+     * @throws PicoException if the underlying operations failed
+     */
+    public Pod createContainer(String imageName, String containerName) throws PicoException {
+			Pod tmp = new Pod().setImage(imageName).setName(containerName);
+			return createContainer(tmp);
+        }
 
     /**
      * Start a container

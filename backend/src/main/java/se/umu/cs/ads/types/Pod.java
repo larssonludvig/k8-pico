@@ -2,13 +2,15 @@ package se.umu.cs.ads.types;
 
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerPort;
+import java.util.*;
 
 public class Pod {
     private final String id;
     private String name;
     private String image;
-    private int[] externalPorts;
-    private int[] internalPorts;
+    private int[] externalPorts = null;
+    private int[] internalPorts = null;
+	private Map<String, String> env = new HashMap<>(); 
 
     public String getName() {
         return name;
@@ -37,6 +39,14 @@ public class Pod {
     public String getId() {
         return id;
     }
+
+	public Map<String, String> getEnv() {
+		return env;
+	}
+
+	public Pod() {
+		this.id = null;
+	}
 
     public Pod(String id) {
         this.id = id;
