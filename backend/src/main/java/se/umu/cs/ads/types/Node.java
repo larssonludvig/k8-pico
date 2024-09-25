@@ -1,14 +1,17 @@
 package se.umu.cs.ads.types;
 
 import java.util.ArrayList;
+import java.io.Serializable;
 
-public class Node {
+public class Node implements Serializable {
     private String name;
     private String address;
     private String port;
     private String cluster;
 
     private ArrayList<Pod> pods;
+
+    public Node() {}
 
     public Node(String name) {
         this.name = name;
