@@ -16,14 +16,17 @@ import se.umu.cs.ads.types.*;
 @RequestMapping("/api")
 public class RESTController {
 	
-	@Autowired
 	private PodEngine engine;
 
-	public RESTController() {}
+	public RESTController() {
+		engine = new PodEngine();
+	}
 
 	@GetMapping("/containers")
 	public ResponseEntity<List<Pod>> getAllContainers() {
+		engine.refreshContainers();
 		List<Pod> containers = engine.getContainers();
+		System.out.println("pointer: " + containers);
 		return ResponseEntity.status(HttpStatus.OK).body(containers);
 	}
 
@@ -38,7 +41,9 @@ public class RESTController {
 	@PostMapping("/containers")
 	@ResponseBody
 	public Pod createContainer(@RequestBody Pod container) {
-		engine.createContainer(null, null);
+		// engine.createContainer(null, null);
+		return new Pod("hej");
+	
 	}
 
 	@DeleteMapping("/containers/{name}")
