@@ -144,14 +144,14 @@ public class PodEngine {
     }
 
 
-	public Pod createContainer(Pod container) {
+	public Pod createContainer(Pod container) throws PicoException {
 		String name = container.getName();
 		String image = container.getImage();
     	//Pull the image if it doesn't exist
         if (!pulledImages.contains(name))
             pullImage(image);
         else
-            logger.info("Container image {} already pulled since start, skipping.", imgage);
+            logger.info("Container image {} already pulled since start, skipping.", image);
 
 
         if (pods.containsKey(name))
@@ -165,6 +165,8 @@ public class PodEngine {
                     .withHostConfig(hostConfig)
                     .withName(name)
                     .withHostName(name)
+					.withEnv(container.getEnv())
+					.withExposedPorts(container.getExposedPorts())
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
@@ -185,18 +187,21 @@ public class PodEngine {
             throw new PicoException("Interrupted while creating new container");
         }
 
-        ContainerPort[] ports = cont.getPorts();
-        int[] external = new int[ports.length];
-        int[] internal = new int[ports.length];
+        ContainerPort[] containerPorts = cont.getPorts();
+      	List<Integer> external = new ArrayList<>();
 
-        for (int i = 0; i < ports.length; i++) {
-            external[i] = ports[i].getPublicPort();
-            internal[i] = ports[i].getPrivatePort();
-        }
+        for (int i = 0; i < containerPorts.length; i++) {
+			try {
+				external.add(containerPorts[i].getPublicPort());
+			} catch (NullPointerException e) {
+				continue;
+			}
+		}
+        
 
-        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(external, internal);
+        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(external);
         pods.put(pod.getName(), pod);
-        return pod;
+        return container;
 
 	}
 
