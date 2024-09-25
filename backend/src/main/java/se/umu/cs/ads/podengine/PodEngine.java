@@ -3,6 +3,7 @@ package se.umu.cs.ads.podengine;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
@@ -25,7 +26,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.Pod;
-
+import se.umu.cs.ads.utils.Util;
 public class PodEngine {
     private final DockerClient client;
     private final Executor pool;
@@ -98,18 +99,31 @@ public class PodEngine {
      */
     public void refreshContainers() {
         List<Container> containers = client.listContainersCmd().withShowAll(true).exec();
-
         for (Container cont : containers) {
             String id = cont.getId();
-            String name = cont.getNames()[0];
+            String name = Util.parsePodName(cont.getNames()[0]);
             String image = cont.getImage();
+			Map<Integer, Integer> ports = Util.containerPortsToInt(cont.getPorts());
+
+			InspectContainerResponse resp = client.inspectContainerCmd(id).exec();
+			List<String> env = parseEnv(resp.getConfig().getEnv());
+
+
             logger.info("Found container {} of image {} with id {}", name, image, id);
 
-            Pod pod = new Pod(cont);
+            Pod pod = new Pod(cont).setName(name).setImage(image).setPorts(ports).setEnv(env);
             pods.put(pod.getName(), pod);
         }
     }
 
+	private List<String> parseEnv(String[] fullEnv) {
+		List<String> env = new ArrayList<>();
+		for (String var : fullEnv) {
+			if (var.startsWith("K8"))
+				env.add(var);
+		}
+		return env;
+	}
 
     public void refreshImages() {
         List<Image> images = client.listImagesCmd().withShowAll(true).exec();
@@ -161,7 +175,7 @@ public class PodEngine {
         logger.info("Creating container with name {}...", name);
         CreateContainerResponse resp;
         try {
-            resp = client.createContainerCmd(image)
+			resp = client.createContainerCmd(image)
                     .withHostConfig(hostConfig)
                     .withName(name)
                     .withHostName(name)
@@ -185,25 +199,16 @@ public class PodEngine {
             }
         } catch (InterruptedException e) {
             throw new PicoException("Interrupted while creating new container");
-        }
-
-        ContainerPort[] containerPorts = cont.getPorts();
-      	List<Integer> external = new ArrayList<>();
-
-        for (int i = 0; i < containerPorts.length; i++) {
-			try {
-				external.add(containerPorts[i].getPublicPort());
-			} catch (NullPointerException e) {
-				continue;
-			}
 		}
-        
 
-        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(external);
+		Map<Integer, Integer> ports = Util.containerPortsToInt(cont.getPorts());
+
+        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(ports);
         pods.put(pod.getName(), pod);
         return container;
 
 	}
+
 
     /**
      * Create a new container given the image and the container name
