@@ -20,8 +20,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
-
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.exception.PicoException;
@@ -32,9 +31,9 @@ public class PodEngine {
     private final Executor pool;
     private final HostConfig hostConfig;
 
-    private final HashSet<String> pulledImages;
+    private final Set<String> pulledImages;
     //container name, pod
-    private final HashMap<String, Pod> pods;
+    private final Map<String, Pod> pods;
 
     private final static Logger logger = LogManager.getLogger(PodEngine.class.getName());
 
@@ -51,9 +50,9 @@ public class PodEngine {
                 .build();
 
         client = DockerClientImpl.getInstance(config, httpClient);
-        pods = new HashMap<>();
+        pods = new ConcurrentHashMap<>();
+        pulledImages = ConcurrentHashMap.newKeySet();
         pool = Executors.newCachedThreadPool();
-        pulledImages = new HashSet<>();
         hostConfig = configureHost();
         refreshImages();
         refreshContainers();
@@ -64,8 +63,13 @@ public class PodEngine {
      * @return
      */
     public List<String> getPodNames() {
-        return pods.values().stream().map(Pod::getName).toList();
+		return pods.values().stream().map(Pod::getName).toList();
     }
+
+	public List<Pod> getContainers() {
+		refreshContainers();
+		return new ArrayList<Pod>(pods.values());
+	}
 
     private HostConfig configureHost() {
         HostConfig conf = new HostConfig();
@@ -125,6 +129,9 @@ public class PodEngine {
         return null;
     }
 
+	public Pod getContainer(String name) {
+		return pods.get(name);
+	}
 
     /**
      * Check if a container is running
@@ -136,46 +143,38 @@ public class PodEngine {
         return getContainer(id, false) != null;
     }
 
-    /**
-     * Create a new container given the image and the container name
-     *
-     * <p>
-     *     This function will take care if the provided image is not found, and pull if required.
-     * </p>
-     * @param imageName the name of the image, including its version seperated by colon ':'
-     * @param containerName the name if the new image
-     * @return The newly created pod
-     * @throws PicoException if the underlying operations failed
-     */
-    public Pod createContainer(String imageName, String containerName) throws PicoException {
 
-        //Pull the image if it doesn't exist
-        if (!pulledImages.contains(imageName))
-            pullImage(imageName);
+	public Pod createContainer(Pod container) {
+		String name = container.getName();
+		String image = container.getImage();
+    	//Pull the image if it doesn't exist
+        if (!pulledImages.contains(name))
+            pullImage(image);
         else
-            logger.info("Container image {} already pulled since start, skipping.", imageName);
+            logger.info("Container image {} already pulled since start, skipping.", imgage);
 
 
-        if (pods.containsKey(containerName))
-            return pods.get(containerName);
+        if (pods.containsKey(name))
+            return pods.get(name);
 
 
-        logger.info("Creating container with name {}...", containerName);
+        logger.info("Creating container with name {}...", name);
         CreateContainerResponse resp;
         try {
-            resp = client.createContainerCmd(imageName)
+            resp = client.createContainerCmd(image)
                     .withHostConfig(hostConfig)
-                    .withName(containerName)
-                    .withHostName(containerName)
+                    .withName(name)
+                    .withHostName(name)
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
             throw new PicoException(message);
         }
         String id = resp.getId();
-        logger.info("Container {} has id {}", containerName, id);
+        logger.info("Container {} has id {}", name, id);
 
         //we need to re-read it to know port numbers...
+		//TODO: FIX
         Container cont = getContainer(id, true);
         try {
             while (cont == null) {
@@ -195,10 +194,27 @@ public class PodEngine {
             internal[i] = ports[i].getPrivatePort();
         }
 
-        Pod pod = new Pod(id).setImage(imageName).setName(containerName).setPorts(external, internal);
+        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(external, internal);
         pods.put(pod.getName(), pod);
         return pod;
-    }
+
+	}
+
+    /**
+     * Create a new container given the image and the container name
+     *
+     * <p>
+     *     This function will take care if the provided image is not found, and pull if required.
+     * </p>
+     * @param imageName the name of the image, including its version seperated by colon ':'
+     * @param containerName the name if the new image
+     * @return The newly created pod
+     * @throws PicoException if the underlying operations failed
+     */
+    public Pod createContainer(String imageName, String containerName) throws PicoException {
+			Pod tmp = new Pod().setImage(imageName).setName(containerName);
+			return createContainer(tmp);
+        }
 
     /**
      * Start a container
@@ -208,11 +224,13 @@ public class PodEngine {
      * @throws PicoException
      */
     public Pod runContainer(String name) throws PicoException {
-        Pod pod;
-		if (!pods.containsKey(name))
-            throw new PicoException(String.format("No pod with name %s was found. Create it first!", name));
-        else
-            pod = pods.get(name);
+		Pod pod;
+		synchronized (this) {
+			if (!pods.containsKey(name))
+				throw new PicoException(String.format("No pod with name %s was found. Create it first!", name));
+			else
+				pod = pods.get(name);
+		}
 
         String id = pod.getId();
         logger.info("Container has id {}", id);
@@ -238,7 +256,7 @@ public class PodEngine {
     public void restartContainer(String name) throws PicoException {
         String id = pods.get(name).getId();
         if (id == null)
-            return; //TODO: better error checking
+            throw new PicoException("Could not restart container. No container with name: " + name);
 
         try {
             logger.info("Restarting container {}", name);
@@ -272,11 +290,13 @@ public class PodEngine {
     }
 
     public void removeContainer(String containerName) throws PicoException {
-        String id = pods.get(containerName).getId();
         try {
-            stopContainer(containerName);
-            client.removeContainerCmd(id).exec();
-            pods.remove(containerName);
+			synchronized (this) {
+				String id = pods.get(containerName).getId();
+				stopContainer(containerName);
+				client.removeContainerCmd(id).exec();
+				pods.remove(containerName);
+			}
         } catch (DockerException e) {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Failed to remove container %s, cause: %s", containerName, msg));

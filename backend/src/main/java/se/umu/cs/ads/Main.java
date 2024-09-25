@@ -2,8 +2,11 @@ package se.umu.cs.ads;
 
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.podengine.PodEngine;
+import se.umu.cs.ads.service.RESTManager;
 
 import java.util.List;
+
+import org.springframework.boot.SpringApplication;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -12,6 +15,8 @@ public class Main {
         if (args.length < 2) {
             System.err.println("Usage: <img name> <container name>");
         }
+
+		SpringApplication.run(RESTManager.class, args);
 
         SystemMetric metric = new SystemMetric();
         System.out.println("Current cpu load: " + metric.getCPULoad());
