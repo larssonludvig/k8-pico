@@ -3,12 +3,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.3.4</version>
+		<relativePath/>
+ 	</parent>
+
+
     <groupId>se.umu.cs.ads</groupId>
     <artifactId>K8-pico-backend</artifactId>
     <packaging>jar</packaging>
     <version>1.0</version>
     <name>K8-pico-backend</name>
     <url>http://maven.apache.org</url>
+
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,11 +29,6 @@
 		<spring.version>3.3.4</spring.version>
     </properties>
 
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.4</version>
- 	</parent>
 
     <dependencies>
         <!-- For docker-java-->
@@ -41,7 +45,7 @@
         </dependency>
 
         <!-- Logging-->
-        <dependency>
+        <!-- <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
@@ -50,7 +54,7 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
-        </dependency>
+        </dependency> -->
 
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -65,21 +69,20 @@
         </dependency>
 
 		<!-- Spring boot -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot</artifactId>
-   	 	</dependency>
-
     	<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
     	</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot</artifactId>
+   	 	</dependency>
+
+
    	 	<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
 		</dependency>
 
   	  	<dependency>
@@ -87,6 +90,14 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
     	</dependency>
+
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.17.2</version>
+		</dependency>
+
 
 
         <!-- JGroups -->
@@ -146,6 +157,19 @@
                     <target>17</target>
                 </configuration>
             </plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>3.3.4</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
     </build>
 </project>
