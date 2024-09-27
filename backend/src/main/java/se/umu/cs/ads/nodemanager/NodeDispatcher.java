@@ -46,6 +46,10 @@ public class NodeDispatcher implements RequestHandler {
             JMessage jmsg = (JMessage) msg.getObject();
 
             switch (jmsg.getType()) {
+                case FETCH_NODE:
+                    String name = (String) jmsg.getPayload();
+                    return this.nodeManager.getNode(name);
+
                 case FETCH_NODES:
                     return this.nodeManager.getNode();
 

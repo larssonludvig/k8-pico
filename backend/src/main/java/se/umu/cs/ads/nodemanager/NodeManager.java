@@ -24,8 +24,6 @@ public class NodeManager {
     private JChannel ch = null;
     private Node node = null;
 
-    // Node information management -------------------------------------------------
-
     public NodeManager() {
         this.node = new Node();
     }
@@ -34,23 +32,51 @@ public class NodeManager {
         this.node = new Node(name, ip, port, cluster);
     }
 
+    // Node information management -------------------------------------------------
+
     public Node getNode() {
         return this.node;
+    }
+
+    public Node getNode(String nodeName) {
+        try {
+            if (nodeName.equals(this.node.getName())) {
+                return this.node;
+            } else {
+                // Broadcast request to node
+                Address address = getAddressOfNode(nodeName);
+                if (address == null) {
+                    throw new Exception("Unable to fetch node, not a member of the cluster.");
+                }
+
+                JMessage msg = new JMessage(
+                    MessageType.FETCH_NODE,
+                    nodeName
+                );
+
+                Object result = send(address, msg);
+                if (!(result instanceof Node)) {
+                    throw new Exception("Fetched object is not of type Node.");
+                }
+
+                return (Node) result;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public List<Node> getNodes() {
         try {
             JMessage msg = new JMessage(
                 MessageType.FETCH_NODES,
-                "placeholder"
+                ""
             );
 
-            List<Node> nodes = broadcast(msg).stream()
+            return broadcast(msg).stream()
                 .map(obj -> (Node) obj)
                 .toList();
-            
-            // nodes.add(this.node);
-            return nodes;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
