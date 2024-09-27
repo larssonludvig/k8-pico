@@ -10,7 +10,7 @@ namespace k8_pico_frontend.Components.ApiService {
 
         public void initialize(string baseAddress) {
             client = new HttpClient();
-            client.BaseAddress = new System.Uri(baseAddress);
+            client.BaseAddress = new System.Uri(baseAddress + "/api/");
             Console.WriteLine("Client initialized with base address: " + baseAddress);
         }
 

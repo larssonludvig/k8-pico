@@ -1,8 +1,7 @@
 ﻿@page "/"
 @inject ApiService Api
 @using System.Globalization
-
-<PageTitle>Home</PageTitle>
+@using Microsoft.AspNetCore.Components.QuickGrid
 
 <div>
     <div>
@@ -17,26 +16,50 @@
     }
 </div>
 
-@*
-     Quickgrid containing information of nodes in the network
-*@
+<button @onclick="FetchNodes">Update node data</button>
+
+<QuickGrid Items="@nodes" Pagination=@pagination>
+    <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" Align="Align.Center" />
+    <PropertyColumn Property="@(x => x.Address)" />
+    <PropertyColumn Property="@(x => x.Port)" />
+    <PropertyColumn Property="@(x => x.Cluster)" />
+</QuickGrid>
 
 @code {
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    private IQueryable<Node>? nodes;
+
     private string? ip = null;
     private string? port = null;
     private string? connectionErrorStr = null;
+    private bool hasConnection = false;
 
-    private void Connect()
-    {
+    protected override async Task OnInitializedAsync() {
+        await FetchNodes();
+    }
+
+    private async Task FetchNodes() {
+        nodes = null;
+        StateHasChanged();
+
+        if (hasConnection) {
+            nodes = (await Api.Get<List<Node>>("nodes")).AsQueryable();
+        }
+
+        StateHasChanged();
+    }
+
+    private void Connect() {
         CultureInfo ci = new CultureInfo("en-US");
 
         if (String.IsNullOrEmpty(ip) || String.IsNullOrEmpty(port)) {
             connectionErrorStr = "Unable to conenct to given ip/port.";
-        } else if (!ip.StartsWith("https://", false, ci) || !ip.StartsWith("http://", false, ci)) {
-            connectionErrorStr = "Ip must start with \"http://\" or \"https://\"";
+        } else if (!ip.StartsWith("http://", false, ci)) {
+            connectionErrorStr = "Ip must start with \"http://\"";
         } else {
             connectionErrorStr = null;
             Api.initialize(ip + ":" + port);
+            hasConnection = true;
         }
     }
 }
