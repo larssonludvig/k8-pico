@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.types.Node;
 
+@CrossOrigin(maxAge = 3600)
 @RestController
 @RequestMapping("/api/nodes")
 public class NodeController {

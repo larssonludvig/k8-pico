@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import se.umu.cs.ads.podengine.PodEngine;
 import se.umu.cs.ads.types.*;
 
+@CrossOrigin(maxAge = 3600)
 @RestController
 @RequestMapping("/api")
 public class RESTController {
