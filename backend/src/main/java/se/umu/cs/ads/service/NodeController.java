@@ -12,7 +12,7 @@ import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.types.Node;
 
 @RestController
-@RequestMapping("api")
+@RequestMapping("/api/nodes")
 public class NodeController {
     private NodeManager nodeManager;
 
@@ -28,27 +28,19 @@ public class NodeController {
         }
     }
 
-    @GetMapping("node")
-    public ResponseEntity<Node> getCurrentNode() {
-        Node node = nodeManager.getNode();
-        if (node == null)
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        return ResponseEntity.status(HttpStatus.OK).body(node);
-    }
-
-    @GetMapping("node/{name}")
-    public ResponseEntity<Node> getNode(@PathVariable String name) {
-        Node node = nodeManager.getNode(name);
-        if (node == null)
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        return ResponseEntity.status(HttpStatus.OK).body(node);
-    }
-
-    @GetMapping("nodes")
+    @GetMapping("")
     public ResponseEntity<List<Node>> getNodes() {
         List<Node> nodes = nodeManager.getNodes();
         if (nodes == null || nodes.size() <= 0)
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         return ResponseEntity.status(HttpStatus.OK).body(nodes);
+    }
+
+    @GetMapping("{name}")
+    public ResponseEntity<Node> getNode(@PathVariable String name) {
+        Node node = nodeManager.getNode(name);
+        if (node == null)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        return ResponseEntity.status(HttpStatus.OK).body(node);
     }
 }
