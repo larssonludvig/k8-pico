@@ -10,11 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import se.umu.cs.ads.podengine.PodEngine;
+import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.*;
 
 @CrossOrigin(maxAge = 3600)
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/containers")
 public class RESTController {
 	
 	private PodEngine engine;
@@ -23,7 +24,7 @@ public class RESTController {
 		engine = new PodEngine();
 	}
 
-	@GetMapping("/containers")
+	@GetMapping("")
 	public ResponseEntity<List<Pod>> getAllContainers() {
 		engine.refreshContainers();
 		List<Pod> containers = engine.getContainers();
@@ -31,7 +32,7 @@ public class RESTController {
 		return ResponseEntity.status(HttpStatus.OK).body(containers);
 	}
 
-	@GetMapping("/containers/{name}")
+	@GetMapping("{name}")
 	public ResponseEntity<Pod> getContainer(@PathVariable String name) {
 		Pod container = engine.getContainer(name);
 		if (container == null)
@@ -39,37 +40,40 @@ public class RESTController {
 		return ResponseEntity.status(HttpStatus.OK).body(container);
 	}
 
-	@PostMapping("/containers")
+	@PostMapping("")
 	@ResponseBody
-	public Pod createContainer(@RequestBody Pod container) {
-		// engine.createContainer(null, null);
-		return new Pod("hej");
-	
+	public ResponseEntity<?> createContainer(@RequestBody Pod container) {
+		try {
+			Pod created = engine.createContainer(container);
+			return ResponseEntity.ok().body(created);
+		} catch (PicoException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e);
+		}
 	}
 
-	@DeleteMapping("/containers/{name}")
+	@DeleteMapping("{name}")
 	public void removeContainer(@PathVariable String name) {
 	}
 
-	@GetMapping("/containers/{name}/logs")
+	@GetMapping("{name}/logs")
 	@ResponseBody
 	public List<String> getContainerLogs(@PathVariable String name) {
 		return new ArrayList<String>();
 	}
 
-	@PutMapping("/containers/{name}/start")
+	@PutMapping("{name}/start")
 	@ResponseBody
 	public Pod startContainer(@PathVariable String name) {
 		return new Pod("hej på dig");
 	}
 
-	@PutMapping("/containers/{name}/stop")
+	@PutMapping("{name}/stop")
 	@ResponseBody
 	public Pod stopContainer(@PathVariable String name) {
 		return new Pod("hej på dig");
 	}
 
-	@PutMapping("/containers/{name}/restart")
+	@PutMapping("{name}/restart")
 	public Pod restartContainer(@PathVariable String name) {
 		return new Pod("hej på dig");
 	}

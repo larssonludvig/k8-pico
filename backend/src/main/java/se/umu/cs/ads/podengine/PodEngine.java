@@ -162,14 +162,14 @@ public class PodEngine {
 		String name = container.getName();
 		String image = container.getImage();
     	//Pull the image if it doesn't exist
-        if (!pulledImages.contains(name))
+        if (!pulledImages.contains(image))
             pullImage(image);
         else
             logger.info("Container image {} already pulled since start, skipping.", image);
 
 
         if (pods.containsKey(name))
-            return pods.get(name);
+            throw new PicoException("Container with name " + name + " already exists");
 
 
         logger.info("Creating container with name {}...", name);
@@ -184,6 +184,9 @@ public class PodEngine {
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
+            throw new PicoException(message);
+        } catch (Exception e) {
+            String message = e.getMessage();
             throw new PicoException(message);
         }
         String id = resp.getId();

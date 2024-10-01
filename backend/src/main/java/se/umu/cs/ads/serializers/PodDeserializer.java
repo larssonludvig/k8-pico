@@ -34,11 +34,12 @@ public class PodDeserializer extends StdDeserializer<Pod> {
 		Map<Integer, Integer> ports = new HashMap<>();
 		List<String> env = new ArrayList<>();
 
-		if (portsRaw != null) {
+		if (portsRaw != null && !portsRaw.isNull()) {
 
 			if (!portsRaw.isArray()) 
 				throw new IllegalArgumentException("Ports must be a list!");
 			
+
 			Iterator<JsonNode> it = portsRaw.elements();
 
 			while (it.hasNext()) {
@@ -60,7 +61,7 @@ public class PodDeserializer extends StdDeserializer<Pod> {
 		}
 		
 
-		if (envRaw != null) {
+		if (envRaw != null && !envRaw.isNull()) {
 			if (!envRaw.isArray()) 
 				throw new IllegalArgumentException("Environment must be as a list: ['A=B', 'C=D']");
 			
