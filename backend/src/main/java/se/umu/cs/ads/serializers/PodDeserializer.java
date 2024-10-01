@@ -1,27 +1,77 @@
-// package se.umu.cs.ads.serializers;
+package se.umu.cs.ads.serializers;
 
-// import java.io.IOError;
-// import java.io.IOException;
-// import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
-// import com.fasterxml.jackson.core.JsonGenerationException;
-// import com.fasterxml.jackson.core.JsonGenerator;
-// import com.fasterxml.jackson.databind.SerializerProvider;
-// import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-// import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-// import com.fasterxml.jackson.datatype.jdk8.IntStreamSerializer;
-// import com.github.dockerjava.api.model.ExposedPort;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.core.JacksonException;
 
-// import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.Pod;
 
-// // public class PodDeserializer extends StdDeserializer<Pod> {
+public class PodDeserializer extends StdDeserializer<Pod> {
 
-// // 	public PodDeserializer(Class<Pod> t) {
-// // 		super(t);
-// // 	}
+	public PodDeserializer() {
+		this(null);
+	}
 
-// // 	@Override
-// // 	public void serialize(
-// // 		Pod container, JsonGenerator jgen, SerializerProvider provider)
-// // 		throws IOException {
+	public PodDeserializer(Class<Pod> t) {
+		super(t);
+	}
 
+	@Override
+	public Pod deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
+		JsonNode node = jp.getCodec().readTree(jp);
+		String id = node.get("id").asText(); //not used
+		String name = node.get("name").asText();
+		String image = node.get("image").asText();
+
+		JsonNode portsRaw = node.get("ports");
+		JsonNode envRaw = node.get("env");
+
+		Map<Integer, Integer> ports = new HashMap<>();
+		List<String> env = new ArrayList<>();
+
+		if (portsRaw != null) {
+
+			if (!portsRaw.isArray()) 
+				throw new IllegalArgumentException("Ports must be a list!");
+			
+			Iterator<JsonNode> it = portsRaw.elements();
+
+			while (it.hasNext()) {
+				String portBinding = it.next().asText();
+
+				String[] binding = portBinding.split(":");
+				if (binding.length < 2)
+					throw new IllegalArgumentException("Ports must be on the format 'external:internal'. Consult the docker API for more information.");
+				int exposed, internal;
+				try {
+					exposed = Integer.parseInt(binding[0]);
+					internal = Integer.parseInt(binding[1]);
+				} catch (NumberFormatException e) {
+					throw new IllegalArgumentException("Ports must be numbers.");
+				}
+
+				ports.put(exposed, internal);
+			}
+		}
+		
+
+		if (envRaw != null) {
+			if (!envRaw.isArray()) 
+				throw new IllegalArgumentException("Environment must be as a list: ['A=B', 'C=D']");
+			
+			Iterator<JsonNode> it = envRaw.elements();
+			while (it.hasNext()) 
+				env.add(it.next().asText());
+	
+		}
+
+		return new Pod().setName(name).setImage(image).setEnv(env).setPorts(ports);
+	}
+	
+
+}

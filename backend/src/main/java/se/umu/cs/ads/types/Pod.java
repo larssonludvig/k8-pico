@@ -1,16 +1,19 @@
 package se.umu.cs.ads.types;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerPort;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.PortBinding;
 
+import se.umu.cs.ads.serializers.PodDeserializer;
 import se.umu.cs.ads.serializers.PodSerializer;
 import se.umu.cs.ads.utils.Util;
 import java.util.*;
 
 @JsonSerialize(using = PodSerializer.class)
+@JsonDeserialize(using = PodDeserializer.class)
 public class Pod {
     private final String id;
     private String name;
