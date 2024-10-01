@@ -32,7 +32,7 @@ public class PodSerializer extends StdSerializer<Pod> {
 			jgen.writeStringField("id", container.getId());
 			jgen.writeStringField("name", container.getName());
 			jgen.writeStringField("image", container.getImage());
-			
+			jgen.writeStringField("status", container.getState().toString());			
 			List<String> ports = container.getPorts();
 			if (ports.size() > 0) {
 				jgen.writeArrayFieldStart("ports");

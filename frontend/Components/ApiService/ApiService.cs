@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace k8_pico_frontend.Components.ApiService {
     public class ApiService {
-        private HttpClient? client = null;
+        private static HttpClient? client = null;
 
         public void initialize(string baseAddress) {
             client = new HttpClient();

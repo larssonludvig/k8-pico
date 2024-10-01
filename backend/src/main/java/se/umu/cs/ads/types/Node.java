@@ -6,10 +6,10 @@ import java.io.Serializable;
 public class Node implements Serializable {
     private String name;
     private String address;
-    private String port;
+    private int port;
     private String cluster;
 
-    private ArrayList<Pod> pods;
+    private ArrayList<Pod> pods = new ArrayList<>();
 
     public Node() {}
 
@@ -17,7 +17,7 @@ public class Node implements Serializable {
         this.name = name;
     }
 
-    public Node(String name, String address, String port, String cluster) {
+    public Node(String name, String address, int port, String cluster) {
         this.name = name;
         this.address = address;
         this.port = port;
@@ -41,11 +41,11 @@ public class Node implements Serializable {
         this.address = address;
     }
 
-    public String getPort() {
+    public int getPort() {
         return port;
     }
 
-    public void setPort(String port) {
+    public void setPort(int port) {
         this.port = port;
     }
 

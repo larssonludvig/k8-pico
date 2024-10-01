@@ -6,15 +6,15 @@ import java.lang.IllegalArgumentException;
 
 import org.jgroups.Address;
 import org.jgroups.JChannel;
-import org.jgroups.Message;
-import org.jgroups.BytesMessage;
 import org.jgroups.Receiver;
 import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
 
+import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.types.JMessage;
 import se.umu.cs.ads.types.MessageType;
 import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.Pod;
 
 /**
  * Class for cluster management
@@ -22,14 +22,12 @@ import se.umu.cs.ads.types.Node;
 public class NodeManager {
     private NodeDispatcher disp = null;
     private JChannel ch = null;
-    private Node node = null;
+    public Node node = null;
+	private final Controller controller;
 
-    public NodeManager() {
+    public NodeManager(Controller controller) {
         this.node = new Node();
-    }
-
-    public NodeManager(String name, String ip, String port, String cluster) {
-        this.node = new Node(name, ip, port, cluster);
+		this.controller = controller;
     }
 
     // Node information management -------------------------------------------------
@@ -38,49 +36,39 @@ public class NodeManager {
         return this.node;
     }
 
-    public Node getNode(String nodeName) {
-        try {
-            if (nodeName.equals(this.node.getName())) {
-                return this.node;
-            } else {
-                // Broadcast request to node
-                Address address = getAddressOfNode(nodeName);
-                if (address == null) {
-                    throw new Exception("Unable to fetch node, not a member of the cluster.");
-                }
+    public Node getNode(String nodeName) throws Exception {
+        if (nodeName.equals(this.node.getName())) {
+            return this.node;
+        } else {
 
-                JMessage msg = new JMessage(
-                    MessageType.FETCH_NODE,
-                    nodeName
-                );
-
-                Object result = send(address, msg);
-                if (!(result instanceof Node)) {
-                    throw new Exception("Fetched object is not of type Node.");
-                }
-
-                return (Node) result;
+            Address address = getAddressOfNode(nodeName);
+            if (address == null) {
+                throw new Exception("Unable to fetch node, not a member of the cluster.");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+
+            JMessage msg = new JMessage(
+                MessageType.FETCH_NODE,
+                nodeName
+            );
+
+            Object result = send(address, msg);
+            if (!(result instanceof Node)) {
+                throw new Exception("Fetched object is not of type Node.");
+            }
+
+            return (Node) result;
         }
     }
 
-    public List<Node> getNodes() {
-        try {
-            JMessage msg = new JMessage(
-                MessageType.FETCH_NODES,
-                ""
-            );
+    public List<Node> getNodes() throws Exception {
+        JMessage msg = new JMessage(
+            MessageType.FETCH_NODES,
+            ""
+        );
 
-            return broadcast(msg).stream()
-                .map(obj -> (Node) obj)
-                .toList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        return broadcast(msg).stream()
+            .map(obj -> (Node) obj)
+            .toList();
     }
 
     // Cluster and channel management ----------------------------------------------
@@ -108,12 +96,14 @@ public class NodeManager {
 
         this.node.setName(node);
         this.node.setCluster(cluster);
-
+		
         this.ch = new JChannel()
             .name(node)
             // .setDiscardOwnMessages(true)
             .setReceiver(new CustomReceiver(node));
 
+		this.node.setAddress(ch.getAddressAsString());
+		this.node.setPort(controller.getPort());
         NodeDispatcher nDisp = new NodeDispatcher();
         this.disp = nDisp.initialize(
             new MessageDispatcher(this.ch, nDisp),
@@ -122,6 +112,10 @@ public class NodeManager {
 
         this.ch.connect(cluster);
     }
+
+	public void stop() {
+		this.ch.disconnect();
+	}
 
     /**
      * Finds the address of a node by name
@@ -132,7 +126,7 @@ public class NodeManager {
         Optional<Address> optDest = ch.view().getMembers().stream()
             .filter(address -> node.equals(address.toString()))
             .findAny();
-
+		
         return optDest.orElse(null);
     }
 

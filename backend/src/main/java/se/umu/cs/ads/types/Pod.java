@@ -3,9 +3,7 @@ package se.umu.cs.ads.types;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.ContainerPort;
 import com.github.dockerjava.api.model.ExposedPort;
-import com.github.dockerjava.api.model.PortBinding;
 
 import se.umu.cs.ads.serializers.PodDeserializer;
 import se.umu.cs.ads.serializers.PodSerializer;
@@ -20,6 +18,8 @@ public class Pod {
     private String image;
     private Map<Integer, Integer> ports = new HashMap<>();
 	private List<String> env = new ArrayList<>(); 
+    private PodState state;
+
     public String getName() {
         return name;
     }
@@ -45,6 +45,15 @@ public class Pod {
 
 	public Pod setEnv(List<String> env) {
 		this.env = env;
+		return this;
+	}
+
+    public PodState getState() {
+        return state;
+    }
+
+	public Pod setState(PodState state) {
+		this.state = state;
 		return this;
 	}
 
@@ -97,4 +106,9 @@ public class Pod {
         }
         return false;
     }
+
+	@Override
+	public String toString() {
+		return "";
+	}
 }

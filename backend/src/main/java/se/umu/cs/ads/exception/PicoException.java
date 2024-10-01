@@ -1,6 +1,6 @@
 package se.umu.cs.ads.exception;
 
-public class PicoException extends Exception {
+public class PicoException extends RuntimeException {
     private final String message;
 
     public PicoException(String message) {

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.core.JacksonException;
 
 import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.PodState;
 
 public class PodDeserializer extends StdDeserializer<Pod> {
 
@@ -21,12 +22,25 @@ public class PodDeserializer extends StdDeserializer<Pod> {
 		super(t);
 	}
 
+	private PodState getState(String state) {
+		if (state.equals("RUNNING"))
+			return PodState.RUNNING;
+		else if (state.equals("STOPPED"))
+			return PodState.STOPPED;
+		else if (state.equals("RESTARTING"))
+			return PodState.RESTARTING;
+		else
+			return PodState.UNKNOWN;
+	}
+
 	@Override
 	public Pod deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
 		JsonNode node = jp.getCodec().readTree(jp);
 		String id = node.get("id").asText(); //not used
 		String name = node.get("name").asText();
 		String image = node.get("image").asText();
+		String stateStr = node.get("state").asText();
+		PodState state = getState(stateStr);
 
 		JsonNode portsRaw = node.get("ports");
 		JsonNode envRaw = node.get("env");
@@ -71,7 +85,7 @@ public class PodDeserializer extends StdDeserializer<Pod> {
 	
 		}
 
-		return new Pod().setName(name).setImage(image).setEnv(env).setPorts(ports);
+		return new Pod().setName(name).setImage(image).setEnv(env).setPorts(ports).setState(state);
 	}
 	
 

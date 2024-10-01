@@ -4,6 +4,7 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.command.InspectContainerResponse.ContainerState;
 import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
@@ -26,13 +27,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.PodState;
 import se.umu.cs.ads.utils.Util;
 public class PodEngine {
     private final DockerClient client;
-    private final Executor pool;
     private final HostConfig hostConfig;
 
     private final Set<String> pulledImages;
+
     //container name, pod
     private final Map<String, Pod> pods;
 
@@ -51,13 +53,15 @@ public class PodEngine {
                 .build();
 
         client = DockerClientImpl.getInstance(config, httpClient);
-        pods = new ConcurrentHashMap<>();
+        pods = new ConcurrentHashMap<>(64);
         pulledImages = ConcurrentHashMap.newKeySet();
-        pool = Executors.newCachedThreadPool();
         hostConfig = configureHost();
-        refreshImages();
-        refreshContainers();
+       
+		setImages(readImages());
+		setContainers(readContainers(true));
     }
+
+
 
     /**
      * Returns a list of all names currently used by the podengine
@@ -67,10 +71,10 @@ public class PodEngine {
 		return pods.values().stream().map(Pod::getName).toList();
     }
 
-	public List<Pod> getContainers() {
-		refreshContainers();
-		return new ArrayList<Pod>(pods.values());
+	public List<Pod> getContainers(boolean showAll) {
+		return new ArrayList<Pod>(readContainers(showAll).values());
 	}
+
 
     private HostConfig configureHost() {
         HostConfig conf = new HostConfig();
@@ -93,12 +97,23 @@ public class PodEngine {
         }
     }
 
+	public synchronized void setContainers(Map<String, Pod> containers) {
+		this.pods.clear();
+		this.pods.putAll(containers);
+	}
+
+	public synchronized void setImages(List<String> images) {
+		this.pulledImages.clear();
+		this.pulledImages.addAll(images);
+	}
+
     /**
      * Fetch all available containers from the deamon.
      * Similar ot running $ docker container ls -a
      */
-    public void refreshContainers() {
-        List<Container> containers = client.listContainersCmd().withShowAll(true).exec();
+    public Map<String, Pod> readContainers(boolean showAll) {
+		Map<String, Pod> pods = new HashMap<>();
+        List<Container> containers = client.listContainersCmd().withShowAll(showAll).exec();
         for (Container cont : containers) {
             String id = cont.getId();
             String name = Util.parsePodName(cont.getNames()[0]);
@@ -107,13 +122,34 @@ public class PodEngine {
 
 			InspectContainerResponse resp = client.inspectContainerCmd(id).exec();
 			List<String> env = parseEnv(resp.getConfig().getEnv());
-
+			PodState state = parseState(resp.getState());
 
             logger.info("Found container {} of image {} with id {}", name, image, id);
 
-            Pod pod = new Pod(cont).setName(name).setImage(image).setPorts(ports).setEnv(env);
+            Pod pod = new Pod(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
             pods.put(pod.getName(), pod);
         }
+		return pods;
+    }
+
+	private PodState parseState(ContainerState state) {
+		if (state.getRunning())
+			return PodState.RUNNING;
+		else if (state.getRestarting())
+			return PodState.RESTARTING;
+		else if (state.getPaused())
+			return PodState.STOPPED;
+		return PodState.UNKNOWN;
+	}
+
+    public List<String> readImages() {
+        List<Image> images = client.listImagesCmd().withShowAll(true).exec();
+		List<String> imageNames = new ArrayList<>();
+        for (Image img : images) {
+            String[] tags = img.getRepoTags();
+            imageNames.addAll(Arrays.asList(tags));
+        }
+		return imageNames;
     }
 
 	private List<String> parseEnv(String[] fullEnv) {
@@ -125,24 +161,6 @@ public class PodEngine {
 		return env;
 	}
 
-    public void refreshImages() {
-        List<Image> images = client.listImagesCmd().withShowAll(true).exec();
-        for (Image img : images) {
-            String[] tags = img.getRepoTags();
-            this.pulledImages.addAll(Arrays.asList(tags));
-        }
-    }
-
-    public Container getContainer(String id, boolean showAll) throws PicoException {
-        List<Container> conts = client.listContainersCmd().withShowAll(showAll).exec();
-
-        for (Container cont : conts) {
-            if (cont.getId().equals(id))
-                return cont;
-        }
-        return null;
-    }
-
 	public Pod getContainer(String name) {
 		return pods.get(name);
 	}
@@ -153,12 +171,13 @@ public class PodEngine {
      * @return true or false
      * @throws PicoException If the operation failed
      */
-    public boolean isRunning(String id) throws PicoException {
-        return getContainer(id, false) != null;
+    public boolean isRunning(String name) throws PicoException {
+		Pod p = getContainer(name);
+		return p.getState() == PodState.RUNNING;
     }
 
 
-	public Pod createContainer(Pod container) throws PicoException {
+	public synchronized Pod createContainer(Pod container) throws PicoException {
 		String name = container.getName();
 		String image = container.getImage();
     	//Pull the image if it doesn't exist
@@ -194,21 +213,18 @@ public class PodEngine {
 
         //we need to re-read it to know port numbers...
 		//TODO: FIX
-        Container cont = getContainer(id, true);
+		Map<String, Pod> conts = readContainers(true);
         try {
-            while (cont == null) {
+            while (!conts.containsKey(name)) {
                 Thread.sleep(5);
-                cont = getContainer(id, true);
+				conts = readContainers(true);
             }
         } catch (InterruptedException e) {
             throw new PicoException("Interrupted while creating new container");
 		}
 
-		Map<Integer, Integer> ports = Util.containerPortsToInt(cont.getPorts());
-
-        Pod pod = new Pod(id).setImage(image).setName(name).setPorts(ports);
-        pods.put(pod.getName(), pod);
-        return container;
+		runContainer(name);
+        return conts.get(name);
 
 	}
 
@@ -267,9 +283,11 @@ public class PodEngine {
      * @param name name of the container to be restarted
      */
     public void restartContainer(String name) throws PicoException {
-        String id = pods.get(name).getId();
-        if (id == null)
+        Pod pod = pods.get(name);
+        if (pod == null)
             throw new PicoException("Could not restart container. No container with name: " + name);
+
+		String id = pod.getId();
 
         try {
             logger.info("Restarting container {}", name);

@@ -10,9 +10,7 @@ import org.jgroups.blocks.RequestHandler;
 import org.jgroups.blocks.MessageDispatcher;
 
 import se.umu.cs.ads.types.Pod;
-import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.types.MessageType;
 import se.umu.cs.ads.podengine.PodEngine;
 
 public class NodeDispatcher implements RequestHandler {
@@ -51,6 +49,7 @@ public class NodeDispatcher implements RequestHandler {
                     return this.nodeManager.getNode(name);
 
                 case FETCH_NODES:
+					//fetch active containers
                     return this.nodeManager.getNode();
 
                 case FETCH_CONTAINER_NAMES:
@@ -63,7 +62,6 @@ public class NodeDispatcher implements RequestHandler {
                     try {
                         pod = engine.createContainer(pod.getImage(), pod.getName());
                         pod = engine.runContainer(pod.getName());
-                        String id = pod.getId();
                         return "Container started sucessfully!";
                     } catch (Exception e) {
                         e.printStackTrace();

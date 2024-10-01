@@ -20,6 +20,7 @@
 {
     <div>
         <button @onclick="FetchNodes">Update node data</button>
+		<button @onclick="FetchContainers">List all containers</button>
 
         <div>
             <div>
@@ -41,12 +42,22 @@
             <PropertyColumn Property="@(x => x.Cluster)" />
         </QuickGrid>
     </div>
+
+
+	<div>
+        <QuickGrid Items="@containers">
+            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" Align="Align.Center" />
+            <PropertyColumn Property="@(x => x.Id)" />
+            <PropertyColumn Property="@(x => x.Image)" />
+        </QuickGrid>
+	</div>
 }
 
 
 @code {
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
     private IQueryable<Node>? nodes;
+	private IQueryable<Pod>? containers;
 
     private string? ip = null;
     private string? port = null;
@@ -80,6 +91,19 @@
         }
     }
 
+	private async Task FetchContainers() {
+		try {
+			containers = null;
+			if (hasConnection) {
+				containers = (await Api.Get<List<Pod>>("containers")).AsQueryable();
+			}
+			StateHasChanged();
+		} catch (HttpRequestException e) {
+			containers = null;
+			Console.WriteLine("Could not fetch nodes: " + e.Message);
+		}
+	}
+
     private void Connect() {
         try {
             CultureInfo ci = new CultureInfo("en-US");
@@ -87,7 +111,7 @@
             if (String.IsNullOrEmpty(ip) || String.IsNullOrEmpty(port)) {
                 connectionErrorStr = "Given ip/port was null or empty.";
             } else if (!ip.StartsWith("http://", false, ci)) {
-                connectionErrorStr = "Ip must start with \"http://\".";
+				ip = "http://" + ip;
             } else {
                 connectionErrorStr = null;
                 Api.initialize(ip + ":" + port);
