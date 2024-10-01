@@ -3,7 +3,7 @@
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.QuickGrid
 
-<div>
+<div style="margin-bottom: 2rem;">
     <div>
         <input type="text" @bind="ip" placeholder="IP Address" />
         <input type="text" style="width: 5rem;" @bind="port" placeholder="Port" />
@@ -16,14 +16,33 @@
     }
 </div>
 
-<button @onclick="FetchNodes">Update node data</button>
+@if (hasConnection)
+{
+    <div>
+        <button @onclick="FetchNodes">Update node data</button>
 
-<QuickGrid Items="@nodes" Pagination=@pagination>
-    <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" Align="Align.Center" />
-    <PropertyColumn Property="@(x => x.Address)" />
-    <PropertyColumn Property="@(x => x.Port)" />
-    <PropertyColumn Property="@(x => x.Cluster)" />
-</QuickGrid>
+        <div>
+            <div>
+                <input type="text" @bind="image" placeholder="Image" />
+                <input type="text" @bind="containerName" placeholder="Name" />
+                <button @onclick="CreateContainer" disabled="@(String.IsNullOrEmpty(image) || String.IsNullOrEmpty(containerName))">Create</button>
+            </div>
+        </div>
+
+        @if (!String.IsNullOrEmpty(nodesErrorStr))
+        {
+            <p style="color: red;">@nodesErrorStr</p>
+        }
+
+        <QuickGrid Items="@nodes" Pagination=@pagination>
+            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" Align="Align.Center" />
+            <PropertyColumn Property="@(x => x.Address)" />
+            <PropertyColumn Property="@(x => x.Port)" />
+            <PropertyColumn Property="@(x => x.Cluster)" />
+        </QuickGrid>
+    </div>
+}
+
 
 @code {
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
@@ -32,34 +51,69 @@
     private string? ip = null;
     private string? port = null;
     private string? connectionErrorStr = null;
+    private string? nodesErrorStr = null;
     private bool hasConnection = false;
+
+    private string? image = null;
+    private string? containerName = null;
 
     protected override async Task OnInitializedAsync() {
         await FetchNodes();
     }
 
     private async Task FetchNodes() {
-        nodes = null;
-        StateHasChanged();
+        try {
+            nodes = null;
+            nodesErrorStr = null;
+            StateHasChanged();
 
-        if (hasConnection) {
-            nodes = (await Api.Get<List<Node>>("nodes")).AsQueryable();
+            if (hasConnection) {
+                nodes = (await Api.Get<List<Node>>("nodes")).AsQueryable();
+            }
+
+            StateHasChanged();
+        } catch (HttpRequestException e) {
+            nodes = null;
+            nodesErrorStr = "Unable to fetch nodes information";
+            Console.WriteLine(e);
+            StateHasChanged();
         }
-
-        StateHasChanged();
     }
 
     private void Connect() {
-        CultureInfo ci = new CultureInfo("en-US");
+        try {
+            CultureInfo ci = new CultureInfo("en-US");
 
-        if (String.IsNullOrEmpty(ip) || String.IsNullOrEmpty(port)) {
-            connectionErrorStr = "Unable to conenct to given ip/port.";
-        } else if (!ip.StartsWith("http://", false, ci)) {
-            connectionErrorStr = "Ip must start with \"http://\"";
-        } else {
-            connectionErrorStr = null;
-            Api.initialize(ip + ":" + port);
-            hasConnection = true;
+            if (String.IsNullOrEmpty(ip) || String.IsNullOrEmpty(port)) {
+                connectionErrorStr = "Given ip/port was null or empty.";
+            } else if (!ip.StartsWith("http://", false, ci)) {
+                connectionErrorStr = "Ip must start with \"http://\".";
+            } else {
+                connectionErrorStr = null;
+                Api.initialize(ip + ":" + port);
+                hasConnection = true;
+            }
+        } catch (UriFormatException e) {
+            connectionErrorStr = "The hostname could not be parsed.";
+            hasConnection = false;
+            Console.WriteLine(e);
+            StateHasChanged();
+        }
+    }
+
+    private async void CreateContainer() {
+        try {
+            Pod pod = new Pod();
+            pod.Name = containerName != null ? containerName : "";
+            pod.Image = image != null ? image : "";
+
+            pod = await Api.Post<Pod>("containers", pod);
+
+            Console.WriteLine("Created new pod. Result: " + pod.Name + " " + pod.Image);
+        } catch (Exception e) {
+            nodesErrorStr = "Unable to send POST request to service.";
+            Console.WriteLine(e);
+            StateHasChanged();
         }
     }
 }
