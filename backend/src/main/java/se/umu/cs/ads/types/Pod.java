@@ -8,11 +8,15 @@ import com.github.dockerjava.api.model.ExposedPort;
 import se.umu.cs.ads.serializers.PodDeserializer;
 import se.umu.cs.ads.serializers.PodSerializer;
 import se.umu.cs.ads.utils.Util;
+
+import java.io.Serializable;
 import java.util.*;
 
 @JsonSerialize(using = PodSerializer.class)
 @JsonDeserialize(using = PodDeserializer.class)
-public class Pod {
+public class Pod implements Serializable {
+	private static final long serialVersionUID = 13376969L;
+
     private final String id;
     private String name;
     private String image;
@@ -109,6 +113,7 @@ public class Pod {
 
 	@Override
 	public String toString() {
-		return "";
+		return String.format("{} {}", this.name, this.image);
 	}
+
 }

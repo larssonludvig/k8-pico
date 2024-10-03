@@ -4,5 +4,4 @@ public enum PodState {
     RUNNING,
     STOPPED,
     RESTARTING,
-	UNKNOWN
 }

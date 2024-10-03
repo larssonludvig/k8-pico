@@ -25,18 +25,15 @@ public class PodDeserializer extends StdDeserializer<Pod> {
 	private PodState getState(String state) {
 		if (state.equals("RUNNING"))
 			return PodState.RUNNING;
-		else if (state.equals("STOPPED"))
-			return PodState.STOPPED;
 		else if (state.equals("RESTARTING"))
 			return PodState.RESTARTING;
 		else
-			return PodState.UNKNOWN;
+			return PodState.STOPPED;
 	}
 
 	@Override
 	public Pod deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
 		JsonNode node = jp.getCodec().readTree(jp);
-		String id = node.get("id").asText(); //not used
 		String name = node.get("name").asText();
 		String image = node.get("image").asText();
 		String stateStr = node.get("state").asText();
