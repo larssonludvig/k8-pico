@@ -17,11 +17,7 @@ public class NodeController {
 	@Autowired
 	RESTService service;
 
-	@Autowired
-	private ServerProperties serverProperties;
-
     public NodeController() {
-        service.getController().setPort(serverProperties.getPort());
     }
 
     @GetMapping("")

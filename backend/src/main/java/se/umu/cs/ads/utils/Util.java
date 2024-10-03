@@ -20,7 +20,6 @@ public class Util {
 				if (publicPort == null || internalPort == null)
 					continue;
 			
-				System.out.println("PORT: " + containerPorts.toString());
 				ports.put(publicPort, internalPort);
 			} catch (NullPointerException e) {
 				continue;
