@@ -1,29 +1,25 @@
 package se.umu.cs.ads.types;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.io.Serializable;
 
 public class Node implements Serializable {
+	private static final long serialVersionUID = 69691337L;
     private String name;
     private String address;
-    private int port;
     private String cluster;
+    private static final int PORT = 8080;
 
-    private ArrayList<Pod> pods = new ArrayList<>();
+    private final ArrayList<Pod> pods;
+    
 
-    public Node() {}
-
-    public Node(String name) {
-        this.name = name;
-    }
-
-    public Node(String name, String address, int port, String cluster) {
-        this.name = name;
-        this.address = address;
-        this.port = port;
+    public Node(String cluster) {
         this.cluster = cluster;
         this.pods = new ArrayList<>();
     }
+
+
 
     public String getName() {
         return name;
@@ -37,35 +33,39 @@ public class Node implements Serializable {
         return address;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
 
     public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
+        return PORT;
     }
 
     public String getCluster() {
         return cluster;
     }
 
+	public void setAddress(String addr) {
+		this.address = addr;
+	}
+
     public void setCluster(String cluster) {
         this.cluster = cluster;
     }
 
     public ArrayList<Pod> getPods() {
-        return pods;
+        synchronized (this) {
+			//create a copy so no one can modify the original list
+			return new ArrayList<>(pods);
+		}
     }
 
-    public void setPods(Pod pod) {
-        this.pods.add(pod);
+    public void setPods(List<Pod> pods) {
+        synchronized (this) {
+			this.pods.clear();
+			this.pods.addAll(pods);
+		}
     }
 
-    public void removePod(Pod pod) {
-        this.pods.remove(pod);
-    }
+	@Override
+	public String toString() {
+		return String.format("%s (%s)", name, address);
+	}
 }

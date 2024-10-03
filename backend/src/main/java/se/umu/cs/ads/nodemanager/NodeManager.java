@@ -3,13 +3,15 @@ package se.umu.cs.ads.nodemanager;
 import java.util.List;
 import java.util.Optional;
 import java.lang.IllegalArgumentException;
+import java.net.InetAddress;
 
 import org.jgroups.Address;
+import org.jgroups.Event;
 import org.jgroups.JChannel;
 import org.jgroups.Receiver;
 import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
-
+import org.jgroups.PhysicalAddress;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.types.JMessage;
 import se.umu.cs.ads.types.MessageType;
@@ -25,8 +27,8 @@ public class NodeManager {
     public Node node = null;
 	private final Controller controller;
 
-    public NodeManager(Controller controller) {
-        this.node = new Node();
+    public NodeManager(Controller controller, String cluster) {
+        this.node = new Node(cluster);
 		this.controller = controller;
     }
 
@@ -71,39 +73,27 @@ public class NodeManager {
             .toList();
     }
 
+	public synchronized void setActiveContainers(List<Pod> pods) {
+		this.node.setPods(pods);
+	}
+
     // Cluster and channel management ----------------------------------------------
     
-    /**
-     * Create or join a cluster by predefined node values
-     * @throws Exception IllegalArgumentException
-     */
-    public void start() throws Exception {
-        String cluster = this.node.getCluster();
-        String name = this.node.getName();
-
-        start(cluster, name);
-    }
-
     /**
      * Create or join cluster by paramiters
      * @param cluster Name of cluster to join
      * @param node Name of this node
      * @throws Exception IllegalArgumentException
      */
-    public void start(String cluster, String node) throws Exception {
-        if (node == null || node.equals("") || cluster == null || cluster.equals(""))
-            throw new IllegalArgumentException("No name or clurster defined for node.");
+    public void start() throws Exception {
+       
 
-        this.node.setName(node);
-        this.node.setCluster(cluster);
-		
+		String cluster = this.node.getCluster();
         this.ch = new JChannel()
-            .name(node)
+            .name(node.getName())
             // .setDiscardOwnMessages(true)
-            .setReceiver(new CustomReceiver(node));
+            .setReceiver(new CustomReceiver(node.getName()));
 
-		this.node.setAddress(ch.getAddressAsString());
-		this.node.setPort(controller.getPort());
         NodeDispatcher nDisp = new NodeDispatcher();
         this.disp = nDisp.initialize(
             new MessageDispatcher(this.ch, nDisp),
@@ -111,7 +101,25 @@ public class NodeManager {
         );
 
         this.ch.connect(cluster);
-    }
+
+		this.node.setName(this.ch.getName());
+		this.node.setAddress(getAddress());
+
+		System.out.println("Current node: " + this.node);
+	}
+
+	private String getAddress() {
+		if (this.ch == null)
+			throw new IllegalStateException("Cannot determine address if channel is not created yet.");
+
+			Object o = this.ch.down(new Event(Event.GET_PHYSICAL_ADDRESS, this.ch.getAddress()));
+
+			if (!(o instanceof PhysicalAddress))
+				throw new IllegalStateException("Cannot determine local address");
+			
+			PhysicalAddress address = (PhysicalAddress) o;
+			return address.printIpAddress();
+	}
 
 	public void stop() {
 		this.ch.disconnect();
