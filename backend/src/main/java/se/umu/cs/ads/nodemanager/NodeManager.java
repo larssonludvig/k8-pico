@@ -1,10 +1,13 @@
 package se.umu.cs.ads.nodemanager;
 
-import java.util.List;
+import java.util.*;
 import java.util.Optional;
 import java.lang.IllegalArgumentException;
 import java.net.InetAddress;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.compress.archivers.ar.ArArchiveEntry;
+import org.apache.logging.log4j.LogManager;
 import org.jgroups.Address;
 import org.jgroups.Event;
 import org.jgroups.JChannel;
@@ -18,6 +21,10 @@ import se.umu.cs.ads.types.MessageType;
 import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.Pod;
 
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * Class for cluster management
  */
@@ -26,10 +33,14 @@ public class NodeManager {
     private JChannel ch = null;
     public Node node = null;
 	private final Controller controller;
+	private AtomicReference<View> currentView;
 
+	private final static Logger logger = LogManager.getLogger(NodeManager.class);
     public NodeManager(Controller controller, String cluster) {
         this.node = new Node(cluster);
 		this.controller = controller;
+		this.currentView = new AtomicReference<>();
+		this.currentView.set(new View());
     }
 
     // Node information management -------------------------------------------------
@@ -37,6 +48,21 @@ public class NodeManager {
     public Node getNode() {
         return this.node;
     }
+
+	public synchronized void refreshView() {
+		View currentView = this.currentView.get();
+		View newView = this.ch.getView();
+		List<Address> newMembers = View.newMembers(currentView, newView);
+		List<Address> deadMembers = View.leftMembers(currentView, newView);
+		if (newMembers.size() > 0) 
+			System.out.println("New members: " + newMembers.get(0).toString());
+
+		if (deadMembers.size() > 0)
+			System.out.println("Dead members: " + deadMembers.get(0).toString());
+		
+		this.currentView.set(newView);
+		System.out.println("Current leader: " + getLeader());
+	}
 
     public Node getNode(String nodeName) throws Exception {
         if (nodeName.equals(this.node.getName())) {
@@ -79,6 +105,11 @@ public class NodeManager {
 
     // Cluster and channel management ----------------------------------------------
     
+	public Address getLeader() {
+			refreshView();
+			return this.currentView.get().getMembers().get(0);
+		}
+
     /**
      * Create or join cluster by paramiters
      * @param cluster Name of cluster to join
@@ -88,11 +119,13 @@ public class NodeManager {
     public void start() throws Exception {
        
 
+		this.node.setName(InetAddress.getLocalHost().getHostName());
+
 		String cluster = this.node.getCluster();
         this.ch = new JChannel()
             .name(node.getName())
             // .setDiscardOwnMessages(true)
-            .setReceiver(new CustomReceiver(node.getName()));
+            .setReceiver(new CustomReceiver(node.getName(), currentView));
 
         NodeDispatcher nDisp = new NodeDispatcher();
         this.disp = nDisp.initialize(
@@ -101,12 +134,11 @@ public class NodeManager {
         );
 
         this.ch.connect(cluster);
-
-		this.node.setName(this.ch.getName());
+		this.currentView.set(ch.getView());
 		this.node.setAddress(getAddress());
-
-		System.out.println("Current node: " + this.node);
+		logger.info("Node: {}", this.node);
 	}
+
 
 	private String getAddress() {
 		if (this.ch == null)
@@ -162,22 +194,26 @@ public class NodeManager {
      */
     protected static class CustomReceiver implements Receiver {
         protected final String name;
-
+		protected final AtomicReference<View> viewUpdater;
+		private static final Logger logger = LogManager.getLogger(CustomReceiver.class);
         /**
          * Custom receiver constructor
          * @param name Name of current node
          */
-        protected CustomReceiver(String name) {
+        protected CustomReceiver(String name, AtomicReference<View> viewUpdater) {
             this.name = name;
+			this.viewUpdater = viewUpdater;
         }
 
         /**
          * Override viewAccepted of Receiver
          * @param v Current cluster views
          */
-        @Override
+        // @Override
         public void viewAccepted(View v) {
-            System.out.printf("-- [%s] new view: %s\n", name, v);
+			viewUpdater.set(v);
+		    logger.info("-- [%s] new view: %s\n", name, v);
+			logger.error("New leader: " + v.getMembers().get(0));
         }
     }
 }

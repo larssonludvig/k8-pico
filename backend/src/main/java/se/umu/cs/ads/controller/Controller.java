@@ -15,16 +15,18 @@ import se.umu.cs.ads.nodemanager.NodeManager;
 
 import org.jgroups.Address;
 
+import ch.qos.logback.core.util.TimeUtil;
+
 public class Controller {
 	private final ExecutorService pool;
 	private final PodEngine engine;
-	private final static Logger logger = LogManager.getLogger(Controller.class.getName());
+	private final static Logger logger = LogManager.getLogger(Controller.class);
 	private final ScheduledExecutorService scheduler;
 	private final NodeManager manager;
 
 	public Controller() {
 		pool = Executors.newCachedThreadPool();
-		scheduler = Executors.newScheduledThreadPool(1);
+		scheduler = Executors.newScheduledThreadPool(2);
 		engine = new PodEngine();
 		manager = new NodeManager(this, "k8-pico");
 		manager.setActiveContainers(engine.getContainers(true));
@@ -54,6 +56,12 @@ public class Controller {
 			manager.setActiveContainers(new ArrayList<Pod>(pods.values()));
 
 		}, 10, 10, TimeUnit.SECONDS);
+
+
+		scheduler.scheduleAtFixedRate(() -> {
+			logger.info("Refreshing view...");
+			manager.refreshView();
+		}, 0, 5, TimeUnit.SECONDS);
 	}
 
 	public void shutdown() {
