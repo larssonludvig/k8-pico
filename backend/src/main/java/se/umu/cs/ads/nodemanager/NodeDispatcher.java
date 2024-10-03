@@ -3,6 +3,8 @@ package se.umu.cs.ads.nodemanager;
 import java.util.List;
 
 import org.jgroups.Message;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jgroups.Address;
 import org.jgroups.BytesMessage;
 import org.jgroups.blocks.RequestOptions;
@@ -16,7 +18,7 @@ import se.umu.cs.ads.podengine.PodEngine;
 public class NodeDispatcher implements RequestHandler {
     private MessageDispatcher disp;
     private NodeManager nodeManager;
-
+	private final static Logger logger = LogManager.getLogger(NodeDispatcher.class);
     public NodeDispatcher initialize(MessageDispatcher disp, NodeManager nodeManager) {
         this.disp = disp;
         this.nodeManager = nodeManager;
@@ -68,6 +70,19 @@ public class NodeDispatcher implements RequestHandler {
                     }
 
                     return "Failed to create container.";
+
+				case CONTAINER_LIST:
+					Object o = jmsg.getPayload();
+
+					try {
+						List<Pod> containers = (List<Pod>) o;
+						logger.info("Received {} containers from {}", containers.size(), jmsg.getSender());
+						return containers;
+					} catch(Exception e) {
+						logger.error("Received CONTAINER_LIST but payload was not list of containers");
+					}
+					
+					return null;
 
                 case EMPTY:
                     return "EMPTY, not implemented.";

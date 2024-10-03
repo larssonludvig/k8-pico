@@ -14,6 +14,7 @@ import org.jgroups.JChannel;
 import org.jgroups.Receiver;
 import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
+import org.jgroups.protocols.EXAMPLE;
 import org.jgroups.PhysicalAddress;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.types.JMessage;
@@ -54,14 +55,37 @@ public class NodeManager {
 		View newView = this.ch.getView();
 		List<Address> newMembers = View.newMembers(currentView, newView);
 		List<Address> deadMembers = View.leftMembers(currentView, newView);
-		if (newMembers.size() > 0) 
+		if (newMembers.size() > 0) {
 			System.out.println("New members: " + newMembers.get(0).toString());
+			//send our container to new members
+			sendContainersTo(newMembers);
+		}
 
 		if (deadMembers.size() > 0)
 			System.out.println("Dead members: " + deadMembers.get(0).toString());
 		
 		this.currentView.set(newView);
 		System.out.println("Current leader: " + getLeader());
+	}
+
+	private void sendContainersTo(List<Address> addresses) {
+		List<Pod> containers = controller.listAllContainers();
+		JMessage msg = new JMessage();
+
+		msg.setSender(this.node.getName());
+		msg.setPayload(containers);
+		msg.setType(MessageType.CONTAINER_LIST);
+
+		addresses.stream()
+		.filter(it -> !it.toString().equals(getAddress())) //filter ourselves out
+		.forEach(it -> {
+			try {
+				logger.info("Sending info regarding {} containers to {}", containers.size(), it);
+				send(it, msg);
+			} catch (Exception e) {
+				logger.error("Could not send message to {}: {}", it, e.getMessage());
+			}
+		});
 	}
 
     public Node getNode(String nodeName) throws Exception {

@@ -10,5 +10,8 @@ public enum MessageType {
     CREATE_CONTAINER,
     
     // Empty as dummy
-    EMPTY
+    EMPTY,
+
+	//Responses
+	CONTAINER_LIST
 }

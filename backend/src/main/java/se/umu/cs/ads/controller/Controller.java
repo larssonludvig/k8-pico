@@ -69,6 +69,11 @@ public class Controller {
 		pool.shutdown();
 	}
 
+	/**
+	 * Returns a list of all containers running on the current node
+	 * @return
+	 * @throws PicoException
+	 */
 	public List<Pod> listAllContainers() throws PicoException {
 		Future<List<Pod>> res = pool.submit(() -> {
 			return engine.getContainers(false);
