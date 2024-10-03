@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject ApiService Api
+@inject NavigationManager _nav
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -18,7 +19,7 @@
 
 @if (hasConnection)
 {
-    <div>
+    <div style="height: 20rem; overflow-y: scroll;">
         <button @onclick="FetchNodes">Update node data</button>
 		<button @onclick="FetchContainers">List all containers</button>
 
@@ -36,19 +37,24 @@
         }
 
         <QuickGrid Items="@nodes" Pagination=@pagination>
-            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" Align="Align.Center" />
+            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
             <PropertyColumn Property="@(x => x.Address)" />
             <PropertyColumn Property="@(x => x.Port)" />
             <PropertyColumn Property="@(x => x.Cluster)" />
+            <TemplateColumn>
+                <button @onclick='@(() => _nav.NavigateTo("/node/" + context.Name))'>-></button>
+            </TemplateColumn>
         </QuickGrid>
     </div>
 
-
-	<div>
+	<div style="height: 20rem; overflow-y: scroll;">
         <QuickGrid Items="@containers">
-            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" Align="Align.Center" />
-            <PropertyColumn Property="@(x => x.Id)" />
-            <PropertyColumn Property="@(x => x.Image)" />
+            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+            <PropertyColumn Property="@(x => x.Image)" Sortable="true" />
+            <PropertyColumn Property="@(x => x.Status)" Sortable="true" />
+            <TemplateColumn>
+                <button @onclick='@(() => _nav.NavigateTo("/container/" + context.Name))'>-></button>
+            </TemplateColumn>
         </QuickGrid>
 	</div>
 }
@@ -59,8 +65,8 @@
     private IQueryable<Node>? nodes;
 	private IQueryable<Pod>? containers;
 
-    private string? ip = null;
-    private string? port = null;
+    private string? ip = "http://10.0.0.15";
+    private string? port = "8080";
     private string? connectionErrorStr = null;
     private string? nodesErrorStr = null;
     private bool hasConnection = false;
@@ -104,7 +110,7 @@
 		}
 	}
 
-    private void Connect() {
+    private async Task Connect() {
         try {
             CultureInfo ci = new CultureInfo("en-US");
 
@@ -116,6 +122,9 @@
                 connectionErrorStr = null;
                 Api.initialize(ip + ":" + port);
                 hasConnection = true;
+
+                await FetchNodes();
+                await FetchContainers();
             }
         } catch (UriFormatException e) {
             connectionErrorStr = "The hostname could not be parsed.";

@@ -1,0 +1,65 @@
+@page "/node/{name}"
+@inject ApiService Api
+@inject NavigationManager _nav
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<h1>@node?.Name</h1>
+<div style="display: flex;">
+    @* General info *@
+    <div style="flex: 1; display: flex;">
+        <div style="margin-right: 2rem;">
+            <p style="font-weight: bold;">Address: </p>
+            <p style="font-weight: bold;">Port: </p>
+            <p style="font-weight: bold;">Cluster: </p>
+        </div>
+        <div>
+            <p>@node?.Address</p>
+            <p>@node?.Port</p>
+            <p>@node?.Cluster</p>
+        </div>
+    </div>
+    <div style="flex: 1; display: flex;">
+        <div style="margin-right: 2rem;">
+            <p style="font-weight: bold;">CPU usage: </p>
+            <p style="font-weight: bold;">RAM usage: </p>
+        </div>
+        <div>
+            <p>Not fetched</p>
+            <p>Not fetched</p>
+        </div>
+    </div>
+
+</div>
+
+<div style="max-height: 25rem; overflow-y: scroll;">
+    @* Containers grid *@
+    <QuickGrid Items="containers">
+        <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+        <PropertyColumn Property="@(x => x.Image)" Sortable="true" />
+        <PropertyColumn Property="@(x => x.Status)" Sortable="true" />
+            <TemplateColumn>
+                <button @onclick='@(() => _nav.NavigateTo("/container/" + context.Name))'>-></button>
+            </TemplateColumn>
+    </QuickGrid>
+</div>
+
+@code {
+    [Parameter] public string name { get; set; } = "";
+    
+    private Node? node = null;
+    private IQueryable<Pod>? containers = null; 
+    
+    protected override async Task OnInitializedAsync() {
+        await FetchNode();
+    }
+
+    private async Task FetchNode() {
+        try {
+            node = await Api.Get<Node>("nodes/" + name);
+            containers = node.Pods.AsQueryable();
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+        StateHasChanged();
+    }
+}
