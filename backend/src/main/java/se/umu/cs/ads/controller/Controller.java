@@ -2,23 +2,14 @@ package se.umu.cs.ads.controller;
 
 import java.util.concurrent.*;
 
-import org.apache.commons.io.DirectoryWalker.CancelException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.web.ServerProperties;
-import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
-import org.springframework.core.ExceptionDepthComparator;
-import org.springframework.scheduling.concurrent.ScheduledExecutorFactoryBean;
 
-import javassist.bytecode.CodeAttribute.RuntimeCopyException;
 
 import java.util.*;
 
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.podengine.PodEngine;
-import se.umu.cs.ads.service.RESTService;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
 
@@ -31,48 +22,38 @@ public class Controller {
 	private final ScheduledExecutorService scheduler;
 	private final NodeManager manager;
 
-	private int port;
-
-
 	public Controller() {
 		pool = Executors.newCachedThreadPool();
 		scheduler = Executors.newScheduledThreadPool(1);
 		engine = new PodEngine();
-		
-		System.out.print("What is the name of this node? ");
-		String line = System.console().readLine();
-		manager = new NodeManager(this);
-
+		manager = new NodeManager(this, "k8-pico");
+		manager.setActiveContainers(engine.getContainers(true));
 		try {
-			manager.start("k8-pico", line);
+			manager.start();
 		} catch (Exception e) {
 			logger.error("Error while starting node manager: " + e.getMessage());
-			System.exit(1);
+			System.exit(-1);
 		}
 
 		startPeriodicRefresh();
 	}
 
-	public void setPort(int port) {
-		this.port = port;
-		this.manager.node.setPort(port);
-	}
-
-	public int getPort() {
-		return this.port;
-	}
 
 	// Pod engine methods ----------------------------------------------------------
 
 	private void startPeriodicRefresh() {
 		scheduler.scheduleAtFixedRate(() -> {
 			long start = System.currentTimeMillis();
-			logger.info("Refreshing containers from system...");
-			engine.readContainers(true);
-			engine.readImages();
+			Map<String, Pod> pods = engine.readContainers(true);
+			List<String> images = engine.readImages();
+			engine.setContainers(pods);
+			engine.setImages(images);
 			long time = System.currentTimeMillis() - start;
-			logger.info("Refreshed containers and images in " + time + "ms");
-		}, 4, 4, TimeUnit.SECONDS);
+			logger.info("Refreshed containers and images in {} ms", time);
+
+			manager.setActiveContainers(new ArrayList<Pod>(pods.values()));
+
+		}, 10, 10, TimeUnit.SECONDS);
 	}
 
 	public void shutdown() {

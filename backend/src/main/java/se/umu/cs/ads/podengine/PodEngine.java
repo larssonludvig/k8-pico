@@ -124,7 +124,7 @@ public class PodEngine {
 			List<String> env = parseEnv(resp.getConfig().getEnv());
 			PodState state = parseState(resp.getState());
 
-            logger.info("Found container {} of image {} with id {}", name, image, id);
+            logger.debug("Found container {} of image {} with id {}", name, image, id);
 
             Pod pod = new Pod(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
             pods.put(pod.getName(), pod);
@@ -137,9 +137,7 @@ public class PodEngine {
 			return PodState.RUNNING;
 		else if (state.getRestarting())
 			return PodState.RESTARTING;
-		else if (state.getPaused())
-			return PodState.STOPPED;
-		return PodState.UNKNOWN;
+		return PodState.STOPPED;
 	}
 
     public List<String> readImages() {
