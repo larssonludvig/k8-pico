@@ -9,35 +9,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.core.JacksonException;
 
-import se.umu.cs.ads.types.Pod;
-import se.umu.cs.ads.types.PodState;
+import se.umu.cs.ads.types.*;
 
-public class PodDeserializer extends StdDeserializer<Pod> {
+public class ContainerDeserializer extends StdDeserializer<PicoContainer> {
 
-	public PodDeserializer() {
+	public ContainerDeserializer() {
 		this(null);
 	}
 
-	public PodDeserializer(Class<Pod> t) {
+	public ContainerDeserializer(Class<PicoContainer> t) {
 		super(t);
 	}
 
-	private PodState getState(String state) {
+	private PicoContainerState getState(String state) {
 		if (state.equals("RUNNING"))
-			return PodState.RUNNING;
+			return PicoContainerState.RUNNING;
 		else if (state.equals("RESTARTING"))
-			return PodState.RESTARTING;
+			return PicoContainerState.RESTARTING;
 		else
-			return PodState.STOPPED;
+			return PicoContainerState.STOPPED;
 	}
 
 	@Override
-	public Pod deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
+	public PicoContainer deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
 		JsonNode node = jp.getCodec().readTree(jp);
 		String name = node.get("name").asText();
 		String image = node.get("image").asText();
 		String stateStr = node.get("state").asText();
-		PodState state = getState(stateStr);
+		PicoContainerState state = getState(stateStr);
 
 		JsonNode portsRaw = node.get("ports");
 		JsonNode envRaw = node.get("env");
@@ -82,7 +81,7 @@ public class PodDeserializer extends StdDeserializer<Pod> {
 	
 		}
 
-		return new Pod().setName(name).setImage(image).setEnv(env).setPorts(ports).setState(state);
+		return new PicoContainer().setName(name).setImage(image).setEnv(env).setPorts(ports).setState(state);
 	}
 	
 

@@ -11,12 +11,12 @@ public class Node implements Serializable {
     private String cluster;
     private static final int PORT = 8080;
 
-    private final ArrayList<Pod> pods;
+    private final ArrayList<PicoContainer> containers;
     
 
     public Node(String cluster) {
         this.cluster = cluster;
-        this.pods = new ArrayList<>();
+        this.containers = new ArrayList<>();
     }
 
 
@@ -50,17 +50,17 @@ public class Node implements Serializable {
         this.cluster = cluster;
     }
 
-    public ArrayList<Pod> getPods() {
+    public ArrayList<PicoContainer> getContainers() {
         synchronized (this) {
 			//create a copy so no one can modify the original list
-			return new ArrayList<>(pods);
+			return new ArrayList<>(containers);
 		}
     }
 
-    public void setPods(List<Pod> pods) {
+    public void setContainers(List<PicoContainer> containers) {
         synchronized (this) {
-			this.pods.clear();
-			this.pods.addAll(pods);
+			this.containers.clear();
+			this.containers.addAll(containers);
 		}
     }
 

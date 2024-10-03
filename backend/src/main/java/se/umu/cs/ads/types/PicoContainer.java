@@ -5,16 +5,16 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
 
-import se.umu.cs.ads.serializers.PodDeserializer;
-import se.umu.cs.ads.serializers.PodSerializer;
+import se.umu.cs.ads.serializers.ContainerDeserializer;
+import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.utils.Util;
 
 import java.io.Serializable;
 import java.util.*;
 
-@JsonSerialize(using = PodSerializer.class)
-@JsonDeserialize(using = PodDeserializer.class)
-public class Pod implements Serializable {
+@JsonSerialize(using = ContainerSerializer.class)
+@JsonDeserialize(using = ContainerDeserializer.class)
+public class PicoContainer implements Serializable {
 	private static final long serialVersionUID = 13376969L;
 
     private final String id;
@@ -22,13 +22,13 @@ public class Pod implements Serializable {
     private String image;
     private Map<Integer, Integer> ports = new HashMap<>();
 	private List<String> env = new ArrayList<>(); 
-    private PodState state;
+    private PicoContainerState state;
 
     public String getName() {
         return name;
     }
 
-    public Pod setName(String name) {
+    public PicoContainer setName(String name) {
         this.name = name;
         return this;
     }
@@ -37,26 +37,26 @@ public class Pod implements Serializable {
         return image;
     }
 
-    public Pod setImage(String image) {
+    public PicoContainer setImage(String image) {
         this.image = image;
         return this;
     }
 
-    public Pod setPorts(Map<Integer, Integer> ports) {
+    public PicoContainer setPorts(Map<Integer, Integer> ports) {
 		this.ports = ports;
         return this;
     }
 
-	public Pod setEnv(List<String> env) {
+	public PicoContainer setEnv(List<String> env) {
 		this.env = env;
 		return this;
 	}
 
-    public PodState getState() {
+    public PicoContainerState getState() {
         return state;
     }
 
-	public Pod setState(PodState state) {
+	public PicoContainer setState(PicoContainerState state) {
 		this.state = state;
 		return this;
 	}
@@ -85,17 +85,17 @@ public class Pod implements Serializable {
 		return env;
 	}
 
-	public Pod() {
+	public PicoContainer() {
 		this.id = null;
 	}
 
-    public Pod(String id) {
+    public PicoContainer(String id) {
         this.id = id;
     }
 
-    public Pod(Container container) {
+    public PicoContainer(Container container) {
         this.id = container.getId();
-        this.name = Util.parsePodName(container.getNames()[0]);
+        this.name = Util.parseContainerName(container.getNames()[0]);
         this.image = container.getImage();		
 
 		Map<Integer, Integer> ports = Util.containerPortsToInt(container.getPorts());
@@ -104,9 +104,9 @@ public class Pod implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Pod) {
-            Pod pod = (Pod) obj;
-            return pod.getName().equals(this.name);
+        if (obj instanceof PicoContainer) {
+            PicoContainer container = (PicoContainer) obj;
+            return container.getName().equals(this.name);
         }
         return false;
     }

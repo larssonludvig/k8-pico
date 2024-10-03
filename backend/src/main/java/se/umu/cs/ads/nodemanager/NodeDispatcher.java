@@ -9,9 +9,9 @@ import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.RequestHandler;
 import org.jgroups.blocks.MessageDispatcher;
 
-import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.podengine.PodEngine;
+import se.umu.cs.ads.containerengine.ContainerEngine;
 
 public class NodeDispatcher implements RequestHandler {
     private MessageDispatcher disp;
@@ -56,12 +56,12 @@ public class NodeDispatcher implements RequestHandler {
                     return "FETCH_CONTAINER_NAMES, not implemented.";
 
                 case CREATE_CONTAINER:
-                    PodEngine engine = new PodEngine();
-                    Pod pod = (Pod) jmsg.getPayload();
+                    ContainerEngine engine = new ContainerEngine();
+                    PicoContainer container = (PicoContainer) jmsg.getPayload();
 
                     try {
-                        pod = engine.createContainer(pod.getImage(), pod.getName());
-                        pod = engine.runContainer(pod.getName());
+                        container = engine.createContainer(container.getImage(), container.getName());
+                        container = engine.runContainer(container.getName());
                         return "Container started sucessfully!";
                     } catch (Exception e) {
                         e.printStackTrace();

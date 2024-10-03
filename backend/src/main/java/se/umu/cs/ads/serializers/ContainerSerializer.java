@@ -11,21 +11,21 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.datatype.jdk8.IntStreamSerializer;
 import com.github.dockerjava.api.model.ExposedPort;
 
-import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.PicoContainer;
 
-public class PodSerializer extends StdSerializer<Pod> {
+public class ContainerSerializer extends StdSerializer<PicoContainer> {
 
-	public PodSerializer() {
+	public ContainerSerializer() {
 		this(null);
 	}
 
-	public PodSerializer(Class<Pod> t) {
+	public ContainerSerializer(Class<PicoContainer> t) {
 		super(t);
 	} 
 
 	@Override
 	public void serialize(
-		Pod container, JsonGenerator jgen, SerializerProvider provider)
+		PicoContainer container, JsonGenerator jgen, SerializerProvider provider)
 		throws IOException {
 			jgen.writeStartObject();
 

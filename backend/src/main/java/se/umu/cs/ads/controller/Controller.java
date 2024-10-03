@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 
 import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.podengine.PodEngine;
+import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
 
@@ -19,7 +19,7 @@ import ch.qos.logback.core.util.TimeUtil;
 
 public class Controller {
 	private final ExecutorService pool;
-	private final PodEngine engine;
+	private final ContainerEngine engine;
 	private final static Logger logger = LogManager.getLogger(Controller.class);
 	private final ScheduledExecutorService scheduler;
 	private final NodeManager manager;
@@ -27,7 +27,7 @@ public class Controller {
 	public Controller() {
 		pool = Executors.newCachedThreadPool();
 		scheduler = Executors.newScheduledThreadPool(2);
-		engine = new PodEngine();
+		engine = new ContainerEngine();
 		manager = new NodeManager(this, "k8-pico");
 		manager.setActiveContainers(engine.getContainers(true));
 		try {
@@ -46,14 +46,14 @@ public class Controller {
 	private void startPeriodicRefresh() {
 		scheduler.scheduleAtFixedRate(() -> {
 			long start = System.currentTimeMillis();
-			Map<String, Pod> pods = engine.readContainers(true);
+			Map<String, PicoContainer> containers = engine.readContainers(true);
 			List<String> images = engine.readImages();
-			engine.setContainers(pods);
+			engine.setContainers(containers);
 			engine.setImages(images);
 			long time = System.currentTimeMillis() - start;
 			logger.info("Refreshed containers and images in {} ms", time);
 
-			manager.setActiveContainers(new ArrayList<Pod>(pods.values()));
+			manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
 
 		}, 10, 10, TimeUnit.SECONDS);
 
@@ -69,8 +69,8 @@ public class Controller {
 		pool.shutdown();
 	}
 
-	public List<Pod> listAllContainers() throws PicoException {
-		Future<List<Pod>> res = pool.submit(() -> {
+	public List<PicoContainer> listAllContainers() throws PicoException {
+		Future<List<PicoContainer>> res = pool.submit(() -> {
 			return engine.getContainers(false);
 			});
 
@@ -84,8 +84,8 @@ public class Controller {
 	}
 
 
-	public Pod getRunningContainer(String name) throws PicoException {
-		Future<Pod> res = pool.submit(() ->  {
+	public PicoContainer getRunningContainer(String name) throws PicoException {
+		Future<PicoContainer> res = pool.submit(() ->  {
 			return engine.getContainer(name);
 		});
 
@@ -98,8 +98,8 @@ public class Controller {
 		}
 	}
 
-	public Pod createContainer(Pod container) throws PicoException {
-		Future<Pod> res = pool.submit(() -> {
+	public PicoContainer createContainer(PicoContainer container) throws PicoException {
+		Future<PicoContainer> res = pool.submit(() -> {
 			return engine.createContainer(container);
 		});
 		try {
@@ -132,8 +132,8 @@ public class Controller {
 		}
 	}
 
-	public Pod startContainer(String name) throws PicoException {
-		Future<Pod> res = pool.submit(() -> {
+	public PicoContainer startContainer(String name) throws PicoException {
+		Future<PicoContainer> res = pool.submit(() -> {
 			return engine.runContainer(name);
 		});
 

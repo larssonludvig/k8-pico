@@ -1,6 +1,6 @@
 package se.umu.cs.ads.types;
 
-public enum PodState {
+public enum PicoContainerState {
     RUNNING,
     STOPPED,
     RESTARTING,

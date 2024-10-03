@@ -1,4 +1,4 @@
-package se.umu.cs.ads.podengine;
+package se.umu.cs.ads.containerengine;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
@@ -26,21 +26,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.types.Pod;
-import se.umu.cs.ads.types.PodState;
+import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.utils.Util;
-public class PodEngine {
+public class ContainerEngine {
     private final DockerClient client;
     private final HostConfig hostConfig;
 
     private final Set<String> pulledImages;
 
-    //container name, pod
-    private final Map<String, Pod> pods;
+    //container name, container
+    private final Map<String, PicoContainer> containers;
 
-    private final static Logger logger = LogManager.getLogger(PodEngine.class.getName());
+    private final static Logger logger = LogManager.getLogger(ContainerEngine.class.getName());
 
-    public PodEngine() {
+    public ContainerEngine() {
 
         DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
 
@@ -53,7 +52,7 @@ public class PodEngine {
                 .build();
 
         client = DockerClientImpl.getInstance(config, httpClient);
-        pods = new ConcurrentHashMap<>(64);
+        containers = new ConcurrentHashMap<>(64);
         pulledImages = ConcurrentHashMap.newKeySet();
         hostConfig = configureHost();
        
@@ -64,15 +63,15 @@ public class PodEngine {
 
 
     /**
-     * Returns a list of all names currently used by the podengine
+     * Returns a list of all names currently used by the ContainerEngine
      * @return
      */
-    public List<String> getPodNames() {
-		return pods.values().stream().map(Pod::getName).toList();
+    public List<String> getContainerNames() {
+		return containers.values().stream().map(PicoContainer::getName).toList();
     }
 
-	public List<Pod> getContainers(boolean showAll) {
-		return new ArrayList<Pod>(readContainers(showAll).values());
+	public List<PicoContainer> getContainers(boolean showAll) {
+		return new ArrayList<PicoContainer>(readContainers(showAll).values());
 	}
 
 
@@ -97,9 +96,9 @@ public class PodEngine {
         }
     }
 
-	public synchronized void setContainers(Map<String, Pod> containers) {
-		this.pods.clear();
-		this.pods.putAll(containers);
+	public synchronized void setContainers(Map<String, PicoContainer> containers) {
+		this.containers.clear();
+		this.containers.putAll(containers);
 	}
 
 	public synchronized void setImages(List<String> images) {
@@ -111,33 +110,33 @@ public class PodEngine {
      * Fetch all available containers from the deamon.
      * Similar ot running $ docker container ls -a
      */
-    public Map<String, Pod> readContainers(boolean showAll) {
-		Map<String, Pod> pods = new HashMap<>();
-        List<Container> containers = client.listContainersCmd().withShowAll(showAll).exec();
-        for (Container cont : containers) {
+    public Map<String, PicoContainer> readContainers(boolean showAll) {
+		Map<String, PicoContainer> containers = new HashMap<>();
+        List<Container> containersList = client.listContainersCmd().withShowAll(showAll).exec();
+        for (Container cont : containersList) {
             String id = cont.getId();
-            String name = Util.parsePodName(cont.getNames()[0]);
+            String name = Util.parseContainerName(cont.getNames()[0]);
             String image = cont.getImage();
 			Map<Integer, Integer> ports = Util.containerPortsToInt(cont.getPorts());
 
 			InspectContainerResponse resp = client.inspectContainerCmd(id).exec();
 			List<String> env = parseEnv(resp.getConfig().getEnv());
-			PodState state = parseState(resp.getState());
+			PicoContainerState state = parseState(resp.getState());
 
             logger.debug("Found container {} of image {} with id {}", name, image, id);
 
-            Pod pod = new Pod(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
-            pods.put(pod.getName(), pod);
+            PicoContainer container = new PicoContainer(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
+            containers.put(container.getName(), container);
         }
-		return pods;
+		return containers;
     }
 
-	private PodState parseState(ContainerState state) {
+	private PicoContainerState parseState(ContainerState state) {
 		if (state.getRunning())
-			return PodState.RUNNING;
+			return PicoContainerState.RUNNING;
 		else if (state.getRestarting())
-			return PodState.RESTARTING;
-		return PodState.STOPPED;
+			return PicoContainerState.RESTARTING;
+		return PicoContainerState.STOPPED;
 	}
 
     public List<String> readImages() {
@@ -159,8 +158,8 @@ public class PodEngine {
 		return env;
 	}
 
-	public Pod getContainer(String name) {
-		return pods.get(name);
+	public PicoContainer getContainer(String name) {
+		return containers.get(name);
 	}
 
     /**
@@ -170,12 +169,12 @@ public class PodEngine {
      * @throws PicoException If the operation failed
      */
     public boolean isRunning(String name) throws PicoException {
-		Pod p = getContainer(name);
-		return p.getState() == PodState.RUNNING;
+		PicoContainer p = getContainer(name);
+		return p.getState() == PicoContainerState.RUNNING;
     }
 
 
-	public synchronized Pod createContainer(Pod container) throws PicoException {
+	public synchronized PicoContainer createContainer(PicoContainer container) throws PicoException {
 		String name = container.getName();
 		String image = container.getImage();
     	//Pull the image if it doesn't exist
@@ -185,7 +184,7 @@ public class PodEngine {
             logger.info("Container image {} already pulled since start, skipping.", image);
 
 
-        if (pods.containsKey(name))
+        if (containers.containsKey(name))
             throw new PicoException("Container with name " + name + " already exists");
 
 
@@ -211,7 +210,7 @@ public class PodEngine {
 
         //we need to re-read it to know port numbers...
 		//TODO: FIX
-		Map<String, Pod> conts = readContainers(true);
+		Map<String, PicoContainer> conts = readContainers(true);
         try {
             while (!conts.containsKey(name)) {
                 Thread.sleep(5);
@@ -235,11 +234,11 @@ public class PodEngine {
      * </p>
      * @param imageName the name of the image, including its version seperated by colon ':'
      * @param containerName the name if the new image
-     * @return The newly created pod
+     * @return The newly created container
      * @throws PicoException if the underlying operations failed
      */
-    public Pod createContainer(String imageName, String containerName) throws PicoException {
-			Pod tmp = new Pod().setImage(imageName).setName(containerName);
+    public PicoContainer createContainer(String imageName, String containerName) throws PicoException {
+            PicoContainer tmp = new PicoContainer().setImage(imageName).setName(containerName);
 			return createContainer(tmp);
         }
 
@@ -250,21 +249,21 @@ public class PodEngine {
      * @return
      * @throws PicoException
      */
-    public Pod runContainer(String name) throws PicoException {
-		Pod pod;
+    public PicoContainer runContainer(String name) throws PicoException {
+		PicoContainer container;
 		synchronized (this) {
-			if (!pods.containsKey(name))
-				throw new PicoException(String.format("No pod with name %s was found. Create it first!", name));
+			if (!containers.containsKey(name))
+				throw new PicoException(String.format("No container with name %s was found. Create it first!", name));
 			else
-				pod = pods.get(name);
+				container = containers.get(name);
 		}
 
-        String id = pod.getId();
+        String id = container.getId();
         logger.info("Container has id {}", id);
 
         if (isRunning(id)) {
             logger.warn("Trying to start a container that is already running. Skipping.");
-            return pod;
+            return container;
         }
 
         try {
@@ -273,7 +272,7 @@ public class PodEngine {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to start container %s, cause: %s", name, msg));
         }
-        return pod;
+        return container;
     }
 
     /**
@@ -281,11 +280,11 @@ public class PodEngine {
      * @param name name of the container to be restarted
      */
     public void restartContainer(String name) throws PicoException {
-        Pod pod = pods.get(name);
-        if (pod == null)
+        PicoContainer container = containers.get(name);
+        if (container == null)
             throw new PicoException("Could not restart container. No container with name: " + name);
 
-		String id = pod.getId();
+		String id = container.getId();
 
         try {
             logger.info("Restarting container {}", name);
@@ -309,7 +308,7 @@ public class PodEngine {
 
     public void stopContainer(String containerName) throws PicoException {
         try {
-            String id = pods.get(containerName).getId();
+            String id = containers.get(containerName).getId();
             logger.info("Stopping container {} with id {}", containerName, id);
             client.stopContainerCmd(id).exec();
         } catch (DockerException e) {
@@ -321,10 +320,10 @@ public class PodEngine {
     public void removeContainer(String containerName) throws PicoException {
         try {
 			synchronized (this) {
-				String id = pods.get(containerName).getId();
+				String id = containers.get(containerName).getId();
 				stopContainer(containerName);
 				client.removeContainerCmd(id).exec();
-				pods.remove(containerName);
+				containers.remove(containerName);
 			}
         } catch (DockerException e) {
             String msg = parseDockerException(e);
@@ -333,7 +332,7 @@ public class PodEngine {
     }
 
     public List<String> containerLog(String containerName) throws InterruptedException, IOException {
-        String id = pods.get(containerName).getId();
+        String id = containers.get(containerName).getId();
         List<String> logs = new ArrayList<>();
 
         CountDownLatch latch = new CountDownLatch(1);

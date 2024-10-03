@@ -16,10 +16,7 @@ import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.PhysicalAddress;
 import se.umu.cs.ads.controller.Controller;
-import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.types.MessageType;
-import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.Pod;
+import se.umu.cs.ads.types.*;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -99,8 +96,8 @@ public class NodeManager {
             .toList();
     }
 
-	public synchronized void setActiveContainers(List<Pod> pods) {
-		this.node.setPods(pods);
+	public synchronized void setActiveContainers(List<PicoContainer> containers) {
+		this.node.setContainers(containers);
 	}
 
     // Cluster and channel management ----------------------------------------------

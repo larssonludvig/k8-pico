@@ -28,7 +28,7 @@ public class Util {
 		return ports;
 	}
 
-	public static String parsePodName(String name) {
+	public static String parseContainerName(String name) {
 		String res = name;
 		if (name.startsWith("/"))
 			res = name.substring(1);

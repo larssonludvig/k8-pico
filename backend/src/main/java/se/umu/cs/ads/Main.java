@@ -1,7 +1,7 @@
 // package se.umu.cs.ads;
 
 // import se.umu.cs.ads.metrics.SystemMetric;
-// import se.umu.cs.ads.podengine.PodEngine;
+// import se.umu.cs.ads.containerengine.ContainerEngine;
 // import se.umu.cs.ads.service.RESTManager;
 
 // import java.util.List;
@@ -10,7 +10,7 @@
 
 // public class Main {
 //     public static void main(String[] args) throws Exception {
-//         PodEngine engine = new PodEngine();
+//         ContainerEngine engine = new ContainerEngine();
 
 //         if (args.length < 2) {
 //             System.err.println("Usage: <img name> <container name>");

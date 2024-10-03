@@ -18,14 +18,14 @@ public class ContainerController {
 	RESTService service;
 	
 	@GetMapping("")
-	public ResponseEntity<List<Pod>> getAllContainers() {
-		List<Pod> containers = service.getController().listAllContainers();
+	public ResponseEntity<List<PicoContainer>> getAllContainers() {
+		List<PicoContainer> containers = service.getController().listAllContainers();
 		return ResponseEntity.status(HttpStatus.OK).body(containers);
 	}
 
 	@GetMapping("{name}")
-	public ResponseEntity<Pod> getContainer(@PathVariable String name) {
-		Pod container = service.getController().getRunningContainer(name);
+	public ResponseEntity<PicoContainer> getContainer(@PathVariable String name) {
+		PicoContainer container = service.getController().getRunningContainer(name);
 		if (container == null)
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 		return ResponseEntity.status(HttpStatus.OK).body(container);
@@ -33,9 +33,9 @@ public class ContainerController {
 
 	@PostMapping("")
 	@ResponseBody
-	public ResponseEntity<?> createContainer(@RequestBody Pod container) {
+	public ResponseEntity<?> createContainer(@RequestBody PicoContainer container) {
 		try {
-			Pod created = service.getController().createContainer(container);
+			PicoContainer created = service.getController().createContainer(container);
 			return ResponseEntity.ok().body(created);
 		} catch (PicoException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
@@ -71,10 +71,10 @@ public class ContainerController {
 
 	@PutMapping("{name}/start")
 	@ResponseBody
-	public ResponseEntity<Pod> startContainer(@PathVariable String name) {
+	public ResponseEntity<PicoContainer> startContainer(@PathVariable String name) {
 		try {
-			Pod pod = service.getController().startContainer(name);
-			return ResponseEntity.status(HttpStatus.OK).body(pod);
+			PicoContainer container = service.getController().startContainer(name);
+			return ResponseEntity.status(HttpStatus.OK).body(container);
 		} catch (PicoException e) {
 			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
