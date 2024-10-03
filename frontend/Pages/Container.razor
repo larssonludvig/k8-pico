@@ -1,0 +1,114 @@
+@page "/container/{name}"
+@inject ApiService Api
+@inject NavigationManager _nav
+
+<h1>@name</h1>
+<div style="display: flex;">
+    @* General info *@
+    <div style="flex: 1; display: flex;">
+        <div style="margin-right: 2rem;">
+            <p style="font-weight: bold;">Name: </p>
+            <p style="font-weight: bold;">Image: </p>
+            <p style="font-weight: bold;">Ports: </p>
+            <p style="font-weight: bold;">Env: </p>
+        </div>
+        <div>
+            <p>@container?.Name</p>
+            <p>@container?.Image</p>
+            <p>Currently not shown</p>
+            <p>Currently not shown</p>
+        </div>
+    </div>
+    <div style="flex: 1; display: flex;">
+        <div style="margin-right: 2rem;">
+            <p style="font-weight: bold;">CPU usage: </p>
+            <p style="font-weight: bold;">RAM usage: </p>
+        </div>
+        <div>
+            <p>Not fetched</p>
+            <p>Not fetched</p>
+        </div>
+    </div>
+</div>
+
+<div style="display: flex; gap: 1rem;">
+    <button @onclick="StartContainer">Start</button>
+    <button @onclick="StopContainer">Stop</button>
+    <button @onclick="RestartContainer">Restart</button>
+    <button @onclick="RemoveContainer">Remove</button>
+</div>
+
+<div style="margin-top: 2rem;">
+    <p>Logs:</p>
+    <ul style="width: 100%; height: 30rem; overflow-y: scroll; outline: 1px solid gray; list-style-type: none;">
+        @foreach (string log in logs)
+        {
+            <li>@log</li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter] public string name { get; set; } = "";
+
+    private Pod? container = null;
+    private List<string> logs = new List<string>();
+
+    protected override async Task OnInitializedAsync() {
+        await FetchContainer();
+        await FetchLogs();
+    }
+
+    private async Task FetchContainer() {
+        try {
+            container = await Api.Get<Pod>("containers/" + name);
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+        StateHasChanged();
+    }
+
+    private async Task FetchLogs() {
+        try {
+            logs = await Api.Get<List<string>>("containers/" + name + "/logs");
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task StartContainer() {
+        try {
+            await Api.Put<Pod>(name + "/start", name);
+            StateHasChanged();
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task StopContainer() {
+        try {
+            await Api.Put<Pod>(name + "/stop", name);
+            StateHasChanged();
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task RestartContainer() {
+        try {
+            await Api.Put<Pod>(name + "/restart", name);
+            StateHasChanged();
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task RemoveContainer() {
+        try {
+            await Api.Put<Pod>(name + "/remove", name);
+            _nav.NavigateTo("/");
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+    }
+}

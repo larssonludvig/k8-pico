@@ -3,7 +3,7 @@
 @inject NavigationManager _nav
 @using Microsoft.AspNetCore.Components.QuickGrid
 
-<h1>@node?.Name</h1>
+<h1>@name</h1>
 <div style="display: flex;">
     @* General info *@
     <div style="flex: 1; display: flex;">
@@ -28,7 +28,6 @@
             <p>Not fetched</p>
         </div>
     </div>
-
 </div>
 
 <div style="max-height: 25rem; overflow-y: scroll;">
