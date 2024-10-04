@@ -114,6 +114,11 @@
             <artifactId>json</artifactId>
             <version>${json.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <extensions>
