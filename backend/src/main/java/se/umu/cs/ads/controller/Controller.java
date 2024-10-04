@@ -53,9 +53,7 @@ public class Controller {
 			long time = System.currentTimeMillis() - start;
 			logger.info("Refreshed containers and images in {} ms", time);
 
-			manager.setActiveContainers(new ArrayList<Pod>(pods.values()));
-
-		}, 10, 10, TimeUnit.SECONDS);
+		}, 5, 5, TimeUnit.SECONDS);
 
 
 		scheduler.scheduleAtFixedRate(() -> {
@@ -76,7 +74,7 @@ public class Controller {
 	 */
 	public List<Pod> listAllContainers() throws PicoException {
 		Future<List<Pod>> res = pool.submit(() -> {
-			return engine.getContainers(false);
+			return engine.getContainers(true);
 			});
 
 		try {
