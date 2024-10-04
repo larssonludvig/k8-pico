@@ -51,17 +51,15 @@ public class Controller {
 			engine.setContainers(containers);
 			engine.setImages(images);
 			long time = System.currentTimeMillis() - start;
+			manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
 			logger.info("Refreshed containers and images in {} ms", time);
 
 		}, 5, 5, TimeUnit.SECONDS);
-			manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
-
-		}, 10, 10, TimeUnit.SECONDS);
 
 
 		scheduler.scheduleAtFixedRate(() -> {
-			logger.info("Refreshing view...");
 			manager.refreshView();
+			logger.debug("Refreshed view");
 		}, 0, 5, TimeUnit.SECONDS);
 	}
 

@@ -75,7 +75,7 @@ public class NodeDispatcher implements RequestHandler {
 					Object o = jmsg.getPayload();
 
 					try {
-						List<Pod> containers = (List<Pod>) o;
+						List<PicoContainer> containers = (List<PicoContainer>) o;
 						logger.info("Received {} containers from {}", containers.size(), jmsg.getSender());
 						return containers;
 					} catch(Exception e) {

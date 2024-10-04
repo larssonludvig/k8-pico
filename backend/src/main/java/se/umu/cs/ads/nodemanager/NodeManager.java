@@ -69,7 +69,7 @@ public class NodeManager {
 	}
 
 	private void sendContainersTo(List<Address> addresses) {
-		List<Pod> containers = controller.listAllContainers();
+		List<PicoContainer> containers = controller.listAllContainers();
 		JMessage msg = new JMessage();
 
 		msg.setSender(this.node.getName());
