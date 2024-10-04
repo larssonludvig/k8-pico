@@ -53,6 +53,7 @@ public class Controller {
 			long time = System.currentTimeMillis() - start;
 			logger.info("Refreshed containers and images in {} ms", time);
 
+		}, 5, 5, TimeUnit.SECONDS);
 			manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
 
 		}, 10, 10, TimeUnit.SECONDS);
@@ -71,7 +72,7 @@ public class Controller {
 
 	public List<PicoContainer> listAllContainers() throws PicoException {
 		Future<List<PicoContainer>> res = pool.submit(() -> {
-			return engine.getContainers(false);
+			return engine.getContainers(true);
 			});
 
 		try {

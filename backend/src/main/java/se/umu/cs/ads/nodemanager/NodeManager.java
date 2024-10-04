@@ -14,6 +14,7 @@ import org.jgroups.JChannel;
 import org.jgroups.Receiver;
 import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
+import org.jgroups.protocols.EXAMPLE;
 import org.jgroups.PhysicalAddress;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.types.*;
@@ -30,14 +31,14 @@ public class NodeManager {
     private JChannel ch = null;
     public Node node = null;
 	private final Controller controller;
-	private AtomicReference<View> currentView;
+	private AtomicReference<View> view;
 
 	private final static Logger logger = LogManager.getLogger(NodeManager.class);
     public NodeManager(Controller controller, String cluster) {
         this.node = new Node(cluster);
 		this.controller = controller;
-		this.currentView = new AtomicReference<>();
-		this.currentView.set(new View());
+		this.view = new AtomicReference<>();
+		this.view.set(new View());
     }
 
     // Node information management -------------------------------------------------
@@ -47,18 +48,44 @@ public class NodeManager {
     }
 
 	public synchronized void refreshView() {
-		View currentView = this.currentView.get();
-		View newView = this.ch.getView();
-		List<Address> newMembers = View.newMembers(currentView, newView);
-		List<Address> deadMembers = View.leftMembers(currentView, newView);
-		if (newMembers.size() > 0) 
-			System.out.println("New members: " + newMembers.get(0).toString());
+			View currentView = this.view.get();
+			View newView = this.ch.getView();
+			List<Address> newMembers = View.newMembers(currentView, newView);
+			List<Address> deadMembers = View.leftMembers(currentView, newView);
+			
+			if (newMembers.size() > 1) {
+				System.out.println("New members: " + newMembers.get(0).toString());
+				//send our container to new members
+				sendContainersTo(newMembers);
+			}
 
-		if (deadMembers.size() > 0)
-			System.out.println("Dead members: " + deadMembers.get(0).toString());
-		
-		this.currentView.set(newView);
-		System.out.println("Current leader: " + getLeader());
+			if (deadMembers.size() > 1) {
+				System.out.println("Dead members: " + deadMembers.get(0).toString());
+			}
+			
+			this.view.set(newView);
+			logger.error("Current leader: " + getLeader());
+
+	}
+
+	private void sendContainersTo(List<Address> addresses) {
+		List<Pod> containers = controller.listAllContainers();
+		JMessage msg = new JMessage();
+
+		msg.setSender(this.node.getName());
+		msg.setPayload(containers);
+		msg.setType(MessageType.CONTAINER_LIST);
+
+		addresses.stream()
+		.filter(it -> !it.toString().equals(getAddress())) //filter ourselves out
+		.forEach(it -> {
+			try {
+				logger.info("Sending info regarding {} containers to {}", containers.size(), it);
+				send(it, msg);
+			} catch (Exception e) {
+				logger.error("Could not send message to {}: {}", it, e.getMessage());
+			}
+		});
 	}
 
     public Node getNode(String nodeName) throws Exception {
@@ -103,8 +130,7 @@ public class NodeManager {
     // Cluster and channel management ----------------------------------------------
     
 	public Address getLeader() {
-			refreshView();
-			return this.currentView.get().getMembers().get(0);
+			return this.view.get().getMembers().get(0);
 		}
 
     /**
@@ -122,7 +148,7 @@ public class NodeManager {
         this.ch = new JChannel()
             .name(node.getName())
             // .setDiscardOwnMessages(true)
-            .setReceiver(new CustomReceiver(node.getName(), currentView));
+            .setReceiver(new CustomReceiver(node.getName(), view));
 
         NodeDispatcher nDisp = new NodeDispatcher();
         this.disp = nDisp.initialize(
@@ -131,7 +157,7 @@ public class NodeManager {
         );
 
         this.ch.connect(cluster);
-		this.currentView.set(ch.getView());
+		this.view.set(ch.getView());
 		this.node.setAddress(getAddress());
 		logger.info("Node: {}", this.node);
 	}
