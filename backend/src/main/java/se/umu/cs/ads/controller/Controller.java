@@ -99,20 +99,17 @@ public class Controller {
 
 	public PicoContainer createContainer(PicoContainer container) throws PicoException {
 		Future<PicoContainer> res = pool.submit(() -> {
-
-			if (manager.isLeader()) {
-				logger.info("I am the leader, will initiate broadcast...");
-			} else {
-				Address leader = manager.getLeader();
-				JMessage msg = new JMessage();
-				msg.setSender(manager.getChannelAddress());
-				msg.setType(MessageType.CONTAINER_ELECTION_START);
-				msg.setPayload(container);
-				manager.send(leader, container);
-			}
-
-
-			return engine.createContainer(container);
+			Address leader = manager.getLeader();
+			JMessage msg = new JMessage();
+			msg.setSender(manager.getChannelAddress());
+			msg.setType(MessageType.CONTAINER_ELECTION_START);
+			msg.setPayload(container);
+			Object reply = manager.send(leader, msg);
+			
+			if (!(reply instanceof PicoContainer))
+				throw new PicoException("Reply not instance of container");
+			
+			return (PicoContainer) reply;
 		});
 		try {
 			return res.get();

@@ -107,8 +107,7 @@ public class NodeDispatcher implements RequestHandler {
 					return null;
 
 				case CONTAINER_ELECTION_START:
-					container_election_start(jmsg);
-                    return null;
+					return container_election_start(jmsg);
 
                 case EVALUATE_CONTAINER_REQUEST:
                     return evaluate_container_request(jmsg);
@@ -156,11 +155,11 @@ public class NodeDispatcher implements RequestHandler {
 		return reply;
 	}
 
-	private void container_election_start(JMessage msg) {
+	private PicoContainer container_election_start(JMessage msg) {
 		Object o = msg.getPayload();
 		if (!(o instanceof PicoContainer)) {
 			logger.error("Received CONTAINER_ELECTION_START but payload was not a container!");
-			return;
+			return null;
 		}
 
 		PicoContainer container = (PicoContainer) o;
@@ -172,7 +171,6 @@ public class NodeDispatcher implements RequestHandler {
 		try {
             List<JMessage> replies = broadcast(newMsg).stream()
                 .map(obj -> (JMessage) obj)
-				// .map(obj -> (Double) obj.getPayload())
                 .toList();
     
 			double minScore = 0;
@@ -185,11 +183,11 @@ public class NodeDispatcher implements RequestHandler {
 				}
             }
 
-			//show GUI error
-			// if (score == PORT_CONFLICT)
-			// else if (score == NAME_CONFLICT)
+			if (minScore == PORT_CONFLICT)
+				container.setState(PicoContainerState.NAME_CONFLICT);
+			else if (minScore == NAME_CONFLICT)
+				container.setState(PicoContainerState.PORT_CONFLICT);
 
-			
 			JMessage reply = new JMessage()
 				.setSender(nodeManager.getChannelAddress())
 				.setPayload(container)
@@ -197,8 +195,11 @@ public class NodeDispatcher implements RequestHandler {
 
 			send(nodeManager.getAddressOfNode(minAddr), reply);
 
+			logger.info("Container election finished, container {} started on {}", container.getName(), minAddr);
+			return container;
 		} catch (Exception e) {
 			logger.error("Could not broadcast message: {}", e.getMessage());
+			return null;
 		}
 	}
 }
