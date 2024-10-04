@@ -20,27 +20,30 @@ public class JMessage implements Serializable {
         setPayload(payload);
     }
 
-    public void setType(MessageType type) {
+    public JMessage setType(MessageType type) {
         this.type = type;
+		return this;
     }
 
     public MessageType getType() {
         return this.type;
     }
 
-    public void setPayload(Object payload) {
+    public JMessage setPayload(Object payload) {
         if (!(payload instanceof Serializable))
             throw new IllegalArgumentException("Payload must be serializable");
 
         this.payload = payload;
+		return this;
     }
 
     public Object getPayload() {
         return this.payload;
     }
 
-    public void setSender(String sender) {
+    public JMessage setSender(String sender) {
         this.sender = sender;
+		return this;
     }
 
     public String getSender() {

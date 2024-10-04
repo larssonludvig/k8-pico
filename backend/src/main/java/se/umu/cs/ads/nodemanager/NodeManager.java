@@ -1,7 +1,6 @@
 package se.umu.cs.ads.nodemanager;
 
 import java.util.*;
-import java.util.Optional;
 import java.lang.IllegalArgumentException;
 import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicReference;
@@ -17,6 +16,7 @@ import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.protocols.EXAMPLE;
 import org.jgroups.PhysicalAddress;
 import se.umu.cs.ads.controller.Controller;
+import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.*;
 
 
@@ -32,6 +32,12 @@ public class NodeManager {
     public Node node = null;
 	private final Controller controller;
 	private AtomicReference<View> view;
+		private final SystemMetric metrics = new SystemMetric();
+
+
+
+	//name, containers
+	private HashMap<String, List<PicoContainer>> remoteContainers;
 
 	private final static Logger logger = LogManager.getLogger(NodeManager.class);
     public NodeManager(Controller controller, String cluster) {
@@ -39,6 +45,7 @@ public class NodeManager {
 		this.controller = controller;
 		this.view = new AtomicReference<>();
 		this.view.set(new View());
+		this.remoteContainers = new HashMap<>();
     }
 
     // Node information management -------------------------------------------------
@@ -53,13 +60,13 @@ public class NodeManager {
 			List<Address> newMembers = View.newMembers(currentView, newView);
 			List<Address> deadMembers = View.leftMembers(currentView, newView);
 			
-			if (newMembers.size() > 1) {
+			if (newMembers.size() > 0) {
 				System.out.println("New members: " + newMembers.get(0).toString());
 				//send our container to new members
 				sendContainersTo(newMembers);
 			}
 
-			if (deadMembers.size() > 1) {
+			if (deadMembers.size() > 0) {
 				System.out.println("Dead members: " + deadMembers.get(0).toString());
 			}
 			
@@ -77,7 +84,7 @@ public class NodeManager {
 		msg.setType(MessageType.CONTAINER_LIST);
 
 		addresses.stream()
-		.filter(it -> !it.toString().equals(getAddress())) //filter ourselves out
+		.filter(it -> !it.toString().equals(getChannelAddress())) //filter ourselves out
 		.forEach(it -> {
 			try {
 				logger.info("Sending info regarding {} containers to {}", containers.size(), it);
@@ -129,9 +136,75 @@ public class NodeManager {
 
     // Cluster and channel management ----------------------------------------------
     
+	public boolean isLeader() {
+		return getLeader().toString().equals(getChannelAddress());
+	}
+
 	public Address getLeader() {
-			return this.view.get().getMembers().get(0);
-		}
+        return this.view.get().getMembers().get(0);
+    }
+
+    public void updateRemoteContainers(String name, List<PicoContainer> containers) {
+        this.remoteContainers.put(name, containers);
+    }
+
+
+	public double getCPULoad() {
+		return metrics.getCPULoad();
+	}
+
+	public double getMemLoad() {
+		return metrics.getMemoryLoad();
+	}
+
+	public double getFreeMem() {
+		return metrics.getFreeMemory();
+	}
+
+	public boolean hasContainerName(String name) {
+		List<PicoContainer> conts = node.getContainers();
+		int hasName = (int) conts.stream().filter(it -> it.getName().equals(name)).count();
+		return hasName > 0;
+	}
+
+    public String hasContainerPort(List<String> ports) {
+		//"8080:80"
+		//"8080:443"
+        for (PicoContainer cont : node.getContainers()) {
+            for (String port : ports) {
+                String extPort = port.split(":")[0];
+                List<String> knownPorts = cont.getPorts();
+                if (knownPorts.stream().filter(p -> p.split(":")[0].equals(extPort)).count() > 0) {
+                    return extPort;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * High score indicates high load
+     */
+	public double getScore() {
+        double w_cpu = 1;
+        double w_mem = 1;
+
+        double cpuFree = 1 - getCPULoad();
+        double memFree = 1 - getMemLoad();
+
+        // 0-2 with low load. 1-3 with meduim load. 2-4 with high load
+		if (cpuFree < 0.2) {
+            w_cpu = 1 + getCPULoad();
+			w_cpu *= 2;
+        } 
+        if (memFree < 0.2) {
+			w_mem = 1 + getMemLoad();
+            w_mem *= 2;
+        }
+
+        return (w_cpu * cpuFree) + (w_mem * memFree);
+	}
+
 
     /**
      * Create or join cluster by paramiters
@@ -158,12 +231,15 @@ public class NodeManager {
 
         this.ch.connect(cluster);
 		this.view.set(ch.getView());
-		this.node.setAddress(getAddress());
+		this.node.setAddress(getIPAddress());
 		logger.info("Node: {}", this.node);
 	}
 
+	public String getChannelAddress() {
+		return this.ch.address().toString();
+	}
 
-	private String getAddress() {
+	public String getIPAddress() {
 		if (this.ch == null)
 			throw new IllegalStateException("Cannot determine address if channel is not created yet.");
 

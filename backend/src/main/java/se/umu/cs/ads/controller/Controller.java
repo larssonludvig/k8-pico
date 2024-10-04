@@ -9,13 +9,12 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 
 import se.umu.cs.ads.exception.PicoException;
+import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
 
 import org.jgroups.Address;
-
-import ch.qos.logback.core.util.TimeUtil;
 
 public class Controller {
 	private final ExecutorService pool;
@@ -60,6 +59,7 @@ public class Controller {
 		scheduler.scheduleAtFixedRate(() -> {
 			manager.refreshView();
 			logger.debug("Refreshed view");
+
 		}, 0, 5, TimeUnit.SECONDS);
 	}
 
@@ -99,6 +99,19 @@ public class Controller {
 
 	public PicoContainer createContainer(PicoContainer container) throws PicoException {
 		Future<PicoContainer> res = pool.submit(() -> {
+
+			if (manager.isLeader()) {
+				logger.info("I am the leader, will initiate broadcast...");
+			} else {
+				Address leader = manager.getLeader();
+				JMessage msg = new JMessage();
+				msg.setSender(manager.getChannelAddress());
+				msg.setType(MessageType.CONTAINER_ELECTION_START);
+				msg.setPayload(container);
+				manager.send(leader, container);
+			}
+
+
 			return engine.createContainer(container);
 		});
 		try {
@@ -157,6 +170,7 @@ public class Controller {
 			engine.restartContainer(name);
 		});
 	}
+
 
 	// Node manager methods --------------------------------------------------------
 

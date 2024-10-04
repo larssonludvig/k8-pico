@@ -8,10 +8,14 @@ public enum MessageType {
 
     // Creates
     CREATE_CONTAINER,
+	CONTAINER_ELECTION_START,
+	CONTAINER_ELECTION,
+
+    EVALUATE_CONTAINER_REQUEST,
+	
+    //Responses
+	CONTAINER_LIST,
     
     // Empty as dummy
-    EMPTY,
-
-	//Responses
-	CONTAINER_LIST
+    EMPTY
 }
