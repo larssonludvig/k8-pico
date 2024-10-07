@@ -36,6 +36,7 @@ public class ContainerEngine {
 
     //container name, container
     private final Map<String, PicoContainer> containers;
+	private final Map<String, String> containerIDs;
 
     private final static Logger logger = LogManager.getLogger(ContainerEngine.class.getName());
 
@@ -53,6 +54,7 @@ public class ContainerEngine {
 
         client = DockerClientImpl.getInstance(config, httpClient);
         containers = new ConcurrentHashMap<>(64);
+		containerIDs = new ConcurrentHashMap<>(64);
         pulledImages = ConcurrentHashMap.newKeySet();
         hostConfig = configureHost();
        
@@ -211,6 +213,7 @@ public class ContainerEngine {
         String id = resp.getId();
         logger.info("Container {} created with id {}", name, id);
 		containers.put(name, container);
+		containerIDs.put(name, id);
         //we need to re-read it to know port numbers...
 		//TODO: FIX
 		Map<String, PicoContainer> conts = readContainers(true);
@@ -261,7 +264,7 @@ public class ContainerEngine {
 				container = containers.get(name);
 		}
 
-        String id = container.getId();
+        String id = containerIDs.get(name);
         logger.info("Starting container {} ...", name);
 
         if (isRunning(name)) {
@@ -287,7 +290,7 @@ public class ContainerEngine {
         if (container == null)
             throw new PicoException("Could not restart container. No container with name: " + name);
 
-		String id = container.getId();
+		String id = containerIDs.get(name);
 
         try {
             logger.info("Restarting container {}", name);
@@ -311,7 +314,7 @@ public class ContainerEngine {
 
     public void stopContainer(String containerName) throws PicoException {
         try {
-            String id = containers.get(containerName).getId();
+            String id = containerIDs.get(containerName);
             logger.info("Stopping container {} with id {}", containerName, id);
             client.stopContainerCmd(id).exec();
         } catch (DockerException e) {
@@ -323,10 +326,11 @@ public class ContainerEngine {
     public void removeContainer(String containerName) throws PicoException {
         try {
 			synchronized (this) {
-				String id = containers.get(containerName).getId();
+				String id = containerIDs.get(containerName);
 				stopContainer(containerName);
 				client.removeContainerCmd(id).exec();
 				containers.remove(containerName);
+				containerIDs.remove(containerName);
 			}
         } catch (DockerException e) {
             String msg = parseDockerException(e);
@@ -335,7 +339,7 @@ public class ContainerEngine {
     }
 
     public List<String> containerLog(String containerName) throws InterruptedException, IOException {
-        String id = containers.get(containerName).getId();
+        String id = containerIDs.get(containerName);
         List<String> logs = new ArrayList<>();
 
         CountDownLatch latch = new CountDownLatch(1);

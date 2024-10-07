@@ -17,12 +17,18 @@ import java.util.*;
 public class PicoContainer implements Serializable {
 	private static final long serialVersionUID = 13376969L;
 
-    private final String id;
     private String name;
     private String image;
     private Map<Integer, Integer> ports = new HashMap<>();
 	private List<String> env = new ArrayList<>(); 
     private PicoContainerState state;
+
+	public PicoContainer() {
+	}
+
+	public PicoContainer(String name) {
+		this.name = name;
+	}
 
     public String getName() {
         return name;
@@ -77,24 +83,14 @@ public class PicoContainer implements Serializable {
 		return exposedPorts;
 	}
 
-    public String getId() {
-        return id;
-    }
+
 
 	public List<String> getEnv() {
 		return env;
 	}
 
-	public PicoContainer() {
-		this.id = null;
-	}
-
-    public PicoContainer(String id) {
-        this.id = id;
-    }
 
     public PicoContainer(Container container) {
-        this.id = container.getId();
         this.name = Util.parseContainerName(container.getNames()[0]);
         this.image = container.getImage();		
 

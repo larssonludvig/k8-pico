@@ -14,6 +14,7 @@ import org.jgroups.blocks.MessageDispatcher;
 
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.containerengine.ContainerEngine;
+import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 
 public class NodeDispatcher implements RequestHandler {
@@ -21,11 +22,13 @@ public class NodeDispatcher implements RequestHandler {
 	private final static double PORT_CONFLICT = -2.0;
     private MessageDispatcher disp;
     private NodeManager nodeManager;
+	private Controller controller;
 	private final static Logger logger = LogManager.getLogger(NodeDispatcher.class);
 
-    public NodeDispatcher initialize(MessageDispatcher disp, NodeManager nodeManager) {
+    public NodeDispatcher initialize(MessageDispatcher disp, NodeManager nodeManager, Controller controller) {
         this.disp = disp;
         this.nodeManager = nodeManager;
+		this.controller = controller;
         return this;
     }
 
@@ -62,18 +65,7 @@ public class NodeDispatcher implements RequestHandler {
                     return "FETCH_CONTAINER_NAMES, not implemented.";
 
                 case CREATE_CONTAINER:
-                    ContainerEngine engine = new ContainerEngine();
-                    PicoContainer container = (PicoContainer) jmsg.getPayload();
-
-                    try {
-                        container = engine.createContainer(container.getImage(), container.getName());
-                        container = engine.runContainer(container.getName());
-                        return "Container started sucessfully!";
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                    return "Failed to create container.";
+					return createContainer(jmsg);
 
 				/**
 				Scenarion: ny nod joinar
@@ -112,6 +104,8 @@ public class NodeDispatcher implements RequestHandler {
                 case EVALUATE_CONTAINER_REQUEST:
                     return evaluate_container_request(jmsg);
 
+				case CONTAINER_ELECTION_END:
+					return container_election_end(jmsg);
                 case EMPTY:
                     return "EMPTY, not implemented.";
 
@@ -121,6 +115,53 @@ public class NodeDispatcher implements RequestHandler {
         }
         return "Unknown object type.";
     }
+
+	private Object createContainer(JMessage msg) {
+		Object payload = msg.getPayload();
+		if (!(payload instanceof PicoContainer)) {
+			logger.error("Message was CREATE_CONTAINER but payload was not a container. Ignoring");
+			return null;
+		}
+
+		PicoContainer container = (PicoContainer) payload;
+
+		try {
+			container = controller.createContainer(container);
+			container = controller.startContainer(container.getName());
+		} catch (Exception e) {
+			String res = String.format("Failed to create and run container: %s", e.getMessage());
+			logger.error(res);
+			return res;
+		}
+
+		JMessage reply = new JMessage()
+			.setSender(nodeManager.getChannelAddress())
+			.setType(MessageType.CONTAINER_ELECTION_END)
+			.setPayload(container);
+
+
+		try {
+			broadcast(reply);
+		} catch (Exception e) {
+			String res = String.format("Failed to broadcast ELECTION_END: %s", e.getMessage());
+			logger.error(res);
+			return res;
+		}
+
+		return "Successfully created and started container";
+	}
+
+	private Object container_election_end(JMessage msg) {
+		Object payload = msg.getPayload();
+		if (!(payload instanceof PicoContainer)) {
+			logger.error("Received ELECTION_END but payload not instance of container!");
+			return null;
+		}
+		PicoContainer container = (PicoContainer) payload;
+		String sender = msg.getSender();
+		nodeManager.updateRemoteContainers(sender, container);
+		return null;
+	}
 
 	private Object evaluate_container_request(JMessage msg) {
 		Object o = msg.getPayload();

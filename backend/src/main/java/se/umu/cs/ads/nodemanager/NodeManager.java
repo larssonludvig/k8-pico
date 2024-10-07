@@ -1,11 +1,11 @@
 package se.umu.cs.ads.nodemanager;
 
 import java.util.*;
-import java.lang.IllegalArgumentException;
+import java.util.concurrent.*;
 import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.compress.archivers.ar.ArArchiveEntry;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.jgroups.Address;
 import org.jgroups.Event;
@@ -13,14 +13,13 @@ import org.jgroups.JChannel;
 import org.jgroups.Receiver;
 import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
-import org.jgroups.protocols.EXAMPLE;
+import org.springframework.util.ConcurrentReferenceHashMap;
 import org.jgroups.PhysicalAddress;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.*;
 
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
@@ -29,15 +28,14 @@ import org.apache.logging.log4j.Logger;
 public class NodeManager {
     private NodeDispatcher disp = null;
     private JChannel ch = null;
-    public Node node = null;
+    public final Node node;
 	private final Controller controller;
 	private AtomicReference<View> view;
-		private final SystemMetric metrics = new SystemMetric();
-
-
+	private final SystemMetric metrics = new SystemMetric();
 
 	//name, containers
-	private HashMap<String, List<PicoContainer>> remoteContainers;
+	private final Map<String, List<PicoContainer>> remoteContainers;
+
 
 	private final static Logger logger = LogManager.getLogger(NodeManager.class);
     public NodeManager(Controller controller, String cluster) {
@@ -45,8 +43,9 @@ public class NodeManager {
 		this.controller = controller;
 		this.view = new AtomicReference<>();
 		this.view.set(new View());
-		this.remoteContainers = new HashMap<>();
+		this.remoteContainers = new ConcurrentHashMap<>();
     }
+
 
     // Node information management -------------------------------------------------
 
@@ -144,10 +143,52 @@ public class NodeManager {
         return this.view.get().getMembers().get(0);
     }
 
+	/**
+	 * Add a collection of containers to the list of known host for a remote 
+	 * @param name name of the remote host
+	 * @param containers containers to add
+	 */
     public void updateRemoteContainers(String name, List<PicoContainer> containers) {
-        this.remoteContainers.put(name, containers);
+		List<PicoContainer> existing = remoteContainers.get(name);
+		if (existing == null) {
+			existing = new ArrayList<>();
+		}
+
+		existing.addAll(containers);
+		remoteContainers.put(name, existing);
     }
 
+	/**
+	 * Add a container to the list of known remote containers for the given host
+	 * @param name name of the host
+	 * @param container container to add
+	 */
+	public void updateRemoteContainers(String name, PicoContainer container) {
+		List<PicoContainer> existingContainers = remoteContainers.get(name);
+		if (existingContainers == null) {
+			existingContainers = new ArrayList<>();
+
+		}
+
+		existingContainers.add(container);
+		remoteContainers.put(name, existingContainers);
+	}
+
+	/**
+	 * Returns a copy of the provided hosts containers
+	 * @param name the name of the host
+	 * @return list of all container
+	 */
+	public List<PicoContainer> getRemoteContainers(String name) {
+		//We create a copy so the original list can't be modified
+		List<PicoContainer> existing = remoteContainers.get(name);
+		List<PicoContainer> copy = new ArrayList<>();
+		if (existing == null)
+			existing = new ArrayList<>();
+
+		copy.addAll(existing);
+		return copy;
+	}
 
 	public double getCPULoad() {
 		return metrics.getCPULoad();
@@ -181,6 +222,7 @@ public class NodeManager {
         }
         return null;
     }
+
 
     /**
      * High score indicates high load
@@ -218,7 +260,7 @@ public class NodeManager {
 		this.node.setName(InetAddress.getLocalHost().getHostName());
 
 		String cluster = this.node.getCluster();
-        this.ch = new JChannel()
+        this.ch = new JChannel("tcp.xml")
             .name(node.getName())
             // .setDiscardOwnMessages(true)
             .setReceiver(new CustomReceiver(node.getName(), view));
@@ -226,7 +268,8 @@ public class NodeManager {
         NodeDispatcher nDisp = new NodeDispatcher();
         this.disp = nDisp.initialize(
             new MessageDispatcher(this.ch, nDisp),
-            this
+            this,
+			controller
         );
 
         this.ch.connect(cluster);
