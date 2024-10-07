@@ -280,6 +280,8 @@ public class ContainerEngine {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to start container %s, cause: %s", name, msg));
         }
+		
+		container.setState(PicoContainerState.RUNNING);
 		logger.info("Done starting container {}", name);
         return container;
     }
@@ -302,6 +304,8 @@ public class ContainerEngine {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to restart container %s with cause: %s", name, msg));
         }
+
+		container.setState(PicoContainerState.RESTARTING);
 		logger.info("Done restarting container {}", name);
     }
 
@@ -327,6 +331,10 @@ public class ContainerEngine {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to stop container %s, cause: %s", name, msg));
 		}
+
+		PicoContainer container = containers.get(name);
+		container.setState(PicoContainerState.STOPPED);
+
 		logger.info("Done stopping container {}", name);
     }
 
