@@ -5,6 +5,7 @@ public enum MessageType {
     FETCH_NODE,
     FETCH_NODES,
     FETCH_CONTAINER_NAMES,
+    FETCH_NODE_PERFORMANCE,
 
     // Creates
     CREATE_CONTAINER,
