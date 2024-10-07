@@ -16,15 +16,15 @@ import com.github.dockerjava.api.exception.*;
 
 import org.json.*;
 
-import java.io.*;
 import java.time.Duration;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.utils.Util;
@@ -228,6 +228,7 @@ public class ContainerEngine {
 		}
 		PicoContainer created = conts.get(name);
 		containers.put(name, created);
+		logger.info("Done creating container {}", name);
         return created;
 
 	}
@@ -279,6 +280,7 @@ public class ContainerEngine {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to start container %s, cause: %s", name, msg));
         }
+		logger.info("Done starting container {}", name);
         return container;
     }
 
@@ -294,12 +296,13 @@ public class ContainerEngine {
 		String id = containerIDs.get(name);
 
         try {
-            logger.info("Restarting container {}", name);
+            logger.info("Restarting container {} ...", name);
             client.restartContainerCmd(id).exec();
         } catch (DockerException e) {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to restart container %s with cause: %s", name, msg));
         }
+		logger.info("Done restarting container {}", name);
     }
 
     private String parseDockerException(RuntimeException e) {
@@ -313,44 +316,60 @@ public class ContainerEngine {
         return o.getString("message");
     }
 
-    public void stopContainer(String containerName) throws PicoException {
+    public void stopContainer(String name) throws PicoException {
         try {
-            String id = containerIDs.get(containerName);
-            logger.info("Stopping container {} with id {}", containerName, id);
+            String id = containerIDs.get(name);
+            logger.info("Stopping container {} with id {} ...", name, id);
             client.stopContainerCmd(id).exec();
+        } catch (NotModifiedException e) {
+			logger.warn("Trying to stop a already stopped container. Ignoring");
         } catch (DockerException e) {
             String msg = parseDockerException(e);
-            throw new PicoException(String.format("Unable to stop container %s, cause: %s", containerName, msg));
-        }
+            throw new PicoException(String.format("Unable to stop container %s, cause: %s", name, msg));
+		}
+		logger.info("Done stopping container {}", name);
     }
 
-    public void removeContainer(String containerName) throws PicoException {
+    public void removeContainer(String name) throws PicoException {
+		logger.info("Removing container {} ...", name);
         try {
 			synchronized (this) {
-				String id = containerIDs.get(containerName);
-				stopContainer(containerName);
+				String id = containerIDs.get(name);
+				stopContainer(name);
 				client.removeContainerCmd(id).exec();
-				containers.remove(containerName);
-				containerIDs.remove(containerName);
+				containers.remove(name);
+				containerIDs.remove(name);
 			}
         } catch (DockerException e) {
             String msg = parseDockerException(e);
-            throw new PicoException(String.format("Failed to remove container %s, cause: %s", containerName, msg));
+            throw new PicoException(String.format("Failed to remove container %s, cause: %s", name, msg));
         }
+		logger.info("Done removing container {}", name);
     }
 
-    public List<String> containerLog(String containerName) throws InterruptedException, IOException {
-        String id = containerIDs.get(containerName);
+    public List<String> containerLog(String name) throws InterruptedException, IOException {
+        logger.info("Fetching logs for container {}", name);
+		
+		if (!containerIDs.containsKey(name)) {
+			logger.warn("No container with name {}", name);
+			return null;
+		}
+		
+		String id = containerIDs.get(name);
         List<String> logs = new ArrayList<>();
-
         CountDownLatch latch = new CountDownLatch(1);
-        client.logContainerCmd(id)
+        try {
+			client.logContainerCmd(id)
                 .withTimestamps(true)
                 .withStdOut(true)
                 .withStdErr(true)
                 .exec(new CallLog(logs, latch));
-
+		} catch(NotFoundException e) {
+			logger.warn("No container with id {}. Nothing to do.", id);
+			return new ArrayList<>();
+		}
         latch.await();
+		logger.info("Done fetching {} logs for container {}", logs.size(), name);
         return logs;
     }
 

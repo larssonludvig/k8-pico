@@ -70,7 +70,7 @@ public class NodeManager {
 			}
 			
 			this.view.set(newView);
-			logger.error("Current leader: " + getLeader());
+			logger.debug("Current leader: " + getLeader());
 
 	}
 
