@@ -129,6 +129,7 @@ public class ContainerEngine {
 
             PicoContainer container = new PicoContainer(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
             containers.put(container.getName(), container);
+			containerIDs.put(name, id);
         }
 		return containers;
     }
