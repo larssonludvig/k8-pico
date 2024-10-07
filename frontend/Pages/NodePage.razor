@@ -35,7 +35,7 @@
     <QuickGrid Items="containers">
         <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
         <PropertyColumn Property="@(x => x.Image)" Sortable="true" />
-        <PropertyColumn Property="@(x => x.Status)" Sortable="true" />
+        <PropertyColumn Property="@(x => x.State)" Sortable="true" />
             <TemplateColumn>
                 <button @onclick='@(() => _nav.NavigateTo("/container/" + context.Name))'>-></button>
             </TemplateColumn>
