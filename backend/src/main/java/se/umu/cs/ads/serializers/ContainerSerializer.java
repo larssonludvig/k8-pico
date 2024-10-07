@@ -31,7 +31,7 @@ public class ContainerSerializer extends StdSerializer<PicoContainer> {
 
 			jgen.writeStringField("name", container.getName());
 			jgen.writeStringField("image", container.getImage());
-			jgen.writeStringField("status", container.getState().toString());			
+			jgen.writeStringField("state", container.getState().toString());			
 			List<String> ports = container.getPorts();
 			if (ports.size() > 0) {
 				jgen.writeArrayFieldStart("ports");

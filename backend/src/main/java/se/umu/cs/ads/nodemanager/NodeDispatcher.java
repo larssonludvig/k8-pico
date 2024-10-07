@@ -141,8 +141,8 @@ public class NodeDispatcher implements RequestHandler {
 		}
 
 		String conflictingPort = nodeManager.hasContainerPort(container.getPorts());
-		if ( conflictingPort == null) {
-			logger.warn("New container with name {} has port conflict: {} is already used", name);
+		if (conflictingPort != null) {
+			logger.warn("New container with name {} has port conflict: {} is already used", name, conflictingPort);
             return PORT_CONFLICT;
 		}
 
@@ -173,7 +173,7 @@ public class NodeDispatcher implements RequestHandler {
                 .map(obj -> (JMessage) obj)
                 .toList();
     
-			double minScore = 0;
+			double minScore = Double.MAX_VALUE;
 			String minAddr = null;
 			for (JMessage reply : replies) {
 				double score = (Double) reply.getPayload();
@@ -183,19 +183,24 @@ public class NodeDispatcher implements RequestHandler {
 				}
             }
 
-			if (minScore == PORT_CONFLICT)
+			String name = container.getName();
+			if (minScore == PORT_CONFLICT) {
 				container.setState(PicoContainerState.NAME_CONFLICT);
-			else if (minScore == NAME_CONFLICT)
+				logger.warn("Container {} has name conflict, it will not be started!", name);
+			}
+			else if (minScore == NAME_CONFLICT) {
 				container.setState(PicoContainerState.PORT_CONFLICT);
+				logger.warn("Container {} has port conflicts, it will not be started!", name);
+			}
 
 			JMessage reply = new JMessage()
 				.setSender(nodeManager.getChannelAddress())
 				.setPayload(container)
 				.setType(MessageType.CREATE_CONTAINER);
 
+			logger.info("Container election finished for {} finished, sending result to {}", name, minAddr);
 			send(nodeManager.getAddressOfNode(minAddr), reply);
 
-			logger.info("Container election finished, container {} started on {}", container.getName(), minAddr);
 			return container;
 		} catch (Exception e) {
 			logger.error("Could not broadcast message: {}", e.getMessage());

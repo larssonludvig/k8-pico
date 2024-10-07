@@ -158,8 +158,11 @@ public class ContainerEngine {
 		return env;
 	}
 
-	public PicoContainer getContainer(String name) {
-		return containers.get(name);
+	public PicoContainer getContainer(String name) throws PicoException {
+		PicoContainer p = containers.get(name);
+		if (p == null)
+			throw new PicoException("No container with name " + name);
+		return p;
 	}
 
     /**
@@ -188,7 +191,7 @@ public class ContainerEngine {
             throw new PicoException("Container with name " + name + " already exists");
 
 
-        logger.info("Creating container with name {}...", name);
+        logger.info("Creating container with name {} ...", name);
         CreateContainerResponse resp;
         try {
 			resp = client.createContainerCmd(image)
@@ -206,8 +209,8 @@ public class ContainerEngine {
             throw new PicoException(message);
         }
         String id = resp.getId();
-        logger.info("Container {} has id {}", name, id);
-
+        logger.info("Container {} created with id {}", name, id);
+		containers.put(name, container);
         //we need to re-read it to know port numbers...
 		//TODO: FIX
 		Map<String, PicoContainer> conts = readContainers(true);
@@ -219,9 +222,9 @@ public class ContainerEngine {
         } catch (InterruptedException e) {
             throw new PicoException("Interrupted while creating new container");
 		}
-
-		runContainer(name);
-        return conts.get(name);
+		PicoContainer created = conts.get(name);
+		containers.put(name, created);
+        return created;
 
 	}
 
@@ -259,9 +262,9 @@ public class ContainerEngine {
 		}
 
         String id = container.getId();
-        logger.info("Container has id {}", id);
+        logger.info("Starting container {} ...", name);
 
-        if (isRunning(id)) {
+        if (isRunning(name)) {
             logger.warn("Trying to start a container that is already running. Skipping.");
             return container;
         }

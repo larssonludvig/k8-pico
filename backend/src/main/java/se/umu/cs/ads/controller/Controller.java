@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 
 import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
@@ -51,7 +50,7 @@ public class Controller {
 			engine.setImages(images);
 			long time = System.currentTimeMillis() - start;
 			manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
-			logger.info("Refreshed containers and images in {} ms", time);
+			logger.debug("Refreshed containers and images in {} ms", time);
 
 		}, 5, 5, TimeUnit.SECONDS);
 
