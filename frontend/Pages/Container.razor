@@ -2,7 +2,11 @@
 @inject ApiService Api
 @inject NavigationManager _nav
 
-<h1>@name</h1>
+@if (container == null) {
+	<h1>@name</h1>
+} else {
+	<h1>@name (@container.State)</h1>
+}
 <div style="display: flex;">
     @* General info *@
     <div style="flex: 1; display: flex;">
@@ -12,12 +16,44 @@
             <p style="font-weight: bold;">Ports: </p>
             <p style="font-weight: bold;">Env: </p>
         </div>
-        <div>
+        @if (container == null) {
+		<div>
+            <p>Loading...</p>
+            <p>Loading...</p>
+            <p>Loading...</p>
+            <p>Loading...</p>
+        </div>
+
+		} else {
+		
+		<div>
             <p>@container?.Name</p>
             <p>@container?.Image</p>
-            <p>Currently not shown</p>
-            <p>Currently not shown</p>
+			@if (container.Ports != null) {
+
+				<p>@for (int i = 0; i < container.Ports.Count; i++) { 
+					@* next last element *@
+					if (i <= container.Ports.Count - 2) {
+						@($"{@container.Ports[i]}, ") 
+					} else {
+						@container.Ports[i]
+					}
+				}</p>
+			}
+			
+			@if (container.Env != null) {
+				<p>@for (int i = 0; i < container.Env.Count; i++) { 
+					@* next last element *@
+					if (i <= container.Env.Count - 2) {
+						@($"{@container.Env[i]}, ") 
+					} else {
+						@container.Env[i]
+					}
+				}</p>
+			}
         </div>
+
+		}
     </div>
     <div style="flex: 1; display: flex;">
         <div style="margin-right: 2rem;">
@@ -55,6 +91,7 @@
     private List<string> logs = new List<string>();
 
     protected override async Task OnInitializedAsync() {
+		Api.initialize("http://localhost:8080");
         await FetchContainer();
         await FetchLogs();
     }
@@ -78,7 +115,7 @@
 
     private async Task StartContainer() {
         try {
-            await Api.Put<Pod>(name + "/start", name);
+            await Api.Put<Pod>("containers/" + name + "/start", name);
             StateHasChanged();
         } catch (Exception e) {
             Console.WriteLine(e);
@@ -87,7 +124,7 @@
 
     private async Task StopContainer() {
         try {
-            await Api.Put<Pod>(name + "/stop", name);
+            await Api.Put<Pod>("containers/" + name + "/stop", name);
             StateHasChanged();
         } catch (Exception e) {
             Console.WriteLine(e);
@@ -96,7 +133,7 @@
 
     private async Task RestartContainer() {
         try {
-            await Api.Put<Pod>(name + "/restart", name);
+            await Api.Put<Pod>("containers/" + name + "/restart", name);
             StateHasChanged();
         } catch (Exception e) {
             Console.WriteLine(e);
@@ -105,7 +142,7 @@
 
     private async Task RemoveContainer() {
         try {
-            await Api.Put<Pod>(name + "/remove", name);
+            await Api.Delete<Pod>("containers/" + name);
             _nav.NavigateTo("/");
         } catch (Exception e) {
             Console.WriteLine(e);
