@@ -44,9 +44,8 @@
 
 @code {
     [Parameter] public string name { get; set; } = "";
-    
     private Node? node = null;
-    private IQueryable<Pod>? containers = null; 
+    private IQueryable<PicoContainer>? containers = null; 
     
     protected override async Task OnInitializedAsync() {
         await FetchNode();
@@ -55,7 +54,7 @@
     private async Task FetchNode() {
         try {
             node = await Api.Get<Node>("nodes/" + name);
-            containers = node.Pods.AsQueryable();
+            containers = node.Containers.AsQueryable();
         } catch (Exception e) {
             Console.WriteLine(e);
         }

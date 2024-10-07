@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 namespace Types {
-    public class Pod {
+    public class PicoContainer {
         public string Name      { get; set; } = "";
         public string Image     { get; set; } = "";
         public string State    { get; set; } = "";

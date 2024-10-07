@@ -87,7 +87,7 @@
 @code {
     [Parameter] public string name { get; set; } = "";
 
-    private Pod? container = null;
+    private PicoContainer? container = null;
     private List<string> logs = new List<string>();
 
     protected override async Task OnInitializedAsync() {
@@ -98,7 +98,7 @@
 
     private async Task FetchContainer() {
         try {
-            container = await Api.Get<Pod>("containers/" + name);
+            container = await Api.Get<PicoContainer>("containers/" + name);
         } catch (Exception e) {
             Console.WriteLine(e);
         }
@@ -115,7 +115,7 @@
 
     private async Task StartContainer() {
         try {
-            await Api.Put<Pod>("containers/" + name + "/start", name);
+            await Api.Put<PicoContainer>("containers/" + name + "/start", name);
             StateHasChanged();
         } catch (Exception e) {
             Console.WriteLine(e);
@@ -124,7 +124,7 @@
 
     private async Task StopContainer() {
         try {
-            await Api.Put<Pod>("containers/" + name + "/stop", name);
+            await Api.Put<PicoContainer>("containers/" + name + "/stop", name);
             StateHasChanged();
         } catch (Exception e) {
             Console.WriteLine(e);
@@ -133,7 +133,7 @@
 
     private async Task RestartContainer() {
         try {
-            await Api.Put<Pod>("containers/" + name + "/restart", name);
+            await Api.Put<PicoContainer>("containers/" + name + "/restart", name);
             StateHasChanged();
         } catch (Exception e) {
             Console.WriteLine(e);
@@ -142,7 +142,7 @@
 
     private async Task RemoveContainer() {
         try {
-            await Api.Delete<Pod>("containers/" + name);
+            await Api.Delete<PicoContainer>("containers/" + name);
             _nav.NavigateTo("/");
         } catch (Exception e) {
             Console.WriteLine(e);
