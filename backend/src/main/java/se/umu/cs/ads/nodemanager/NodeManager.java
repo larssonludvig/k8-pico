@@ -36,7 +36,6 @@ public class NodeManager {
 	//name, containers
 	private final Map<String, List<PicoContainer>> remoteContainers;
 
-
 	private final static Logger logger = LogManager.getLogger(NodeManager.class);
     public NodeManager(Controller controller, String cluster) {
         this.node = new Node(cluster);

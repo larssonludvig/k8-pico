@@ -1,7 +1,7 @@
 package se.umu.cs.ads.nodemanager;
 
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jgroups.Message;
 import org.apache.logging.log4j.LogManager;
@@ -18,12 +18,15 @@ import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 
 public class NodeDispatcher implements RequestHandler {
+	private final static Logger logger = LogManager.getLogger(NodeDispatcher.class);
 	private final static double NAME_CONFLICT = -1.0;
 	private final static double PORT_CONFLICT = -2.0;
-    private MessageDispatcher disp;
+    private final Map<String, PicoContainer> candidates = new ConcurrentHashMap<>();
+	private MessageDispatcher disp;
     private NodeManager nodeManager;
 	private Controller controller;
-	private final static Logger logger = LogManager.getLogger(NodeDispatcher.class);
+	
+
 
     public NodeDispatcher initialize(MessageDispatcher disp, NodeManager nodeManager, Controller controller) {
         this.disp = disp;
@@ -160,6 +163,8 @@ public class NodeDispatcher implements RequestHandler {
 		PicoContainer container = (PicoContainer) payload;
 		String sender = msg.getSender();
 		nodeManager.updateRemoteContainers(sender, container);
+
+		candidates.remove(container.getName());
 		return null;
 	}
 
@@ -209,6 +214,7 @@ public class NodeDispatcher implements RequestHandler {
 			.setPayload(container)
 			.setType(MessageType.EVALUATE_CONTAINER_REQUEST);
 		
+
 		try {
             List<JMessage> replies = broadcast(newMsg).stream()
                 .map(obj -> (JMessage) obj)
@@ -225,7 +231,7 @@ public class NodeDispatcher implements RequestHandler {
             }
 
 			String name = container.getName();
-			if (minScore == PORT_CONFLICT) {
+			if (minScore == PORT_CONFLICT || candidates.containsKey(name)) {
 				container.setState(PicoContainerState.NAME_CONFLICT);
 				logger.warn("Container {} has name conflict, it will not be started!", name);
 			}
@@ -238,6 +244,9 @@ public class NodeDispatcher implements RequestHandler {
 				.setSender(nodeManager.getChannelAddress())
 				.setPayload(container)
 				.setType(MessageType.CREATE_CONTAINER);
+
+			//mark container as candidate
+			candidates.put(name, container);
 
 			logger.info("Container election finished for {} finished, sending result to {}", name, minAddr);
 			send(nodeManager.getAddressOfNode(minAddr), reply);

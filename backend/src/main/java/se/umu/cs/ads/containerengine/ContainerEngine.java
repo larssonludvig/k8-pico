@@ -108,6 +108,10 @@ public class ContainerEngine {
 		this.pulledImages.addAll(images);
 	}
 
+	public boolean hasContainer(String name) {
+		return containers.containsKey(name);
+	}
+
     /**
      * Fetch all available containers from the deamon.
      * Similar ot running $ docker container ls -a
@@ -229,6 +233,7 @@ public class ContainerEngine {
 		PicoContainer created = conts.get(name);
 		containers.put(name, created);
 		logger.info("Done creating container {}", name);
+		created.setState(PicoContainerState.STOPPED);
         return created;
 
 	}
@@ -280,7 +285,7 @@ public class ContainerEngine {
             String msg = parseDockerException(e);
             throw new PicoException(String.format("Unable to start container %s, cause: %s", name, msg));
         }
-		
+
 		container.setState(PicoContainerState.RUNNING);
 		logger.info("Done starting container {}", name);
         return container;

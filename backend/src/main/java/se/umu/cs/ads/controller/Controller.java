@@ -155,6 +155,19 @@ public class Controller {
 	}
 
 
+	public boolean hasContainer(String name) {
+		Future<Boolean> res = pool.submit(() -> {
+			return engine.hasContainer(name);
+		});
+
+		try {
+			return res.get();
+		} catch (Exception e) {
+			return false;
+		}
+	
+	}
+
 	public void stopContainer(String name) throws PicoException {
 		pool.submit(() -> {
 			engine.stopContainer(name);

@@ -30,86 +30,114 @@ public class ContainerController {
 	}
 
 	@GetMapping("{name}")
-	public ResponseEntity<PicoContainer> getContainer(@PathVariable String name) {
-		PicoContainer container = service.getController().getRunningContainer(name);
-		if (container == null) {
+	public ResponseEntity<?> getContainer(@PathVariable String name) {
+		
+		if (!hasContainer(name)) {
 			logger.warn("No container with name {}", name);
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(container);
+
+		try {
+			PicoContainer container = service.getController().getRunningContainer(name);
+			return ResponseEntity.status(HttpStatus.OK).body(container);
+		} catch (PicoException e) {
+			logger.error("Error while fetching container {}: {}", name, e.getMessage());
+			return ResponseEntity.internalServerError().body(e.getMessage());
+		}
 	}
 
 	@PostMapping("")
 	@ResponseBody
 	public ResponseEntity<?> createContainer(@RequestBody PicoContainer container) {
+		
 		try {
 			PicoContainer created = service.getController().createContainer(container);
 			return ResponseEntity.ok().body(created);
 		} catch (PicoException e) {
 			logger.error("Error trying to create container {}: {}", container.getName(), e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
+			return ResponseEntity.internalServerError().body(e);
 		}
 	}
 
 	@DeleteMapping("{name}")
-	public ResponseEntity<Void> removeContainer(@PathVariable String name) {
+	public ResponseEntity<?> removeContainer(@PathVariable String name) {
+		
+		if (!service.getController().hasContainer(name))
+			return ResponseEntity.notFound().build();
+		
 		try {
 			service.getController().removeContainer(name);
-
-			if (service.getController().getRunningContainer(name) != null) 
-				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-			
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to remove container {}: {}", name, e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+			return ResponseEntity.internalServerError().body(e.getMessage());
 		}
 	}
 
 	@GetMapping("{name}/logs")
 	@ResponseBody
-	public ResponseEntity<List<String>> getContainerLogs(@PathVariable String name) {
+	public ResponseEntity<?> getContainerLogs(@PathVariable String name) {
 		try {
 			List<String> logs = service.getController().getContainerLogs(name);
-			return ResponseEntity.status(HttpStatus.OK).body(logs);
+			return ResponseEntity.ok().body(logs);
 		} catch (Exception e) {
 			logger.error("Error trying to retrieve logs for container {}: {}", name, e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+			return ResponseEntity.internalServerError().body(e.getMessage());
 		}
 	}
 
 	@PutMapping("{name}/start")
 	@ResponseBody
-	public ResponseEntity<PicoContainer> startContainer(@PathVariable String name) {
+	public ResponseEntity<?> startContainer(@PathVariable String name) {
+		if (!hasContainer(name)) {
+			logger.warn("No container with name: {}", name);
+			return ResponseEntity.notFound().build();
+		}
+		
 		try {
 			PicoContainer container = service.getController().startContainer(name);
 			return ResponseEntity.status(HttpStatus.OK).body(container);
 		} catch (PicoException e) {
 			logger.error("Error trying to start container {}: {}", name, e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+			return ResponseEntity.internalServerError().body(e.getMessage());
 		}
 	}
 
 	@PutMapping("{name}/stop")
 	@ResponseBody
-	public ResponseEntity<Void> stopContainer(@PathVariable String name) {
+	public ResponseEntity<?> stopContainer(@PathVariable String name) {
+		
+		if (!hasContainer(name)) {
+			logger.warn("No container with name {}", name);
+			return ResponseEntity.notFound().build();
+		}
+		
 		try {
 			service.getController().stopContainer(name);
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to stop container {}: {}", name, e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+			return ResponseEntity.internalServerError().body(e.getMessage());
 		}
 	}
 
 	@PutMapping("{name}/restart")
-	public ResponseEntity<Void> restartContainer(@PathVariable String name) {
+	public ResponseEntity<?> restartContainer(@PathVariable String name) {
+		
+		if (!hasContainer(name)) {
+			logger.warn("No container with name {}", name);
+			return ResponseEntity.notFound().build();
+		}
 		try {
 			service.getController().restartContainer(name);
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to restart container {}: {}", name, e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+			return ResponseEntity.internalServerError().body(e.getMessage());
 		}	
+	}
+
+	private boolean hasContainer(String name) {
+		return service.getController().hasContainer(name);
 	}
 }
