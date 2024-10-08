@@ -3,19 +3,21 @@ package se.umu.cs.ads.nodemanager;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jgroups.Message;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jgroups.Address;
 import org.jgroups.BytesMessage;
-import org.jgroups.blocks.RequestOptions;
-import org.jgroups.blocks.RequestHandler;
+import org.jgroups.Message;
 import org.jgroups.blocks.MessageDispatcher;
+import org.jgroups.blocks.RequestHandler;
+import org.jgroups.blocks.RequestOptions;
 
-import se.umu.cs.ads.types.*;
-import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.controller.Controller;
-import se.umu.cs.ads.exception.PicoException;
+import se.umu.cs.ads.types.JMessage;
+import se.umu.cs.ads.types.MessageType;
+import se.umu.cs.ads.types.Performance;
+import se.umu.cs.ads.types.PicoContainer;
+import se.umu.cs.ads.types.PicoContainerState;
 
 public class NodeDispatcher implements RequestHandler {
 	private final static Logger logger = LogManager.getLogger(NodeDispatcher.class);
@@ -63,6 +65,11 @@ public class NodeDispatcher implements RequestHandler {
                 case FETCH_NODES:
 					//fetch active containers
                     return this.nodeManager.getNode();
+
+				case FETCH_NODE_PERFORMANCE:
+					double cpuLoad = this.nodeManager.getCPULoad();
+					double memLoad = this.nodeManager.getMemLoad();
+					return new Performance(cpuLoad, memLoad);
 
                 case FETCH_CONTAINER_NAMES:
                     return "FETCH_CONTAINER_NAMES, not implemented.";

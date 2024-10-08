@@ -63,9 +63,9 @@
 @code {
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
     private IQueryable<Node>? nodes;
-	private IQueryable<Pod>? containers;
+	private IQueryable<PicoContainer>? containers;
 
-    private string? ip = "http://localhost";
+    private string? ip = "http://10.0.0.15";
     private string? port = "8080";
     private string? connectionErrorStr = null;
     private string? nodesErrorStr = null;
@@ -101,7 +101,7 @@
 		try {
 			containers = null;
 			if (hasConnection) {
-				containers = (await Api.Get<List<Pod>>("containers")).AsQueryable();
+				containers = (await Api.Get<List<PicoContainer>>("containers")).AsQueryable();
 			}
 			StateHasChanged();
 		} catch (HttpRequestException e) {
@@ -136,13 +136,13 @@
 
     private async void CreateContainer() {
         try {
-            Pod pod = new Pod();
-            pod.Name = containerName != null ? containerName : "";
-            pod.Image = image != null ? image : "";
+            PicoContainer container = new PicoContainer();
+            container.Name = containerName != null ? containerName : "";
+            container.Image = image != null ? image : "";
 
-            pod = await Api.Post<Pod>("containers", pod);
+            container = await Api.Post<PicoContainer>("containers", container);
 
-            Console.WriteLine("Created new pod. Result: " + pod.Name + " " + pod.Image);
+            Console.WriteLine("Created new container. Result: " + container.Name + " " + container.Image);
         } catch (Exception e) {
             nodesErrorStr = "Unable to send POST request to service.";
             Console.WriteLine(e);

@@ -215,6 +215,20 @@ public class Controller {
 		}
 	}
 
+	public Performance getNodePerformance(String nodeName) throws Exception {
+		Future<Performance> res = pool.submit(() -> {
+			return manager.getNodePerformance(nodeName);
+		});
+
+		try {
+			return res.get();
+		} catch (Exception e) {
+			String msg = "Error while fetching node performance: " + e.getMessage();
+			logger.error(msg);
+			throw new Exception(msg);
+		}
+	}
+
 	public List<Object> broadcast(Object msg) throws Exception {
 		Future<List<Object>> res = pool.submit(() -> {
 			return manager.broadcast(msg);

@@ -23,10 +23,13 @@
             <p style="font-weight: bold;">CPU usage: </p>
             <p style="font-weight: bold;">RAM usage: </p>
         </div>
-        <div>
-            <p>Not fetched</p>
-            <p>Not fetched</p>
-        </div>
+        @if (perf != null)
+        {
+            <div>
+                <p>@perf.CPULoad.ToString("0.00")</p>
+                <p>@perf.MemLoad.ToString("0.00")</p>
+            </div>
+        }
     </div>
 </div>
 
@@ -44,18 +47,36 @@
 
 @code {
     [Parameter] public string name { get; set; } = "";
-    
     private Node? node = null;
-    private IQueryable<Pod>? containers = null; 
+    private Performance? perf = null;
+    private IQueryable<PicoContainer>? containers = null; 
+
+    private Timer? timer;
     
     protected override async Task OnInitializedAsync() {
         await FetchNode();
+        await FetchPerformance();
+
+        timer = new Timer(UpdateData, null, 0, 2000);
+    }
+
+    private void UpdateData(object? state) {
+        InvokeAsync(FetchPerformance);
     }
 
     private async Task FetchNode() {
         try {
             node = await Api.Get<Node>("nodes/" + name);
-            containers = node.Pods.AsQueryable();
+            containers = node.Containers.AsQueryable();
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
+        StateHasChanged();
+    }
+
+    private async Task FetchPerformance() {
+        try {
+            perf = await Api.Get<Performance>("nodes/" + name + "/performance");
         } catch (Exception e) {
             Console.WriteLine(e);
         }

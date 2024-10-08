@@ -1,26 +1,30 @@
 package se.umu.cs.ads.nodemanager;
 
-import java.util.*;
-import java.util.concurrent.*;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jgroups.Address;
 import org.jgroups.Event;
 import org.jgroups.JChannel;
+import org.jgroups.PhysicalAddress;
 import org.jgroups.Receiver;
 import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
-import org.springframework.util.ConcurrentReferenceHashMap;
-import org.jgroups.PhysicalAddress;
+
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.*;
-
-
-import org.apache.logging.log4j.Logger;
+import se.umu.cs.ads.types.JMessage;
+import se.umu.cs.ads.types.MessageType;
+import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.Performance;
+import se.umu.cs.ads.types.PicoContainer;
 
 /**
  * Class for cluster management
@@ -127,6 +131,16 @@ public class NodeManager {
             .map(obj -> (Node) obj)
             .toList();
     }
+
+	public Performance getNodePerformance(String nodeName) throws Exception {
+		JMessage msg = new JMessage(
+			MessageType.FETCH_NODE_PERFORMANCE,
+			""
+		);
+
+		Address dest = getAddressOfNode(nodeName);
+		return (Performance) send(dest, msg);
+	}
 
 	public synchronized void setActiveContainers(List<PicoContainer> containers) {
 		this.node.setContainers(containers);
