@@ -1,7 +1,7 @@
 package se.umu.cs.ads.nodemanager;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,6 +56,8 @@ public class NodeDispatcher implements RequestHandler {
     public Object handle(Message msg) throws Exception {
         if (msg.getObject() instanceof JMessage) {
             JMessage jmsg = (JMessage) msg.getObject();
+
+			logger.info("Received {} from {}", jmsg.getType(), jmsg.getSender());
 
             switch (jmsg.getType()) {
                 case FETCH_NODE:
@@ -136,7 +138,7 @@ public class NodeDispatcher implements RequestHandler {
 		PicoContainer container = (PicoContainer) payload;
 
 		try {
-			container = controller.createContainer(container);
+			container = controller.createLocalContainer(container);
 			container = controller.startContainer(container.getName());
 		} catch (Exception e) {
 			String res = String.format("Failed to create and run container: %s", e.getMessage());
@@ -200,6 +202,8 @@ public class NodeDispatcher implements RequestHandler {
 		}
 
 		logger.info("Score evaluted to: {}", score);
+		// return score;
+		
 		JMessage reply = new JMessage()
 			.setPayload(score)
 			.setSender(nodeManager.getChannelAddress())
@@ -223,42 +227,53 @@ public class NodeDispatcher implements RequestHandler {
 		
 
 		try {
-            List<JMessage> replies = broadcast(newMsg).stream()
-                .map(obj -> (JMessage) obj)
-                .toList();
-    
-			double minScore = Double.MAX_VALUE;
-			String minAddr = null;
-			for (JMessage reply : replies) {
-				double score = (Double) reply.getPayload();
-                if (score < minScore) {
-					minScore = score;
-					minAddr = reply.getSender();
+			Future<List<JMessage>> future = controller.pool.submit(() -> {
+				return broadcast(newMsg).stream()
+					.map(obj -> (JMessage) obj)
+					.toList();
+			});
+			
+			try {
+				List<JMessage> replies = future.get();
+
+				double minScore = Double.MAX_VALUE;
+				String minAddr = null;
+				for (JMessage reply : replies) {
+					double score = (Double) reply.getPayload();
+					logger.info("Received reply from {} with score {}", reply.getSender(), score);
+					if (score < minScore) {
+						minScore = score;
+						minAddr = reply.getSender();
+					}
 				}
-            }
-
-			String name = container.getName();
-			if (minScore == PORT_CONFLICT || candidates.containsKey(name)) {
-				container.setState(PicoContainerState.NAME_CONFLICT);
-				logger.warn("Container {} has name conflict, it will not be started!", name);
+	
+				String name = container.getName();
+				if (minScore == NAME_CONFLICT ) {
+					container.setState(PicoContainerState.NAME_CONFLICT);
+					logger.warn("Container {} has name conflict, it will not be started!", name);
+				}
+				else if (minScore == PORT_CONFLICT || candidates.containsKey(name)) {
+					container.setState(PicoContainerState.PORT_CONFLICT);
+					logger.warn("Container {} has port conflicts, it will not be started!", name);
+				}
+	
+				JMessage reply = new JMessage()
+					.setSender(nodeManager.getChannelAddress())
+					.setPayload(container)
+					.setType(MessageType.CREATE_CONTAINER);
+	
+				//mark container as candidate
+				candidates.put(name, container);
+	
+				logger.info("Container election finished for {} finished, sending result to {}", name, minAddr);
+				send(nodeManager.getAddressOfNode(minAddr), reply);
+	
+				return container;
+			} catch (Exception e) {
+				logger.error("Failed to get replies from nodes: {}", e.getMessage());
+				return null;
 			}
-			else if (minScore == NAME_CONFLICT) {
-				container.setState(PicoContainerState.PORT_CONFLICT);
-				logger.warn("Container {} has port conflicts, it will not be started!", name);
-			}
-
-			JMessage reply = new JMessage()
-				.setSender(nodeManager.getChannelAddress())
-				.setPayload(container)
-				.setType(MessageType.CREATE_CONTAINER);
-
-			//mark container as candidate
-			candidates.put(name, container);
-
-			logger.info("Container election finished for {} finished, sending result to {}", name, minAddr);
-			send(nodeManager.getAddressOfNode(minAddr), reply);
-
-			return container;
+    
 		} catch (Exception e) {
 			logger.error("Could not broadcast message: {}", e.getMessage());
 			return null;

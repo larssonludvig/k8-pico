@@ -16,7 +16,7 @@ import se.umu.cs.ads.nodemanager.NodeManager;
 import org.jgroups.Address;
 
 public class Controller {
-	private final ExecutorService pool;
+	public final ExecutorService pool;
 	private final ContainerEngine engine;
 	private final static Logger logger = LogManager.getLogger(Controller.class);
 	private final ScheduledExecutorService scheduler;
@@ -59,7 +59,7 @@ public class Controller {
 			manager.refreshView();
 			logger.debug("Refreshed view");
 
-		}, 0, 5, TimeUnit.SECONDS);
+		}, 0, 200, TimeUnit.MILLISECONDS);
 	}
 
 	public void shutdown() {
@@ -111,9 +111,27 @@ public class Controller {
 			return (PicoContainer) reply;
 		});
 		try {
-			return res.get();
+			return res.get(1, TimeUnit.SECONDS);
+		} catch (TimeoutException e) {
+			logger.info("Timeout exceded, but we do not care");
+			return null;
 		} catch (CancellationException | ExecutionException | InterruptedException e) {
 			String msg = "Error while creating containers " + container.getName() + ": " + e.getMessage();
+			e.printStackTrace();
+			logger.error(msg);
+			throw new PicoException(msg);
+		}
+	}
+
+	public PicoContainer createLocalContainer(PicoContainer container) throws PicoException {
+		Future<PicoContainer> res = pool.submit(() -> {
+			return engine.createContainer(container);
+		});
+
+		try {
+			return res.get();
+		} catch (CancellationException | ExecutionException | InterruptedException e) {
+			String msg = "Error while creating local container: " + e.getMessage();
 			logger.error(msg);
 			throw new PicoException(msg);
 		}
@@ -134,7 +152,7 @@ public class Controller {
 		try {
 			return res.get();
 		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while creating containers: " + e.getMessage();
+			String msg = "Error while fetching container logs: " + e.getMessage();
 			logger.error(msg);
 			throw new PicoException(msg);
 		}
@@ -203,6 +221,21 @@ public class Controller {
 
 	public List<Node> getNodes() throws Exception {
 		Future<List<Node>> res = pool.submit(() -> {
+			
+			// JMessage msg = new JMessage();
+			// msg.setSender(manager.getChannelAddress());
+			// msg.setType(MessageType.EVALUATE_CONTAINER_REQUEST);
+			// msg.setPayload(new PicoContainer("dummy"));
+			// Object reply = manager.broadcast(msg);
+			// if (!(reply instanceof List<?>))
+			// throw new Exception("Reply not instance of list");
+		
+			// List<Double> results = (List<Double>) reply;
+
+			// logger.info("Results size: {}", results.size());
+			
+			
+			
 			return manager.getNodes();
 		});
 

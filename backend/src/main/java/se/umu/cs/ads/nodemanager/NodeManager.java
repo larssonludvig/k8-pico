@@ -273,7 +273,7 @@ public class NodeManager {
 		this.node.setName(InetAddress.getLocalHost().getHostName());
 
 		String cluster = this.node.getCluster();
-        this.ch = new JChannel("tcp.xml")
+        this.ch = new JChannel("udp.xml")
             .name(node.getName())
             // .setDiscardOwnMessages(true)
             .setReceiver(new CustomReceiver(node.getName(), view));
