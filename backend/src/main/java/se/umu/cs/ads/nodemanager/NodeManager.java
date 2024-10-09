@@ -16,37 +16,34 @@ import org.jgroups.JChannel;
 import org.jgroups.PhysicalAddress;
 import org.jgroups.Receiver;
 import org.jgroups.View;
-import org.jgroups.blocks.MessageDispatcher;
 
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.types.MessageType;
-import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.Performance;
-import se.umu.cs.ads.types.PicoContainer;
+import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.communication.*;
 
 /**
  * Class for cluster management
  */
 public class NodeManager {
-    private NodeDispatcher disp = null;
-    private JChannel ch = null;
-    public final Node node;
+	private final static Logger logger = LogManager.getLogger(NodeManager.class);
 	private final Controller controller;
-	private AtomicReference<View> view;
-	private final SystemMetric metrics = new SystemMetric();
-
+	private PicoCommunication comm;
+    public final Node node;
+	private final SystemMetric metrics;
+	private final String address;
+	
 	//name, containers
 	private final Map<String, List<PicoContainer>> remoteContainers;
 
-	private final static Logger logger = LogManager.getLogger(NodeManager.class);
     public NodeManager(Controller controller, String cluster) {
         this.node = new Node(cluster);
 		this.controller = controller;
 		this.view = new AtomicReference<>();
 		this.view.set(new View());
 		this.remoteContainers = new ConcurrentHashMap<>();
+		this.address = Inet4Address.getLocalHost().getHostAddress();
+		this.metrics = new SystemMetric();
     }
 
 
@@ -268,31 +265,12 @@ public class NodeManager {
      * @throws Exception IllegalArgumentException
      */
     public void start() throws Exception {
-       
-
 		this.node.setName(InetAddress.getLocalHost().getHostName());
 
-		String cluster = this.node.getCluster();
-        this.ch = new JChannel("udp.xml")
-            .name(node.getName())
-            // .setDiscardOwnMessages(true)
-            .setReceiver(new CustomReceiver(node.getName(), view));
+		this.comm = new PicoCommunication(8081);
 
-        NodeDispatcher nDisp = new NodeDispatcher();
-        this.disp = nDisp.initialize(
-            new MessageDispatcher(this.ch, nDisp),
-            this,
-			controller
-        );
-
-        this.ch.connect(cluster);
-		this.view.set(ch.getView());
 		this.node.setAddress(getIPAddress());
 		logger.info("Node: {}", this.node);
-	}
-
-	public String getChannelAddress() {
-		return this.ch.address().toString();
 	}
 
 	public String getIPAddress() {
@@ -306,10 +284,6 @@ public class NodeManager {
 			
 			PhysicalAddress address = (PhysicalAddress) o;
 			return address.printIpAddress();
-	}
-
-	public void stop() {
-		this.ch.disconnect();
 	}
 
     /**
@@ -327,48 +301,17 @@ public class NodeManager {
 
     /**
      * Broadcast a message over the cluster
-     * @param obj Object to broadcast
      * @throws Exception exception
      */
-    public List<Object> broadcast(Object obj) throws Exception {
-        return this.disp.broadcast(obj);
+    public List<JMessage> broadcast(JMessage msg) throws Exception {
+		// IP/Port should be added somewhere lower
+		return this.comm.broadcast(msg);
     }
 
     /**
      * Send a message to a specific node
-     * @param dest Node to send to
-     * @param obj Object to send
-     * @throws Exception exception
      */
-    public Object send(Address dest, Object obj) throws Exception {
-        return this.disp.send(dest, obj);
-    }
-
-    /**
-     * Custom receiver class that implements the JGroups Receiver
-     */
-    protected static class CustomReceiver implements Receiver {
-        protected final String name;
-		protected final AtomicReference<View> viewUpdater;
-		private static final Logger logger = LogManager.getLogger(CustomReceiver.class);
-        /**
-         * Custom receiver constructor
-         * @param name Name of current node
-         */
-        protected CustomReceiver(String name, AtomicReference<View> viewUpdater) {
-            this.name = name;
-			this.viewUpdater = viewUpdater;
-        }
-
-        /**
-         * Override viewAccepted of Receiver
-         * @param v Current cluster views
-         */
-        // @Override
-        public void viewAccepted(View v) {
-			viewUpdater.set(v);
-		    logger.info("-- [%s] new view: %s\n", name, v);
-			logger.error("New leader: " + v.getMembers().get(0));
-        }
+    public JMessage send(String ip, int port, JMessage msg) throws Exception {
+        return this.comm.send(ip, port, msg);
     }
 }

@@ -18,5 +18,6 @@ public enum MessageType {
 	CONTAINER_LIST,
     
     // Empty as dummy
-    EMPTY
+    EMPTY,
+    UNKNOWN
 }

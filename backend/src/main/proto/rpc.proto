@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "se.umu.cs.ads.communication";
+option java_outer_classname = "RPCProto";
+
+package communication;
+
+message RpcMessage {
+    string payload = 1;
+}
+
+service RpcService {
+    rpc send (RpcMessage) returns (RpcMessage);
+}

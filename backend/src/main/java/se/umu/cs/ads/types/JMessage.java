@@ -2,8 +2,22 @@ package se.umu.cs.ads.types;
 
 import java.io.Serializable;
 
+import se.umu.cs.ads.serializers.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+@JsonSerialize(using = PicoMessageSerializer.class)
+@JsonDeserialize(using = PicoMessageDeserializer.class)
 public class JMessage implements Serializable {
     private static final long serialVersionUID = 1L;
+
+    private static final Logger logger = LogManager.getLogger(JMessage.class);
 
     private MessageType type;
     private Object payload;
@@ -48,5 +62,27 @@ public class JMessage implements Serializable {
 
     public String getSender() {
         return this.sender;
+    }
+
+
+    public static JMessage fromJson(String json) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(json, JMessage.class);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to parse JSON: " + e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public String toString() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize message: " + e.getMessage());
+            return null;
+        }
     }
 }
