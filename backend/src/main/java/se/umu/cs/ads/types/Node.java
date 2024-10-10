@@ -9,7 +9,7 @@ public class Node implements Serializable {
     private String name;
     private String address;
     private String cluster;
-    private static final int PORT = 8080;
+    private int port;
 
     private final ArrayList<PicoContainer> containers;
     
@@ -35,7 +35,11 @@ public class Node implements Serializable {
 
 
     public int getPort() {
-        return PORT;
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 
     public String getCluster() {

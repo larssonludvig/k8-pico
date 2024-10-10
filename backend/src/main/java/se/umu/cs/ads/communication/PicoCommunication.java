@@ -26,6 +26,8 @@ public class PicoCommunication {
 
     public JMessage send(String ip, int port, JMessage msg) {
         try {
+            msg.setSender(this.ip + ":" + this.port);
+
             PicoClient client = new PicoClient(ip, port);
             String res = client.send(msg);
             

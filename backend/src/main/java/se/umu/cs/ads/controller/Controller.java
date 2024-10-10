@@ -1,22 +1,19 @@
 package se.umu.cs.ads.controller;
 
+import java.util.*;
 import java.util.concurrent.*;
+import java.net.InetSocketAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-
-import java.util.*;
 
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
 
-import org.jgroups.Address;
-
 public class Controller {
-	public final ExecutorService pool;
+	private final ExecutorService pool;
 	private final ContainerEngine engine;
 	private final static Logger logger = LogManager.getLogger(Controller.class);
 	private final ScheduledExecutorService scheduler;
@@ -28,12 +25,6 @@ public class Controller {
 		engine = new ContainerEngine();
 		manager = new NodeManager(this, "k8-pico");
 		manager.setActiveContainers(engine.getContainers(true));
-		try {
-			manager.start();
-		} catch (Exception e) {
-			logger.error("Error while starting node manager: " + e.getMessage());
-			System.exit(-1);
-		}
 
 		startPeriodicRefresh();
 	}
@@ -53,13 +44,6 @@ public class Controller {
 			logger.debug("Refreshed containers and images in {} ms", time);
 
 		}, 5, 5, TimeUnit.SECONDS);
-
-
-		scheduler.scheduleAtFixedRate(() -> {
-			manager.refreshView();
-			logger.debug("Refreshed view");
-
-		}, 0, 200, TimeUnit.MILLISECONDS);
 	}
 
 	public void shutdown() {
@@ -98,17 +82,18 @@ public class Controller {
 
 	public PicoContainer createContainer(PicoContainer container) throws PicoException {
 		Future<PicoContainer> res = pool.submit(() -> {
-			Address leader = manager.getLeader();
+			InetSocketAddress leader = manager.getLeader();
+
 			JMessage msg = new JMessage();
-			msg.setSender(manager.getChannelAddress());
 			msg.setType(MessageType.CONTAINER_ELECTION_START);
 			msg.setPayload(container);
-			Object reply = manager.send(leader, msg);
+			JMessage reply = manager.send(leader, msg);
+			Object payload = reply.getPayload();
 			
-			if (!(reply instanceof PicoContainer))
+			if (!(payload instanceof PicoContainer))
 				throw new PicoException("Reply not instance of container");
 			
-			return (PicoContainer) reply;
+			return (PicoContainer) payload;
 		});
 		try {
 			return res.get(1, TimeUnit.SECONDS);
@@ -205,15 +190,15 @@ public class Controller {
 		return manager.getNode();
 	}
 
-	public Node getNode(String name) throws Exception {
+	public Node getNode(InetSocketAddress ipPort) throws Exception {
 		Future<Node> res = pool.submit(() -> {
-			return manager.getNode(name);
+			return manager.getNode(ipPort);
 		});
 
 		try {
 			return res.get();
 		} catch (Exception e) {
-			String msg = "Error while fetching node " + name + ": " + e.getMessage();
+			String msg = "Error while fetching node " + ipPort + ": " + e.getMessage();
 			logger.error(msg);
 			throw new Exception(msg);
 		}
@@ -221,21 +206,6 @@ public class Controller {
 
 	public List<Node> getNodes() throws Exception {
 		Future<List<Node>> res = pool.submit(() -> {
-			
-			// JMessage msg = new JMessage();
-			// msg.setSender(manager.getChannelAddress());
-			// msg.setType(MessageType.EVALUATE_CONTAINER_REQUEST);
-			// msg.setPayload(new PicoContainer("dummy"));
-			// Object reply = manager.broadcast(msg);
-			// if (!(reply instanceof List<?>))
-			// throw new Exception("Reply not instance of list");
-		
-			// List<Double> results = (List<Double>) reply;
-
-			// logger.info("Results size: {}", results.size());
-			
-			
-			
 			return manager.getNodes();
 		});
 
@@ -248,9 +218,9 @@ public class Controller {
 		}
 	}
 
-	public Performance getNodePerformance(String nodeName) throws Exception {
+	public Performance getNodePerformance(InetSocketAddress ipPort) throws Exception {
 		Future<Performance> res = pool.submit(() -> {
-			return manager.getNodePerformance(nodeName);
+			return manager.getNodePerformance(ipPort);
 		});
 
 		try {
@@ -262,46 +232,7 @@ public class Controller {
 		}
 	}
 
-	public List<Object> broadcast(Object msg) throws Exception {
-		Future<List<Object>> res = pool.submit(() -> {
-			return manager.broadcast(msg);
-		});
-		
-		try {
-			return res.get();
-		} catch (Exception e) {
-			String err = "Error while broadcasting message: " + e.getMessage();
-			logger.error(err);
-			throw new Exception(err);
-		}
-	}
-
-	public Object send(Address address, Object msg) {
-		Future<Object> res = pool.submit(() -> {
-			return manager.send(address, msg);
-		});
-
-		try {
-			return res.get();
-		} catch (Exception e) {
-			String err = "Error while sending message to " + address + ": " + e.getMessage();
-			logger.error(err);
-			return err;
-		}
-	}
-
-	public Object send(String name, Object msg) {
-		Future<Object> res = pool.submit(() -> {
-			Address address = manager.getAddressOfNode(name);
-			return manager.send(address, msg);
-		});
-
-		try {
-			return res.get();
-		} catch (Exception e) {
-			String err = "Error while sending message to " + name + ": " + e.getMessage();
-			logger.error(err);
-			return err;
-		}
+	public ExecutorService getPool() {
+		return this.pool;
 	}
 }

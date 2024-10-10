@@ -1,6 +1,13 @@
-package se.umu.cs.ads.slutermanagement;
+package se.umu.cs.ads.clustermanager;
 
+import java.util.*;
 import java.util.concurrent.*;
+
+import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.communication.PicoCommunication;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ClusterManager {
 	// Flytta node hit från NodeManager?

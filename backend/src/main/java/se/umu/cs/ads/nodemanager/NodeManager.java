@@ -1,26 +1,19 @@
 package se.umu.cs.ads.nodemanager;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.net.InetSocketAddress;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jgroups.Address;
-import org.jgroups.Event;
-import org.jgroups.JChannel;
-import org.jgroups.PhysicalAddress;
-import org.jgroups.Receiver;
-import org.jgroups.View;
 
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.*;
-import se.umu.cs.ads.communication.*;
+import se.umu.cs.ads.messagehandler.MessageHandler;
+import se.umu.cs.ads.clustermanager.ClusterManager;
 
 /**
  * Class for cluster management
@@ -28,22 +21,25 @@ import se.umu.cs.ads.communication.*;
 public class NodeManager {
 	private final static Logger logger = LogManager.getLogger(NodeManager.class);
 	private final Controller controller;
-	private PicoCommunication comm;
-    public final Node node;
+	private final MessageHandler handler;
 	private final SystemMetric metrics;
-	private final String address;
+	private final ClusterManager cluster;
+    public final Node node;
 	
 	//name, containers
 	private final Map<String, List<PicoContainer>> remoteContainers;
 
     public NodeManager(Controller controller, String cluster) {
+		String ip = InetAddress.getLocalHost().getHostAddress();
+		int port = 8081;
+
         this.node = new Node(cluster);
+		this.node.setAddress(ip);
 		this.controller = controller;
-		this.view = new AtomicReference<>();
-		this.view.set(new View());
 		this.remoteContainers = new ConcurrentHashMap<>();
-		this.address = Inet4Address.getLocalHost().getHostAddress();
 		this.metrics = new SystemMetric();
+		this.handler = new MessageHandler(this);
+		this.cluster = new ClusterManager(ip, port);
     }
 
 
@@ -53,68 +49,24 @@ public class NodeManager {
         return this.node;
     }
 
-	public synchronized void refreshView() {
-			View currentView = this.view.get();
-			View newView = this.ch.getView();
-			List<Address> newMembers = View.newMembers(currentView, newView);
-			List<Address> deadMembers = View.leftMembers(currentView, newView);
-			
-			if (newMembers.size() > 0) {
-				System.out.println("New members: " + newMembers.get(0).toString());
-				//send our container to new members
-				sendContainersTo(newMembers);
-			}
+    public Node getNode(InetSocketAddress ipPort) throws RuntimeException {
+		String ip = ipPort.getAddress().getHostAddress();
+		int port = ipPort.getPort();
 
-			if (deadMembers.size() > 0) {
-				System.out.println("Dead members: " + deadMembers.get(0).toString());
-			}
-			
-			this.view.set(newView);
-			logger.debug("Current leader: " + getLeader());
-
-	}
-
-	private void sendContainersTo(List<Address> addresses) {
-		List<PicoContainer> containers = controller.listAllContainers();
-		JMessage msg = new JMessage();
-
-		msg.setSender(this.node.getName());
-		msg.setPayload(containers);
-		msg.setType(MessageType.CONTAINER_LIST);
-
-		addresses.stream()
-		.filter(it -> !it.toString().equals(getChannelAddress())) //filter ourselves out
-		.forEach(it -> {
-			try {
-				logger.info("Sending info regarding {} containers to {}", containers.size(), it);
-				send(it, msg);
-			} catch (Exception e) {
-				logger.error("Could not send message to {}: {}", it, e.getMessage());
-			}
-		});
-	}
-
-    public Node getNode(String nodeName) throws Exception {
-        if (nodeName.equals(this.node.getName())) {
+        if (ip.equals(this.node.getAddress()) && port == this.node.getPort()) {
             return this.node;
         } else {
-
-            Address address = getAddressOfNode(nodeName);
-            if (address == null) {
-                throw new Exception("Unable to fetch node, not a member of the cluster.");
-            }
-
             JMessage msg = new JMessage(
                 MessageType.FETCH_NODE,
-                nodeName
+                ip + ":" + port
             );
 
-            Object result = send(address, msg);
-            if (!(result instanceof Node)) {
-                throw new Exception("Fetched object is not of type Node.");
-            }
+            JMessage res = send(ip, port, msg);
+			Object payload = res.getPayload();
+			if (!(payload instanceof Node))
+				throw new RuntimeException("Invalid response from FETCH_NODE. Not of type Node");
 
-            return (Node) result;
+            return (Node) payload;
         }
     }
 
@@ -125,18 +77,25 @@ public class NodeManager {
         );
 
         return broadcast(msg).stream()
-            .map(obj -> (Node) obj)
+            .map(obj -> (Node) obj.getPayload())
             .toList();
     }
 
-	public Performance getNodePerformance(String nodeName) throws Exception {
+	public Performance getNodePerformance(InetSocketAddress ipPort) throws Exception {
+		String ip = ipPort.getAddress().getHostAddress();
+		int port = ipPort.getPort();
+		
 		JMessage msg = new JMessage(
 			MessageType.FETCH_NODE_PERFORMANCE,
-			""
+			ip + ":" + port
 		);
 
-		Address dest = getAddressOfNode(nodeName);
-		return (Performance) send(dest, msg);
+		JMessage res = send(ip, port, msg);
+		Object payload = res.getPayload();
+		if (!(payload instanceof Performance))
+			throw new RuntimeException("Invalid response from FETCH_NODE_PERFORMANCE. Not of type Performance");
+		
+		return (Performance) payload;
 	}
 
 	public synchronized void setActiveContainers(List<PicoContainer> containers) {
@@ -145,13 +104,13 @@ public class NodeManager {
 
     // Cluster and channel management ----------------------------------------------
     
-	public boolean isLeader() {
-		return getLeader().toString().equals(getChannelAddress());
-	}
+	// public boolean isLeader() {
+	// 	return getLeader().toString().equals(getChannelAddress());
+	// }
 
-	public Address getLeader() {
-        return this.view.get().getMembers().get(0);
-    }
+	// public Address getLeader() {
+    //     return this.view.get().getMembers().get(0);
+    // }
 
 	/**
 	 * Add a collection of containers to the list of known host for a remote 
@@ -257,61 +216,31 @@ public class NodeManager {
         return (w_cpu * cpuFree) + (w_mem * memFree);
 	}
 
-
-    /**
-     * Create or join cluster by paramiters
-     * @param cluster Name of cluster to join
-     * @param node Name of this node
-     * @throws Exception IllegalArgumentException
-     */
-    public void start() throws Exception {
-		this.node.setName(InetAddress.getLocalHost().getHostName());
-
-		this.comm = new PicoCommunication(8081);
-
-		this.node.setAddress(getIPAddress());
-		logger.info("Node: {}", this.node);
-	}
-
-	public String getIPAddress() {
-		if (this.ch == null)
-			throw new IllegalStateException("Cannot determine address if channel is not created yet.");
-
-			Object o = this.ch.down(new Event(Event.GET_PHYSICAL_ADDRESS, this.ch.getAddress()));
-
-			if (!(o instanceof PhysicalAddress))
-				throw new IllegalStateException("Cannot determine local address");
-			
-			PhysicalAddress address = (PhysicalAddress) o;
-			return address.printIpAddress();
-	}
-
-    /**
-     * Finds the address of a node by name
-     * @param node Name of node to get address from
-     * @return Found address of node
-     */
-    public Address getAddressOfNode(String node)  {
-        Optional<Address> optDest = ch.view().getMembers().stream()
-            .filter(address -> node.equals(address.toString()))
-            .findAny();
-		
-        return optDest.orElse(null);
-    }
-
     /**
      * Broadcast a message over the cluster
      * @throws Exception exception
      */
     public List<JMessage> broadcast(JMessage msg) throws Exception {
 		// IP/Port should be added somewhere lower
-		return this.comm.broadcast(msg);
+		return this.cluster.broadcast(msg);
     }
 
     /**
      * Send a message to a specific node
      */
     public JMessage send(String ip, int port, JMessage msg) throws Exception {
-        return this.comm.send(ip, port, msg);
+        return this.cluster.send(ip, port, msg);
     }
+
+	public ExecutorService getPool() {
+		return this.controller.getPool();
+	}
+
+	public PicoContainer createLocalContainer(PicoContainer container) {
+		return this.controller.createContainer(container);
+	}
+
+	public PicoContainer startContainer(String name) {
+		return this.controller.startContainer(name);
+	}
 }
