@@ -1,57 +1,67 @@
-package se.umu.cs.ads.slutermanagement;
+package se.umu.cs.ads.clustermanagement;
 
 import java.util.concurrent.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.net.InetSocketAddress;
+import java.util.*;
+import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.communication.PicoCommunication;
+import se.umu.cs.ads.nodemanager.NodeManager;
+
 public class ClusterManager {
-	// Flytta node hit från NodeManager?
-	private final Map<String, Node> cluster;
-
-	private final PicoCommunication comm;
-
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
+	private final Map<InetSocketAddress, Node> cluster;
+	private final PicoCommunication comm;
+	private final String address;
+	private final NodeManager manager;
 
-	public ClusterManager(String ip, int port) {
+	public ClusterManager(NodeManager manager, String ip, int port) {
 		this.cluster = new ConcurrentHashMap<>();
-		this.comm = new PicoCommunication(ip, port);
+		this.comm = new PicoCommunication(this, manager.getAddress());
+		this.address = ip;
+		this.manager = manager;
 	}
 
 	public List<Node> getClusterMembers() {
-		return this.cluster.values();
+		return new ArrayList<Node>(cluster.values());
 	}
 
 	public List<Node> getNodes() {
-		return this.cluster.values();
+		return new ArrayList<Node>(cluster.values());
 	}
 
 	public void addNode(Node node) {
-		this.cluster.put(node.getName(), node);
+		cluster.put(node.getName(), node);
 	}
 
 	public void removeNode(String name) {
-		this.cluster.remove(name);
+		cluster.remove(name);
 	}
 
 	public void updateNode(Node node) {
-		this.cluster.put(node.getName(), node);
+		cluster.put(node.getName(), node);
 	}
 
-	public Node getNode(String name) {
-		return this.cluster.get(name);
+	public Node getNode(InetSocketAddress address) {
+		return cluster.get(address);
 	}
 
-	public JMessage send(String ip, int port, JMessage msg) {
-		return this.comm.send(ip, port, msg);
+	public JMessage send(JMessage msg) {
+		return comm.send(msg);
 	}
 
 	public List<JMessage> broadcast(JMessage msg) {
-		List<String> ips = new List<>();
-		List<Integer> ports = new List<>();
+		List<String> ips = new ArrayList<>();
+		List<Integer> ports = new ArrayList<>();
+		List<InetSocketAddress> addresses = getNodes().stream().map(it -> it.getAddress()).toList();
 
-		for (Node node : getNodes()) {
-			ips.add(node.getIp());
-			ports.add(node.getPort());
-		}
+		return comm.broadcast(addresses, msg);
+	}
 
-		return this.comm.broadcast(ips, ports, msg);
+	public void receive(JMessage message) {
+		manager.receive(message);
 	}
 }

@@ -1,5 +1,6 @@
 package se.umu.cs.ads.nodemanager;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,8 +40,6 @@ public class NodeManager {
     public NodeManager(Controller controller, String cluster) {
         this.node = new Node(cluster);
 		this.controller = controller;
-		this.view = new AtomicReference<>();
-		this.view.set(new View());
 		this.remoteContainers = new ConcurrentHashMap<>();
 		this.address = Inet4Address.getLocalHost().getHostAddress();
 		this.metrics = new SystemMetric();
@@ -314,4 +313,8 @@ public class NodeManager {
     public JMessage send(String ip, int port, JMessage msg) throws Exception {
         return this.comm.send(ip, port, msg);
     }
+
+	public void receive(JMessage message) {
+		//handle message here
+	}
 }

@@ -1,6 +1,7 @@
 package se.umu.cs.ads.types;
 
 import java.io.Serializable;
+import java.net.InetSocketAddress;
 
 import se.umu.cs.ads.serializers.*;
 
@@ -22,6 +23,9 @@ public class JMessage implements Serializable {
     private MessageType type;
     private Object payload;
     private String sender;
+	private InetSocketAddress destination;
+	private boolean broadcast;
+
 
     public JMessage() {
         this.type = MessageType.EMPTY;
@@ -33,6 +37,20 @@ public class JMessage implements Serializable {
 
         setPayload(payload);
     }
+
+	public JMessage setIsBroadcast(boolean isBroadcast) {
+		this.broadcast = isBroadcast;
+		return this;
+	}
+
+	public JMessage setDestination(InetSocketAddress address) {
+		this.destination = address;
+		return this;
+	}
+
+	public InetSocketAddress getDestination() {
+		return this.destination;
+	}
 
     public JMessage setType(MessageType type) {
         this.type = type;
@@ -82,7 +100,12 @@ public class JMessage implements Serializable {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             logger.error("Failed to serialize message: " + e.getMessage());
-            return null;
+            return "null";
         }
     }
+
+	@Override
+	public int hashCode() {
+		return this.toString().hashCode();
+	}
 }
