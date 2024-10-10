@@ -3,11 +3,12 @@ package se.umu.cs.ads.types;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.Serializable;
+import java.net.InetSocketAddress;
 
 public class Node implements Serializable {
 	private static final long serialVersionUID = 69691337L;
     private String name;
-    private String address;
+    private InetSocketAddress address;
     private String cluster;
     private int port;
 
@@ -20,7 +21,6 @@ public class Node implements Serializable {
     }
 
 
-
     public String getName() {
         return name;
     }
@@ -29,7 +29,7 @@ public class Node implements Serializable {
         this.name = name;
     }
 
-    public String getAddress() {
+    public InetSocketAddress getAddress() {
         return address;
     }
 
@@ -46,7 +46,7 @@ public class Node implements Serializable {
         return cluster;
     }
 
-	public void setAddress(String addr) {
+	public void setAddress(InetSocketAddress addr) {
 		this.address = addr;
 	}
 
@@ -71,5 +71,10 @@ public class Node implements Serializable {
 	@Override
 	public String toString() {
 		return String.format("%s (%s)", name, address);
+	}
+
+	@Override
+	public int hashCode() {
+		return this.toString().hashCode();
 	}
 }

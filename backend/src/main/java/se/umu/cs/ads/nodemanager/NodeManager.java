@@ -1,5 +1,6 @@
 package se.umu.cs.ads.nodemanager;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -242,5 +243,9 @@ public class NodeManager {
 
 	public PicoContainer startContainer(String name) {
 		return this.controller.startContainer(name);
+	}
+
+	public void receive(JMessage message) {
+		//handle message here
 	}
 }
