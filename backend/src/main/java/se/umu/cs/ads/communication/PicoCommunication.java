@@ -134,6 +134,8 @@ public class PicoCommunication {
 		InetSocketAddress sender = message.getSender();
 		logger.info("Received {} message from {}", type, sender);
 		
+		System.out.println(message.toString());
+
 		if (receivedMessages.contains(message)) {
 			logger.info("Message {} from {} has already been received", type, sender);
 			return null; //TODO: return JMessage
