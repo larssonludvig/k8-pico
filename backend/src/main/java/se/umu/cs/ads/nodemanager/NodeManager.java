@@ -3,6 +3,7 @@ package se.umu.cs.ads.nodemanager;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -11,10 +12,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import se.umu.cs.ads.controller.Controller;
+import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.*;
-import se.umu.cs.ads.messagehandler.MessageHandler;
-import se.umu.cs.ads.clustermanager.ClusterManager;
+import se.umu.cs.ads.clustermanagement.ClusterManager;
 
 /**
  * Class for cluster management
@@ -22,27 +23,36 @@ import se.umu.cs.ads.clustermanager.ClusterManager;
 public class NodeManager {
 	private final static Logger logger = LogManager.getLogger(NodeManager.class);
 	private final Controller controller;
-	private final MessageHandler handler;
 	private final SystemMetric metrics;
 	private final ClusterManager cluster;
     public final Node node;
 	
 	//name, containers
-	private final Map<String, List<PicoContainer>> remoteContainers;
+	private final Map<InetSocketAddress, List<PicoContainer>> remoteContainers;
 
-    public NodeManager(Controller controller, String cluster) {
-		String ip = InetAddress.getLocalHost().getHostAddress();
+    @SuppressWarnings("static-access")
+	public NodeManager(Controller controller) {
 		int port = 8081;
 
-        this.node = new Node(cluster);
-		this.node.setAddress(ip);
+        this.node = new Node();
+		try {
+			this.node.setAddress(new InetSocketAddress(Inet4Address.getLocalHost(), port));
+		} catch (UnknownHostException e) {
+			logger.fatal("Could not determine local address: {}", e.getMessage());
+			System.exit(-1);
+		}
+
+		this.cluster = new ClusterManager(this);
+		this.node.setName(cluster.CLUSTER_NAME);
+
 		this.controller = controller;
 		this.remoteContainers = new ConcurrentHashMap<>();
 		this.metrics = new SystemMetric();
-		this.handler = new MessageHandler(this);
-		this.cluster = new ClusterManager(ip, port);
     }
 
+	public ClusterManager getClusterManager() {
+		return this.cluster;
+	}
 
     // Node information management -------------------------------------------------
 
@@ -50,25 +60,29 @@ public class NodeManager {
         return this.node;
     }
 
-    public Node getNode(InetSocketAddress ipPort) throws RuntimeException {
-		String ip = ipPort.getAddress().getHostAddress();
-		int port = ipPort.getPort();
+	public InetSocketAddress getAddress() {
+		return this.node.getAddress();
+	}
 
-        if (ip.equals(this.node.getAddress()) && port == this.node.getPort()) {
+    public Node getNode(InetSocketAddress ipPort) throws PicoException {
+
+        if (getAddress().equals(ipPort)) {
             return this.node;
-        } else {
-            JMessage msg = new JMessage(
-                MessageType.FETCH_NODE,
-                ip + ":" + port
-            );
+        } 
+	
+		JMessage msg = new JMessage(
+			MessageType.FETCH_NODE,
+			""
+		);
+		msg.setDestination(ipPort);
 
-            JMessage res = send(ip, port, msg);
-			Object payload = res.getPayload();
-			if (!(payload instanceof Node))
-				throw new RuntimeException("Invalid response from FETCH_NODE. Not of type Node");
+		JMessage res = send(msg);
+		Object payload = res.getPayload();
+		if (!(payload instanceof Node))
+			throw new PicoException("Invalid response from FETCH_NODE. Not of type Node");
 
-            return (Node) payload;
-        }
+		return (Node) payload;
+        
     }
 
     public List<Node> getNodes() throws Exception {
@@ -82,19 +96,17 @@ public class NodeManager {
             .toList();
     }
 
-	public Performance getNodePerformance(InetSocketAddress ipPort) throws Exception {
-		String ip = ipPort.getAddress().getHostAddress();
-		int port = ipPort.getPort();
-		
+	public Performance getNodePerformance(InetSocketAddress ipPort) throws PicoException {
 		JMessage msg = new JMessage(
 			MessageType.FETCH_NODE_PERFORMANCE,
-			ip + ":" + port
+			""
 		);
+		msg.setDestination(ipPort);
 
-		JMessage res = send(ip, port, msg);
+		JMessage res = send(msg);
 		Object payload = res.getPayload();
 		if (!(payload instanceof Performance))
-			throw new RuntimeException("Invalid response from FETCH_NODE_PERFORMANCE. Not of type Performance");
+			throw new PicoException("Invalid response from FETCH_NODE_PERFORMANCE. Not of type Performance");
 		
 		return (Performance) payload;
 	}
@@ -109,16 +121,17 @@ public class NodeManager {
 	// 	return getLeader().toString().equals(getChannelAddress());
 	// }
 
-	// public Address getLeader() {
-    //     return this.view.get().getMembers().get(0);
-    // }
+	public InetSocketAddress getLeader() {
+		// TODO: implement
+		return null;
+    }
 
 	/**
 	 * Add a collection of containers to the list of known host for a remote 
 	 * @param name name of the remote host
 	 * @param containers containers to add
 	 */
-    public void updateRemoteContainers(String name, List<PicoContainer> containers) {
+    public void updateRemoteContainers(InetSocketAddress name, List<PicoContainer> containers) {
 		List<PicoContainer> existing = remoteContainers.get(name);
 		if (existing == null) {
 			existing = new ArrayList<>();
@@ -133,7 +146,7 @@ public class NodeManager {
 	 * @param name name of the host
 	 * @param container container to add
 	 */
-	public void updateRemoteContainers(String name, PicoContainer container) {
+	public void updateRemoteContainers(InetSocketAddress name, PicoContainer container) {
 		List<PicoContainer> existingContainers = remoteContainers.get(name);
 		if (existingContainers == null) {
 			existingContainers = new ArrayList<>();
@@ -229,8 +242,8 @@ public class NodeManager {
     /**
      * Send a message to a specific node
      */
-    public JMessage send(String ip, int port, JMessage msg) throws Exception {
-        return this.cluster.send(ip, port, msg);
+    public JMessage send(JMessage msg) {
+        return this.cluster.send(msg);
     }
 
 	public ExecutorService getPool() {

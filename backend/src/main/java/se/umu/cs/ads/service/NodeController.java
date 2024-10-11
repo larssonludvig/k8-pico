@@ -36,22 +36,24 @@ public class NodeController {
 
 
     @GetMapping("{name}")
-    public ResponseEntity<Node> getNode(@PathVariable String name) {
-        try {
-            Node node = service.getController().getNode(name);
-            return ResponseEntity.status(HttpStatus.OK).body(node);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+    public ResponseEntity<?> getNode(@PathVariable String name) {
+		return ResponseEntity.internalServerError().body(null);
+	    // try {
+        //     Node node = service.getController().getNode(name);
+        //     return ResponseEntity.status(HttpStatus.OK).body(node);
+        // } catch (Exception e) {
+        //     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        // }
     }
 
     @GetMapping("{name}/performance")
-    public ResponseEntity<Performance> getPerformance(@PathVariable String name) {
-        try {
-            Performance perf = service.getController().getNodePerformance(name);
-            return ResponseEntity.status(HttpStatus.OK).body(perf);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+    public ResponseEntity<?> getPerformance(@PathVariable String name) {
+		return ResponseEntity.internalServerError().body(null);
+	    // try {
+        //     Performance perf = service.getController().getNodePerformance(name);
+        //     return ResponseEntity.status(HttpStatus.OK).body(perf);
+        // } catch (Exception e) {
+        //     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        // }
     }
 }

@@ -26,9 +26,9 @@ public class PicoServer {
 		int port = address.getPort();
         try {
 			server = ServerBuilder.forPort(port)
-            .addService(new RpcService(comm))
-            .build()
-            .start();
+				.addService(new RpcService(comm))
+				.build()
+				.start();
 		} catch (IllegalStateException e) {
 			logger.error("Unable to start gRPC server: Server is already started or has been shut down: {}", port, e.getMessage());
 		} catch (IOException e) {
@@ -46,7 +46,19 @@ public class PicoServer {
         @Override
         public void send(RpcMessage msg, StreamObserver<RpcMessage> responseObserver) {
             JMessage message = JMessage.fromJson(msg.getPayload());
-			this.comm.receive(message);
+			JMessage reply = this.comm.receive(message);
+			RpcMessage rpcReply = JMessage.toRPC(reply);
+			responseObserver.onNext(rpcReply);
+			responseObserver.onCompleted();
         }
+		
+		@Override
+		public void join(RpcMessage msg, StreamObserver<RpcMessage> responseObserver) {
+			JMessage message = JMessage.fromJson(msg.getPayload());
+			JMessage reply = this.comm.join(message);
+			RpcMessage rpcReply = JMessage.toRPC(reply);
+			responseObserver.onNext(rpcReply);
+			responseObserver.onCompleted();
+		}
     }
 }

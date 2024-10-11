@@ -28,7 +28,7 @@ public class PicoMessageSerializer extends StdSerializer<JMessage> {
 		JMessage message, JsonGenerator jgen, SerializerProvider provider)
 		throws IOException {
 			jgen.writeStartObject();
-			jgen.writeStringField("sender", message.getSender());
+			jgen.writeStringField("sender", message.getSender().toString());
 			jgen.writeStringField("type", message.getType().toString());
 			jgen.writeStringField("payload", message.getPayload().toString());		
 			jgen.writeEndObject();		

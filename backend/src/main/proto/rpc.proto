@@ -12,4 +12,5 @@ message RpcMessage {
 
 service RpcService {
     rpc send (RpcMessage) returns (RpcMessage);
+    rpc join (RpcMessage) returns (RpcMessage);
 }

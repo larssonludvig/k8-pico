@@ -11,6 +11,8 @@ import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
+import se.umu.cs.ads.arguments.*;
+import se.umu.cs.ads.clustermanagement.ClusterManager;
 
 public class Controller {
 	private final ExecutorService pool;
@@ -18,17 +20,26 @@ public class Controller {
 	private final static Logger logger = LogManager.getLogger(Controller.class);
 	private final ScheduledExecutorService scheduler;
 	private final NodeManager manager;
-
+	private final ClusterManager cluster;
 	public Controller() {
 		pool = Executors.newCachedThreadPool();
 		scheduler = Executors.newScheduledThreadPool(2);
 		engine = new ContainerEngine();
-		manager = new NodeManager(this, "k8-pico");
+		
+		manager = new NodeManager(this);
 		manager.setActiveContainers(engine.getContainers(true));
-
-		startPeriodicRefresh();
+		this.cluster = manager.getClusterManager();
+		start();
 	}
 
+	private void joinCluster() {
+		if (CommandLineArguments.initialMember == null) {
+			cluster.createCluster();
+			return;
+		}
+		
+		cluster.joinCluster(CommandLineArguments.initialMember);
+	} 
 
 	// Pod engine methods ----------------------------------------------------------
 
@@ -49,6 +60,11 @@ public class Controller {
 	public void shutdown() {
 		scheduler.shutdown();
 		pool.shutdown();
+	}
+
+	public void start() {
+		startPeriodicRefresh();
+		joinCluster();
 	}
 
 	public List<PicoContainer> listAllContainers() throws PicoException {
@@ -84,10 +100,11 @@ public class Controller {
 		Future<PicoContainer> res = pool.submit(() -> {
 			InetSocketAddress leader = manager.getLeader();
 
-			JMessage msg = new JMessage();
-			msg.setType(MessageType.CONTAINER_ELECTION_START);
-			msg.setPayload(container);
-			JMessage reply = manager.send(leader, msg);
+			JMessage msg = new JMessage()
+				.setType(MessageType.CONTAINER_ELECTION_START)
+				.setPayload(container)
+				.setDestination(leader);
+			JMessage reply = manager.send(msg);
 			Object payload = reply.getPayload();
 			
 			if (!(payload instanceof PicoContainer))
