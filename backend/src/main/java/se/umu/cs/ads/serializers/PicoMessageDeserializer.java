@@ -7,12 +7,14 @@ import java.util.*;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.core.JacksonException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import se.umu.cs.ads.messagehandler.MessageVerifier;
 import se.umu.cs.ads.types.*;
 
 public class PicoMessageDeserializer extends StdDeserializer<JMessage> {
@@ -29,7 +31,7 @@ public class PicoMessageDeserializer extends StdDeserializer<JMessage> {
     @Override
     public JMessage deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
         JMessage result = new JMessage();
-
+		ObjectMapper mapper = new ObjectMapper();
 		JsonNode node = jp.getCodec().readTree(jp);
 		JsonNode senderObj = node.get("sender");
 
@@ -66,8 +68,10 @@ public class PicoMessageDeserializer extends StdDeserializer<JMessage> {
 
  
         JsonNode payload = node.get("payload");
-		if (payload != null)
-			result.setPayload(payload.asText());		
+		if (payload != null && typeObj != null) {
+			Class<?> clazz = MessageVerifier.getCorrectClass(result.getType());
+			result.setPayload(mapper.readValue(payload.asText(), clazz));		
+		}
 
         return result;
     }
