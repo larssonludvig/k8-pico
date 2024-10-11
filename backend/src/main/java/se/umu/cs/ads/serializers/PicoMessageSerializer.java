@@ -39,7 +39,7 @@ public class PicoMessageSerializer extends StdSerializer<JMessage> {
 				jgen.writeStringField("type", message.getType().toString());
 			
 			if (message.getPayload() != null)
-				jgen.writeStringField("payload", message.getPayload().toString());		
+				jgen.writeObjectField("payload", message.getPayload());		
 			jgen.writeEndObject();		
 		}
 	

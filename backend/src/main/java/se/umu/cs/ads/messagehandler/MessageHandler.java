@@ -27,7 +27,17 @@ public class MessageHandler {
     }
 
     public JMessage handle(JMessage jmsg) throws PicoException {
-        switch (jmsg.getType()) {
+		MessageType type = jmsg.getType();
+		Class<?> payloadClass = jmsg.getPayload().getClass();
+		if (!MessageVerifier.hasCorrectPayload(type, payloadClass)) {
+  		 	String err = String.format("Message was %s but payload was not a not %s. Ignoring", type, payloadClass.getCanonicalName());
+            logger.error(err);
+            return new JMessage()
+                .setType(MessageType.ERROR)
+                .setPayload(err);
+		}
+	    	
+		switch (type) {
 
 			case ERROR:
 				throw new PicoException(jmsg.getPayload().toString());
@@ -110,7 +120,6 @@ public class MessageHandler {
 
 
 	private JMessage join_request(JMessage msg) {
-		Object payload = msg.getPayload();
 		List<Node> members = cluster.getClusterMembers();
 		return new JMessage().setPayload(members).setType(MessageType.JOIN_REQUEST);
 	}
