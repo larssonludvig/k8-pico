@@ -119,6 +119,20 @@ public class JMessage implements Serializable {
     }
 
 	@Override
+	public boolean equals(Object other) {
+		if (other == null)
+			return false;
+
+		if (this == other) 
+			return true;
+		
+		if (!(other instanceof JMessage))
+			return false;
+		JMessage o = (JMessage) other;
+		return this.toString().equals(o.toString());
+	}
+
+	@Override
 	public int hashCode() {
 		return this.toString().hashCode();
 	}
