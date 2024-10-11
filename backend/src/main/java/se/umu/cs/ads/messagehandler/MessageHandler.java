@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.netty.resolver.InetSocketAddressResolver;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.exception.PicoException;
@@ -95,6 +96,10 @@ public class MessageHandler {
             case CONTAINER_ELECTION_END:
                 return container_election_end(jmsg);
 
+			case JOIN_REQUEST:
+				return join_request(jmsg);
+			case LEAVE_REQUEST:
+				return leave_request();
             default:  
                 return new JMessage()
 					.setType(MessageType.ERROR)
@@ -102,6 +107,17 @@ public class MessageHandler {
         }
     }
 
+
+
+	private JMessage join_request(JMessage msg) {
+		Object payload = msg.getPayload();
+		List<Node> members = cluster.getClusterMembers();
+		return new JMessage().setPayload(members).setType(MessageType.JOIN_REQUEST);
+	}
+
+	private JMessage leave_request() {
+		return null;
+	}
     private JMessage createContainer(JMessage msg) {
         Object payload = msg.getPayload();
         if (!(payload instanceof PicoContainer)) {
