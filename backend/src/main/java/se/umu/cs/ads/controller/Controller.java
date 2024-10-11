@@ -222,17 +222,17 @@ public class Controller {
 	}
 
 	public List<Node> getNodes() throws Exception {
-		Future<List<Node>> res = pool.submit(() -> {
+		// Future<List<Node>> res = pool.submit(() -> {
 			return manager.getNodes();
-		});
+		// });
 
-		try {
-			return res.get();
-		} catch (Exception e) {
-			String msg = "Error while fetching nodes: " + e.getMessage();
-			logger.error(msg);
-			throw new Exception(msg);
-		}
+		// try {
+		// 	return res.get();
+		// } catch (Exception e) {
+		// 	String msg = "Error while fetching nodes: " + e.getMessage();
+		// 	logger.error(msg);
+		// 	throw new Exception(msg);
+		// }
 	}
 
 	public Performance getNodePerformance(InetSocketAddress ipPort) throws Exception {

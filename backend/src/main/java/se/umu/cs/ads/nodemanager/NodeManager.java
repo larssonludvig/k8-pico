@@ -86,14 +86,16 @@ public class NodeManager {
     }
 
     public List<Node> getNodes() throws Exception {
-        JMessage msg = new JMessage(
-            MessageType.FETCH_NODES,
-            ""
-        );
+		return this.cluster.getNodes();
 
-        return broadcast(msg).stream()
-            .map(obj -> (Node) obj.getPayload())
-            .toList();
+        // JMessage msg = new JMessage(
+        //     MessageType.FETCH_NODES,
+        //     ""
+        // );
+
+        // return broadcast(msg).stream()
+        //     .map(obj -> (Node) obj.getPayload())
+        //     .toList();
     }
 
 	public Performance getNodePerformance(InetSocketAddress ipPort) throws PicoException {

@@ -51,7 +51,19 @@ public class ClusterManager {
 		JMessage joinReq = new JMessage()
 			.setDestination(address)
 			.setType(MessageType.JOIN_REQUEST);
-		send(joinReq);
+		
+		JMessage res = send(joinReq);
+
+		// if (res.payload())
+		System.out.println("REssult: " + res);
+
+		List<Node> nodes = (List<Node>) res.getPayload();
+
+		for (Node node : nodes) {
+			cluster.put(node.getAddress(), node);
+		}
+
+		cluster.put(manager.getAddress(), manager.getNode());
 	}
 
 	public List<Node> getClusterMembers() {
@@ -63,6 +75,7 @@ public class ClusterManager {
 	}
 
 	public List<Node> getNodes() {
+		logger.info("Cluster size: " + cluster.size());
 		return new ArrayList<Node>(cluster.values());
 	}
 
@@ -87,7 +100,7 @@ public class ClusterManager {
 	}
 
 	public List<JMessage> broadcast(JMessage msg) {
-		List<InetSocketAddress> addresses = getNodes().stream().map(it -> it.getAddress()).toList();
+		List<InetSocketAddress> addresses = new ArrayList<>(getNodes().stream().map(it -> it.getAddress()).toList());
 		if (msg.getType() == MessageType.JOIN_REQUEST || msg.getType() == MessageType.LEAVE_REQUEST)
 			addresses.remove(manager.getAddress());
 		
