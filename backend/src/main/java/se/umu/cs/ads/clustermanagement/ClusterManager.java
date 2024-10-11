@@ -88,6 +88,9 @@ public class ClusterManager {
 
 	public List<JMessage> broadcast(JMessage msg) {
 		List<InetSocketAddress> addresses = getNodes().stream().map(it -> it.getAddress()).toList();
+		if (msg.getType() == MessageType.JOIN_REQUEST || msg.getType() == MessageType.LEAVE_REQUEST)
+			addresses.remove(manager.getAddress());
+		
 		return comm.broadcast(addresses, msg);
 	}
 
