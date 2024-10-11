@@ -1,5 +1,7 @@
 package se.umu.cs.ads.communication;
 
+import io.grpc.Grpc;
+import io.grpc.InsecureServerCredentials;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -25,10 +27,11 @@ public class PicoServer {
     public void start() {
 		int port = address.getPort();
         try {
-			server = ServerBuilder.forPort(port)
+			server = Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
 				.addService(new RpcService(comm))
 				.build()
 				.start();
+
 		} catch (IllegalStateException e) {
 			logger.error("Unable to start gRPC server: Server is already started or has been shut down: {}", port, e.getMessage());
 		} catch (IOException e) {

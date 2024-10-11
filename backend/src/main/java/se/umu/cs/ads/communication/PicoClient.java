@@ -33,7 +33,7 @@ public class PicoClient {
 	public void connectNewHost(InetSocketAddress address) {
 		String ip = address.getAddress().getHostAddress();
 		int port = address.getPort();
-		ManagedChannel channel = ManagedChannelBuilder.forAddress(ip, port).build();
+		ManagedChannel channel = ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build();
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);

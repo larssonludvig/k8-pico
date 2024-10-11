@@ -29,8 +29,11 @@ public class PicoMessageSerializer extends StdSerializer<JMessage> {
 		throws IOException {
 			jgen.writeStartObject();
 			
-			if (message.getSender() != null)
-				jgen.writeStringField("sender", message.getSender().toString());
+			if (message.getSender() != null) {
+				String ip = message.getSender().getAddress().getHostAddress();
+				int port = message.getSender().getPort();
+				jgen.writeStringField("sender",ip + ":" + port);
+			}
 			
 			if (message.getType() != null)
 				jgen.writeStringField("type", message.getType().toString());

@@ -66,7 +66,9 @@ public class PicoCommunication {
 	}
 
     private Future<String> send(JMessage msg) {
-		msg.setSender(address);
+		if (msg.getSender() == null)
+			msg.setSender(address);
+
 		return pool.submit(() -> {
 			return client.send(msg);
 		});
