@@ -47,7 +47,8 @@ public class PicoClient {
 		if (stub == null) {
 			logger.warn("Trying to send {} message to {} but client is not connected. Trying to connect ...",
 				msg.getType(), msg.getDestination());
-			connectNewHost(address);
+			connectNewHost(msg.getDestination());
+			stub = stubs.get(msg.getDestination());
 		}
 
 		logger.info("Sending {} to remote {}", msg.getType(), msg.getDestination());
