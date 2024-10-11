@@ -16,8 +16,14 @@ public enum MessageType {
 	
     //Responses
 	CONTAINER_LIST,
+
+    JOIN_REQUEST,
+	LEAVE_REQUEST,
+
     
     // Empty as dummy
     EMPTY,
+
+	ERROR,
     UNKNOWN
 }

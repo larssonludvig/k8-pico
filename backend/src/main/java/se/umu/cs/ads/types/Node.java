@@ -15,8 +15,7 @@ public class Node implements Serializable {
     private final ArrayList<PicoContainer> containers;
     
 
-    public Node(String cluster) {
-        this.cluster = cluster;
+    public Node() {
         this.containers = new ArrayList<>();
     }
 

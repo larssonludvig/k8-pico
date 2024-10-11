@@ -1,6 +1,7 @@
 package se.umu.cs.ads.serializers;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.*;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -16,7 +17,7 @@ import se.umu.cs.ads.types.*;
 
 public class PicoMessageDeserializer extends StdDeserializer<JMessage> {
 
-    private static final Logger Logger = LogManager.getLogger(PicoMessageDeserializer.class);
+    private static final Logger logger = LogManager.getLogger(PicoMessageDeserializer.class);
     public PicoMessageDeserializer() {
         this(null);
     }
@@ -27,22 +28,47 @@ public class PicoMessageDeserializer extends StdDeserializer<JMessage> {
 
     @Override
     public JMessage deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JacksonException {
-        JsonNode node = jp.getCodec().readTree(jp);
-        String sender = node.get("sender").asText();
-        String strType = node.get("type").asText();
-        MessageType type;
-        try {
-            type = MessageType.valueOf(strType);
-        } catch(IllegalArgumentException e) {
-            type = MessageType.UNKNOWN;
-        }
+        JMessage result = new JMessage();
 
-        String payload = node.get("payload").asText();
+		JsonNode node = jp.getCodec().readTree(jp);
+		JsonNode senderObj = node.get("sender");
 
-        return new JMessage()
-            .setSender(sender)
-            .setType(type)
-            .setPayload(payload);
+		if (senderObj != null) {
+			String sender = senderObj.asText();
+			if (!sender.contains(":"))
+				throw new IOException("Sender address field was not in the format ip:port");
+
+			String[] buf = sender.split(":");
+			if (buf.length != 2)
+				throw new IOException("Sender address field was not in the format ip:port");
+			
+			String ip = buf[0];
+			int port;
+			try {
+				port = Integer.parseInt(buf[1]);
+				result.setSender(new InetSocketAddress(ip, port));
+			} catch (IllegalArgumentException e) {
+				throw new IOException("Address field could not be correctly interpreted");
+			}
+		}
+		
+		JsonNode typeObj = node.get("type");
+		if (typeObj != null) {
+			MessageType type = null;
+			try {
+				type = MessageType.valueOf(typeObj.asText());
+			} catch(IllegalArgumentException e) {
+				type = MessageType.UNKNOWN;
+			} finally {
+				result.setType(type);
+			}
+		}
+
+ 
+        JsonNode payload = node.get("payload");
+		if (payload != null)
+			result.setPayload(payload.asText());		
+
+        return result;
     }
-    
 }

@@ -3,6 +3,7 @@ package se.umu.cs.ads.types;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 
+import se.umu.cs.ads.communication.RpcMessage;
 import se.umu.cs.ads.serializers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,11 +23,14 @@ public class JMessage implements Serializable {
 
     private MessageType type;
     private Object payload;
-    private String sender;
+    private InetSocketAddress sender;
 	private InetSocketAddress destination;
-	private boolean broadcast;
+	private boolean broadcast = false;
 
 
+	/**
+	 * Consutrcts a new empty JMessage 
+	 */
     public JMessage() {
         this.type = MessageType.EMPTY;
         this.payload = null;
@@ -73,12 +77,12 @@ public class JMessage implements Serializable {
         return this.payload;
     }
 
-    public JMessage setSender(String sender) {
+    public JMessage setSender(InetSocketAddress sender) {
         this.sender = sender;
 		return this;
     }
 
-    public String getSender() {
+    public InetSocketAddress getSender() {
         return this.sender;
     }
 
@@ -92,6 +96,16 @@ public class JMessage implements Serializable {
             return null;
         }
     }
+
+	public static RpcMessage toRPC(JMessage msg) {
+		return RpcMessage.newBuilder()
+			.setPayload(msg.toString())
+			.build();
+	}
+
+	public static JMessage ERROR(String cause) {
+		return new JMessage().setType(MessageType.ERROR).setPayload(cause);
+	}
 
     @Override
     public String toString() {
