@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import se.umu.cs.ads.types.PicoAddress;
 
+import org.apache.hc.core5.reactor.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,12 +34,15 @@ public class Controller {
 	}
 
 	private void joinCluster() {
-		if (CommandLineArguments.initialMember == null) {
+		if (CommandLineArguments.initialMember.isBlank()) {
 			cluster.createCluster();
 			return;
 		}
 		
-		cluster.joinCluster(CommandLineArguments.initialMember);
+		String ip = CommandLineArguments.initialMember;
+		int port = CommandLineArguments.grpcPort;
+		PicoAddress initialMember = new PicoAddress(ip, port);
+		cluster.joinCluster(initialMember);
 	} 
 
 	// Pod engine methods ----------------------------------------------------------
