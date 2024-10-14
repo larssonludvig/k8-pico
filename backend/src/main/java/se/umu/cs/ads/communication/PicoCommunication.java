@@ -20,6 +20,7 @@ import se.umu.cs.ads.types.JMessage;
 import se.umu.cs.ads.types.MessageType;
 import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.PicoAddress;
+import se.umu.cs.ads.types.PicoContainer;
 
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
