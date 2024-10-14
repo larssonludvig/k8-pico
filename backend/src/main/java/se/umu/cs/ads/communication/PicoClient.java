@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 import se.umu.cs.ads.communication.RpcServiceGrpc.RpcServiceFutureStub;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.serializers.*;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -54,6 +55,25 @@ public class PicoClient {
 		RpcNodes reply = stub.join(msg).get();
 		logger.info("Received reply for JOIN_REQUEST");
 		return reply;
+	}
+
+	public Node fetchNode(PicoAddress remote) throws Exception {
+		RpcServiceFutureStub stub = stubs.get(remote);
+
+		if (stub == null) {
+			connectNewHost(remote);
+			stub = stubs.get(remote);
+		}
+
+		RpcMetadata meta = RpcMetadata.newBuilder()
+			.setIp(remote.getIP())
+			.setPort(remote.getPort())
+			.build();
+
+		logger.info("Sending FETCH_NODE to {}...", remote);
+		RpcNode reply = stub.fetchNode(meta).get();
+		logger.info("Received reply from FETCH_NODE");
+		return NodeSerializer.fromRPC(reply);
 	}
 
     // public String send(JMessage msg) throws RuntimeException {

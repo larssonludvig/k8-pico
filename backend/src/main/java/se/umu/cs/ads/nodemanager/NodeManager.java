@@ -1,8 +1,5 @@
 package se.umu.cs.ads.nodemanager;
 
-import java.net.Inet4Address;
-import se.umu.cs.ads.types.PicoAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +13,12 @@ import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.types.JMessage;
+import se.umu.cs.ads.types.MessageType;
+import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.Performance;
+import se.umu.cs.ads.types.PicoAddress;
+import se.umu.cs.ads.types.PicoContainer;
 import se.umu.cs.ads.utils.Util;
 
 /**
@@ -34,7 +36,7 @@ public class NodeManager {
 
 	@SuppressWarnings("static-access")
 	public NodeManager(Controller controller) {
-		int port = 8083;
+		int port = 8081;
 		String ip = Util.getLocalIP();
 
 		this.node = new Node();
@@ -64,23 +66,11 @@ public class NodeManager {
 	}
 
 	public Node getNode(PicoAddress ipPort) throws PicoException {
-
 		if (getAddress().equals(ipPort)) {
 			return this.node;
 		}
 
-		JMessage msg = new JMessage(
-				MessageType.FETCH_NODE,
-				"");
-		msg.setDestination(ipPort);
-
-		JMessage res = send(msg);
-		Object payload = res.getPayload();
-		if (!(payload instanceof Node))
-			throw new PicoException("Invalid response from FETCH_NODE. Not of type Node");
-
-		return (Node) payload;
-
+		return this.cluster.fetchNode(ipPort);
 	}
 
 	public List<Node> getNodes() throws Exception {
