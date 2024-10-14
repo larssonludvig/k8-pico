@@ -161,4 +161,10 @@ public class PicoCommunication {
 			.setFreeRam(ramAvailable)
 			.build();
 	}
+
+	public RpcContainer createContainer(RpcContainer container) {
+		
+		PicoContainer result = this.manager.createLocalContainer(ContainerSerializer.fromRPC(container));
+		return ContainerSerializer.toRPC(result);
+	}
 }

@@ -60,6 +60,11 @@ public class PicoServer {
 		}
 
 		@Override
+		public void createContainer(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
+			
+		}
+
+		@Override
 		public void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
 			RpcNode aspirant = msg.getAspirant();
 			RpcNodes reply = this.comm.joinReply(aspirant);
