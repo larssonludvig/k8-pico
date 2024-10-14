@@ -28,9 +28,9 @@ public class MessageHandler {
 
     public JMessage handle(JMessage jmsg) throws PicoException {
 		MessageType type = jmsg.getType();
-		Class<?> payloadClass = jmsg.getPayload().getClass();
+		Object payloadClass = jmsg.getPayload();
 		if (!MessageVerifier.hasCorrectPayload(type, payloadClass)) {
-  		 	String err = String.format("Message was %s but payload was not a not %s. Ignoring", type, payloadClass.getCanonicalName());
+  		 	String err = String.format("Message was %s but payload was not correct. Ignoring", type);
             logger.error(err);
             return new JMessage()
                 .setType(MessageType.ERROR)

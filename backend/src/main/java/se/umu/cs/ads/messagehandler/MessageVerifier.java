@@ -6,8 +6,11 @@ import java.util.*;
 public final class MessageVerifier {
 	private static final HashMap<MessageType, Class<?>> correct = new HashMap<>();
 
-	public static boolean hasCorrectPayload(MessageType type, Class<?> clazz) {
+	public static boolean hasCorrectPayload(MessageType type, Object payload) {
+		if (payload == null)
+			return true;
 		init();
+		Class<?> clazz = payload.getClass();
 		Class<?> claz = correct.get(type);
 		if (claz == null)
 			return true;

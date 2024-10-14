@@ -58,11 +58,12 @@ public class PicoCommunication {
 				throw new PicoException(error);
 		}
 
+		System.out.println("Reply: " + reply);
 		JMessage responseMessage = JMessage.fromJson(reply);
-		if (responseMessage != null)
-			return responseMessage;
+		if (responseMessage == null)
+			throw new PicoException("Successfully received reply but reply was empty");
 
-		throw new PicoException("Successfully received reply but reply was empty");
+		return responseMessage;
 	}
 
     private Future<String> send(JMessage msg) {

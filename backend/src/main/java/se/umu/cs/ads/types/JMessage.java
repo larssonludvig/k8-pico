@@ -9,6 +9,7 @@ import se.umu.cs.ads.serializers.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.apache.logging.log4j.LogManager;
@@ -90,6 +91,10 @@ public class JMessage implements Serializable {
     public static JMessage fromJson(String json) {
         try {
             ObjectMapper mapper = new ObjectMapper();
+			mapper.registerModule(new SimpleModule() {{
+				addDeserializer(JMessage.class, new PicoMessageDeserializer());
+			}});
+			
             return mapper.readValue(json, JMessage.class);
         } catch (JsonProcessingException e) {
             logger.error("Failed to parse JSON: " + e.getMessage());
