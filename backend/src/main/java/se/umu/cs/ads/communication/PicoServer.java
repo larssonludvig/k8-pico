@@ -13,6 +13,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters.InetAddressConverter;
+import org.bouncycastle.util.io.StreamOverflowException;
 
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
@@ -50,6 +51,14 @@ public class PicoServer {
 		}
 		
 		
+		@Override
+		public void fetchNodePerformance(RpcEmpty empty, StreamObserver<RpcPerformance> responseObserver) {
+			logger.info("Fetching performance...");
+			RpcPerformance resp = this.comm.fetchPerformance();
+			responseObserver.onNext(resp);
+			responseObserver.onCompleted();
+		}
+
 		@Override
 		public void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
 			RpcNode aspirant = msg.getAspirant();

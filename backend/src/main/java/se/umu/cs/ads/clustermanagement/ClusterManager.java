@@ -24,7 +24,7 @@ public class ClusterManager {
 	public ClusterManager(NodeManager manager) {
 		this.cluster = new ConcurrentHashMap<>();
 		this.manager = manager;
-		this.comm = new PicoCommunication(this, manager.getAddress());
+		this.comm = new PicoCommunication(this, manager);
 	}
 
 	/**
