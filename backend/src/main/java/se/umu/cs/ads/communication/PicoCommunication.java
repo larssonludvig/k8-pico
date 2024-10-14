@@ -46,6 +46,10 @@ public class PicoCommunication {
 		}
 	}
 
+
+	public List<InetSocketAddress> getClusterAddresses() {
+		return this.cluster.getClusterAddresses();
+	}
 	// public JMessage sendJMessage(JMessage msg) throws PicoException {
 	// Future<String> future = this.send(msg);
 	// String reply = "";

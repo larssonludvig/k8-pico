@@ -12,7 +12,9 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters.InetAddressConverter;
 
+import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
 
 public class PicoServer {
@@ -51,10 +53,20 @@ public class PicoServer {
 		@Override
 		public void join(RpcNode msg, StreamObserver<RpcNodes> responseObserver) {
 
-			//TODO: broadcast
-			//Broadcast send reply back to other members
-			// return with list of cluster members
 			RpcNodes reply = this.comm.joinReply(msg);
+			List<InetSocketAddress> clusterMembers = this.comm.getClusterAddresses();
+			
+			for (InetSocketAddress addr : clusterMembers) {
+				if (addr.equals(this.comm.getAddress()))
+					continue;
+
+				InetSocketAddress newAddr = new InetSocketAddress(msg.getIp(), msg.getPort());
+				if (addr.equals(newAddr))
+					continue;
+
+				this.comm.joinRequest(addr, NodeSerializer.fromRPC(msg));
+			}
+			
 			responseObserver.onNext(reply);
 			responseObserver.onCompleted();
 		}
