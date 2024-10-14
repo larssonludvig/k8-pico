@@ -34,7 +34,7 @@ public class NodeManager {
 
 	@SuppressWarnings("static-access")
 	public NodeManager(Controller controller) {
-		int port = 8081;
+		int port = 8083;
 		String ip = Util.getLocalIP();
 
 		this.node = new Node();

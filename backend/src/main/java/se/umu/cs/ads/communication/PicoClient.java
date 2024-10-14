@@ -42,7 +42,7 @@ public class PicoClient {
 	}	
 
 
-	public RpcNodes join(PicoAddress remote, RpcNode msg) throws Exception {
+	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws Exception {
 		RpcServiceFutureStub stub = stubs.get(remote);
 
 		if (stub == null) {

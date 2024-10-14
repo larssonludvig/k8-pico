@@ -55,6 +55,10 @@ message RpcContainers {
     repeated RpcContainer containers = 1;
 }
 
+message RpcJoinRequest {
+	RpcMetadata sender = 1;
+	RpcNode aspirant = 2;
+}
 
 message RpcPerformance {
     double cpuLoad = 1;
@@ -71,6 +75,6 @@ service RpcService {
     // rpc containerList           () returns ();
     // rpc containerElectionStart  () returns ();
     // rpc containerElectionEnd    () returns ();
-    rpc join                    (RpcNode) returns (RpcNodes);
+    rpc join                    (RpcJoinRequest) returns (RpcNodes);
     // rpc leave                   () returns ();
 }

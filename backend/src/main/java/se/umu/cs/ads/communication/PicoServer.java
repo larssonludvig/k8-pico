@@ -16,7 +16,7 @@ import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters.InetA
 
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
-
+import se.umu.cs.ads.communication.*;
 public class PicoServer {
     private final static Logger logger = LogManager.getLogger(PicoServer.class);
     private PicoCommunication comm;
@@ -51,20 +51,38 @@ public class PicoServer {
 		
 		
 		@Override
-		public void join(RpcNode msg, StreamObserver<RpcNodes> responseObserver) {
-
-			RpcNodes reply = this.comm.joinReply(msg);
+		public void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
+			RpcNode aspirant = msg.getAspirant();
+			RpcNodes reply = this.comm.joinReply(aspirant);
 			List<PicoAddress> clusterMembers = this.comm.getClusterAddresses();
-			
+			RpcMetadata metadata = msg.getSender();
+
+
+			PicoAddress aspirantAddress = new PicoAddress(aspirant.getIp(), aspirant.getPort());
+			PicoAddress senderAddress = new PicoAddress(metadata.getIp(), metadata.getPort());
+		
+
+			//if sender != aspirant we just add it to our system
+			//otherwise we forward it to other members
+			if (!senderAddress.equals(aspirantAddress)) {
+				this.comm.addNewMember(aspirant);
+				//create empty response
+				RpcNodes empty = RpcNodes.newBuilder().build();
+				responseObserver.onNext(empty);
+				responseObserver.onCompleted();
+				return;
+			}
+		
+			//now send request to members in cluster
+			//except ourselves and the aspirant
 			for (PicoAddress addr : clusterMembers) {
 				if (addr.equals(this.comm.getAddress()))
 					continue;
 
-				PicoAddress newAddr = new PicoAddress(msg.getIp(), msg.getPort());
-				if (addr.equals(newAddr))
+				if (addr.equals(aspirant))
 					continue;
 
-				this.comm.joinRequest(addr, NodeSerializer.fromRPC(msg));
+				this.comm.joinRequest(addr, NodeSerializer.fromRPC(aspirant));
 			}
 			
 			responseObserver.onNext(reply);

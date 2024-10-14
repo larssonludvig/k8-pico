@@ -50,36 +50,7 @@ public class PicoCommunication {
 	public List<PicoAddress> getClusterAddresses() {
 		return this.cluster.getClusterAddresses();
 	}
-	// public JMessage sendJMessage(JMessage msg) throws PicoException {
-	// Future<String> future = this.send(msg);
-	// String reply = "";
-	// try {
-	// reply = future.get();
-	// } catch (CancellationException | InterruptedException | ExecutionException e)
-	// {
-	// String error = String.format("Received exception while getting reply from %s:
-	// %s",
-	// address, e.getMessage());
-	// logger.error(error);
-	// throw new PicoException(error);
-	// }
 
-	// JMessage responseMessage = JMessage.fromJson(reply);
-	// if (responseMessage != null)
-	// return responseMessage;
-
-	// throw new PicoException("Successfully received reply but reply was empty");
-	// }
-
-	// private Future<String> send(JMessage msg) {
-	// if (msg.getSender() == null)
-	// msg.setSender(address);
-
-	// return pool.submit(() -> {
-	// return client.send(msg);
-	// });
-
-	// }
 
 	public PicoAddress getAddress() {
 		return address;
@@ -91,46 +62,15 @@ public class PicoCommunication {
 		return new ArrayList<>();
 	}
 
-	// public List<JMessage> broadcast(List<PicoAddress> addresses, JMessage
-	// msg) throws PicoException {
-	// List<JMessage> messages = new ArrayList<>();
-	// List<Future<String>> futures = new ArrayList<>();
-	// List<String> exceptions = new ArrayList<>();
-	// //Send messages in parallel
-	// for (int i = 0; i < addresses.size(); i++) {
-	// PicoAddress address = addresses.get(i);
-	// msg.setDestination(address);
-	// // futures.add(send(msg));
-	// }
 
-	// //Wait for result
-	// for (int i = 0; i < futures.size(); i++) {
-	// Future<String> future = futures.get(i);
-	// PicoAddress address = addresses.get(i);
-	// try {
-	// String res = future.get();
-	// JMessage reply = JMessage.fromJson(res);
-	// messages.add(reply);
-	// } catch (CancellationException | InterruptedException | ExecutionException e)
-	// {
-	// logger.error("Received exception while getting reply from {}: {}", address,
-	// e.getMessage());
-	// exceptions.add(e.getMessage());
-	// }
-	// }
-
-	// if (exceptions.isEmpty())
-	// return messages;
-
-	// StringBuilder builder = new StringBuilder();
-	// builder.append("Encountered " + exceptions.size() + " error while waiting for
-	// reply:\n");
-
-	// for (String errorMsg : exceptions)
-	// builder.append("\t").append(errorMsg).append("\n");
-
-	// throw new PicoException(builder.toString());
-	// }
+	/**
+	 * Adds a new member to the cluster
+	 * @param address
+	 */
+	public void addNewMember(RpcNode node) {
+		Node n = NodeSerializer.fromRPC(node);
+		this.cluster.addNode(n);
+	}
 
 	public JMessage receive(JMessage message) {
 		// Reliable multicast
@@ -187,8 +127,10 @@ public class PicoCommunication {
 				.setContainers(builder.build())
 				.build();
 
+		RpcMetadata sender = RpcMetadata.newBuilder().setIp(self.getIP()).setPort(self.getPort()).build();
+		RpcJoinRequest request = RpcJoinRequest.newBuilder().setAspirant(rpcSelf).setSender(sender).build();
 		try {
-			RpcNodes nodes = client.join(remote, rpcSelf);
+			RpcNodes nodes = client.join(remote, request);
 			return NodeSerializer.fromRPC(nodes);
 		} catch (Exception e) {
 			logger.error("Failed to join cluster: {}", e);
