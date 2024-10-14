@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 import com.github.dockerjava.api.model.ContainerPort;
 
@@ -34,4 +36,14 @@ public class Util {
 			res = name.substring(1);
 		return res;
 	}
+
+    public static String getLocalIP() {
+        String ip = null;
+        try(final DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            ip = socket.getLocalAddress().getHostAddress();
+        } catch (Exception ex) {
+        }
+        return ip;
+    }
 }

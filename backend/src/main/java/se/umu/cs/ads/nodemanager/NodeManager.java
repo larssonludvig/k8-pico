@@ -16,11 +16,8 @@ import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.types.MessageType;
-import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.Performance;
-import se.umu.cs.ads.types.PicoContainer;
+import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.utils.Util;
 
 /**
  * Class for cluster management
@@ -38,14 +35,11 @@ public class NodeManager {
 	@SuppressWarnings("static-access")
 	public NodeManager(Controller controller) {
 		int port = 8081;
+		String ip = Util.getLocalIP();
 
 		this.node = new Node();
-		try {
-			this.node.setAddress(new InetSocketAddress(Inet4Address.getLocalHost(), port));
-		} catch (UnknownHostException e) {
-			logger.fatal("Could not determine local address: {}", e.getMessage());
-			System.exit(-1);
-		}
+		this.node.setAddress(new InetSocketAddress(ip, port));
+		logger.info("Nodes address is set to {}:{}.", ip, port);
 
 		this.cluster = new ClusterManager(this);
 		this.node.setCluster(cluster.CLUSTER_NAME);
