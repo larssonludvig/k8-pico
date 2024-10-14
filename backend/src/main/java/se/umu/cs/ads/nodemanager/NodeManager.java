@@ -1,7 +1,7 @@
 package se.umu.cs.ads.nodemanager;
 
 import java.net.Inet4Address;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +30,7 @@ public class NodeManager {
 	public final Node node;
 
 	// name, containers
-	private final Map<InetSocketAddress, List<PicoContainer>> remoteContainers;
+	private final Map<PicoAddress, List<PicoContainer>> remoteContainers;
 
 	@SuppressWarnings("static-access")
 	public NodeManager(Controller controller) {
@@ -38,7 +38,7 @@ public class NodeManager {
 		String ip = Util.getLocalIP();
 
 		this.node = new Node();
-		this.node.setAddress(new InetSocketAddress(ip, port));
+		this.node.setAddress(new PicoAddress(ip, port));
 		logger.info("Nodes address is set to {}:{}.", ip, port);
 
 		this.cluster = new ClusterManager(this);
@@ -59,11 +59,11 @@ public class NodeManager {
 		return this.node;
 	}
 
-	public InetSocketAddress getAddress() {
+	public PicoAddress getAddress() {
 		return this.node.getAddress();
 	}
 
-	public Node getNode(InetSocketAddress ipPort) throws PicoException {
+	public Node getNode(PicoAddress ipPort) throws PicoException {
 
 		if (getAddress().equals(ipPort)) {
 			return this.node;
@@ -96,7 +96,7 @@ public class NodeManager {
 		// .toList();
 	}
 
-	public Performance getNodePerformance(InetSocketAddress ipPort) throws PicoException {
+	public Performance getNodePerformance(PicoAddress ipPort) throws PicoException {
 		JMessage msg = new JMessage(
 				MessageType.FETCH_NODE_PERFORMANCE,
 				"");
@@ -120,7 +120,7 @@ public class NodeManager {
 	// return getLeader().toString().equals(getChannelAddress());
 	// }
 
-	public InetSocketAddress getLeader() {
+	public PicoAddress getLeader() {
 		// TODO: implement
 		return null;
 	}
@@ -131,7 +131,7 @@ public class NodeManager {
 	 * @param name       name of the remote host
 	 * @param containers containers to add
 	 */
-	public void updateRemoteContainers(InetSocketAddress name, List<PicoContainer> containers) {
+	public void updateRemoteContainers(PicoAddress name, List<PicoContainer> containers) {
 		List<PicoContainer> existing = remoteContainers.get(name);
 		if (existing == null) {
 			existing = new ArrayList<>();
@@ -147,7 +147,7 @@ public class NodeManager {
 	 * @param name      name of the host
 	 * @param container container to add
 	 */
-	public void updateRemoteContainers(InetSocketAddress name, PicoContainer container) {
+	public void updateRemoteContainers(PicoAddress name, PicoContainer container) {
 		List<PicoContainer> existingContainers = remoteContainers.get(name);
 		if (existingContainers == null) {
 			existingContainers = new ArrayList<>();

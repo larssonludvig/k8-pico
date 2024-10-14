@@ -1,7 +1,7 @@
 // package se.umu.cs.ads.serializers;
 
 // import java.io.IOException;
-// import java.net.InetSocketAddress;
+// import se.umu.cs.ads.types.PicoAddress;
 // import java.util.*;
 
 // import com.fasterxml.jackson.core.JsonParser;
@@ -49,7 +49,7 @@
 // 			int port;
 // 			try {
 // 				port = Integer.parseInt(buf[1]);
-// 				result.setSender(new InetSocketAddress(ip, port));
+// 				result.setSender(new PicoAddress(ip, port));
 // 			} catch (IllegalArgumentException e) {
 // 				throw new IOException("Address field could not be correctly interpreted");
 // 			}

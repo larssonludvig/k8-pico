@@ -6,7 +6,7 @@ import java.util.concurrent.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.communication.PicoCommunication;
 import se.umu.cs.ads.exception.PicoException;
@@ -16,7 +16,7 @@ import se.umu.cs.ads.communication.*;
 
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
-	private final Map<InetSocketAddress, Node> cluster;
+	private final Map<PicoAddress, Node> cluster;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	public final static String CLUSTER_NAME = "k8-pico";
@@ -50,7 +50,7 @@ public class ClusterManager {
 		return manager;
 	}
 
-	public void joinCluster(InetSocketAddress address) throws PicoException {
+	public void joinCluster(PicoAddress address) throws PicoException {
 		Node self = manager.getNode();
 
 		// send join req and add members
@@ -64,7 +64,7 @@ public class ClusterManager {
 		return new ArrayList<Node>(cluster.values());
 	}
 
-	public List<InetSocketAddress> getClusterAddresses() {
+	public List<PicoAddress> getClusterAddresses() {
 		return cluster.values().stream().map(it -> it.getAddress()).toList();
 	}
 
@@ -85,7 +85,7 @@ public class ClusterManager {
 		cluster.put(node.getAddress(), node);
 	}
 
-	public Node getNode(InetSocketAddress address) {
+	public Node getNode(PicoAddress address) {
 		return cluster.get(address);
 	}
 
@@ -95,7 +95,7 @@ public class ClusterManager {
 	}
 
 	public List<JMessage> broadcast(JMessage msg) {
-		// List<InetSocketAddress> addresses = new
+		// List<PicoAddress> addresses = new
 		// ArrayList<>(getNodes().stream().map(it -> it.getAddress()).toList());
 		// if (msg.getType() == MessageType.JOIN_REQUEST || msg.getType() ==
 		// MessageType.LEAVE_REQUEST)
@@ -112,7 +112,7 @@ public class ClusterManager {
 	public List<Node> join(Node node) {
 		// Reliable multicast by passing along if the user is not registered
 		// by the current node
-		InetSocketAddress adr = node.getAddress();
+		PicoAddress adr = node.getAddress();
 
 		List<Node> members = cluster.values().stream().toList();
 		// Check if joining node is in the cluster

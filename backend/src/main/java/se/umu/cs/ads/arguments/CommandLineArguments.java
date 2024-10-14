@@ -1,7 +1,7 @@
 package se.umu.cs.ads.arguments;
 
-import java.net.*;
+import se.umu.cs.ads.types.PicoAddress;
 public final class CommandLineArguments {
 	public static int PORT;
-	public static InetSocketAddress initialMember = null;
+	public static PicoAddress initialMember = null;
 }

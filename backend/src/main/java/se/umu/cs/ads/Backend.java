@@ -4,7 +4,7 @@ package se.umu.cs.ads;
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import org.springframework.boot.SpringApplication;
 import se.umu.cs.ads.service.RESTManager;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 
 public class Backend {
     public static void main(String[] args) {
@@ -21,7 +21,7 @@ public class Backend {
         }
     }
 
-	private static InetSocketAddress parseAddress(String target) {
+	private static PicoAddress parseAddress(String target) {
 		if (!target.contains(":"))
 			throw new IllegalArgumentException("Initial address must be ip:port");
 		
@@ -39,6 +39,6 @@ public class Backend {
 			throw new IllegalArgumentException("Port must be number");
 		}
 
-		return new InetSocketAddress(ip, port);
+		return new PicoAddress(ip, port);
 	}
 }

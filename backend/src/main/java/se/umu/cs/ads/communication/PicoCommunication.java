@@ -1,6 +1,6 @@
 package se.umu.cs.ads.communication;
 
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -23,14 +23,14 @@ import se.umu.cs.ads.types.*;
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
 	private final PicoServer server;
-	private final InetSocketAddress address;
+	private final PicoAddress address;
 	private final Set<JMessage> receivedMessages;
 	private final ClusterManager cluster;
 	private final ExecutorService pool;
 	private final PicoClient client;
 	private final MessageHandler handler;
 
-	public PicoCommunication(ClusterManager cluster, InetSocketAddress address) {
+	public PicoCommunication(ClusterManager cluster, PicoAddress address) {
 		this.address = address;
 		this.server = new PicoServer(this);
 		this.client = new PicoClient(address);
@@ -47,7 +47,7 @@ public class PicoCommunication {
 	}
 
 
-	public List<InetSocketAddress> getClusterAddresses() {
+	public List<PicoAddress> getClusterAddresses() {
 		return this.cluster.getClusterAddresses();
 	}
 	// public JMessage sendJMessage(JMessage msg) throws PicoException {
@@ -81,24 +81,24 @@ public class PicoCommunication {
 
 	// }
 
-	public InetSocketAddress getAddress() {
+	public PicoAddress getAddress() {
 		return address;
 	}
 
 	public List<JMessage> broadcast(JMessage msg) throws PicoException {
-		List<InetSocketAddress> addresses = cluster.getClusterAddresses();
+		List<PicoAddress> addresses = cluster.getClusterAddresses();
 		// return broadcast(addresses, msg);
 		return new ArrayList<>();
 	}
 
-	// public List<JMessage> broadcast(List<InetSocketAddress> addresses, JMessage
+	// public List<JMessage> broadcast(List<PicoAddress> addresses, JMessage
 	// msg) throws PicoException {
 	// List<JMessage> messages = new ArrayList<>();
 	// List<Future<String>> futures = new ArrayList<>();
 	// List<String> exceptions = new ArrayList<>();
 	// //Send messages in parallel
 	// for (int i = 0; i < addresses.size(); i++) {
-	// InetSocketAddress address = addresses.get(i);
+	// PicoAddress address = addresses.get(i);
 	// msg.setDestination(address);
 	// // futures.add(send(msg));
 	// }
@@ -106,7 +106,7 @@ public class PicoCommunication {
 	// //Wait for result
 	// for (int i = 0; i < futures.size(); i++) {
 	// Future<String> future = futures.get(i);
-	// InetSocketAddress address = addresses.get(i);
+	// PicoAddress address = addresses.get(i);
 	// try {
 	// String res = future.get();
 	// JMessage reply = JMessage.fromJson(res);
@@ -136,7 +136,7 @@ public class PicoCommunication {
 		// Reliable multicast
 		// Have we received this message before, ín that case do nothing
 		MessageType type = message.getType();
-		InetSocketAddress sender = message.getSender();
+		PicoAddress sender = message.getSender();
 		logger.info("Received {} message from {}", type, sender);
 
 		System.out.println(message.toString());
@@ -175,7 +175,7 @@ public class PicoCommunication {
 		return new JMessage();
 	}
 
-	public List<Node> joinRequest(InetSocketAddress remote, Node self) throws PicoException {
+	public List<Node> joinRequest(PicoAddress remote, Node self) throws PicoException {
 
 		RpcContainers.Builder builder = RpcContainers.newBuilder();
 		self.getContainers().forEach(it -> ContainerSerializer.toRPC(it));

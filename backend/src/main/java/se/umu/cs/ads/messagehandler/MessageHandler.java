@@ -2,7 +2,7 @@ package se.umu.cs.ads.messagehandler;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,7 +43,7 @@ public class MessageHandler {
 				throw new PicoException(jmsg.getPayload().toString());
 			
             case FETCH_NODE:
-                InetSocketAddress ipPort = (InetSocketAddress) jmsg.getPayload();
+                PicoAddress ipPort = (PicoAddress) jmsg.getPayload();
 
                 return new JMessage()
                     .setPayload(this.nodeManager.getNode(ipPort));
@@ -81,7 +81,7 @@ public class MessageHandler {
             case CONTAINER_LIST:
                 Object o = jmsg.getPayload();
                 try {
-                    InetSocketAddress sender = jmsg.getSender();
+                    PicoAddress sender = jmsg.getSender();
                     List<PicoContainer> containers = (List<PicoContainer>) o;
                     logger.info("Received {} containers from {}", containers.size(), sender);
                     //TODO: update info about hosts
@@ -180,7 +180,7 @@ public class MessageHandler {
         }
 
         PicoContainer container = (PicoContainer) payload;
-        InetSocketAddress sender = msg.getSender();
+        PicoAddress sender = msg.getSender();
         nodeManager.updateRemoteContainers(sender, container);
         candidates.remove(container.getName());
 
@@ -255,7 +255,7 @@ public class MessageHandler {
 		}
 
 		double minScore = Double.MAX_VALUE;
-		InetSocketAddress minAddr = null;
+		PicoAddress minAddr = null;
 		for (JMessage reply : replies) {
 			double score = (Double) reply.getPayload();
 			logger.info("Received reply from {} with score {}", reply.getSender(), score);

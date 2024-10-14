@@ -7,7 +7,7 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +21,7 @@ public class PicoServer {
     private final static Logger logger = LogManager.getLogger(PicoServer.class);
     private PicoCommunication comm;
 	private Server server;
-	private final InetSocketAddress address;
+	private final PicoAddress address;
     public PicoServer(PicoCommunication comm) {
         this.comm = comm;
 		this.address = this.comm.getAddress();
@@ -54,13 +54,13 @@ public class PicoServer {
 		public void join(RpcNode msg, StreamObserver<RpcNodes> responseObserver) {
 
 			RpcNodes reply = this.comm.joinReply(msg);
-			List<InetSocketAddress> clusterMembers = this.comm.getClusterAddresses();
+			List<PicoAddress> clusterMembers = this.comm.getClusterAddresses();
 			
-			for (InetSocketAddress addr : clusterMembers) {
+			for (PicoAddress addr : clusterMembers) {
 				if (addr.equals(this.comm.getAddress()))
 					continue;
 
-				InetSocketAddress newAddr = new InetSocketAddress(msg.getIp(), msg.getPort());
+				PicoAddress newAddr = new PicoAddress(msg.getIp(), msg.getPort());
 				if (addr.equals(newAddr))
 					continue;
 

@@ -1,6 +1,6 @@
 package se.umu.cs.ads.serializers;
 
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import java.util.*;
 
 import se.umu.cs.ads.types.*;
@@ -9,7 +9,7 @@ import se.umu.cs.ads.communication.*;
 public final class NodeSerializer {
     public static Node fromRPC(RpcNode node) {
         return new Node(
-            new InetSocketAddress(node.getIp(), node.getPort()),
+            new PicoAddress(node.getIp(), node.getPort()),
             node.getClusterName(),
             new ArrayList<PicoContainer>(ContainerSerializer.fromRPC(node.getContainers()))
         );

@@ -1,14 +1,14 @@
 package se.umu.cs.ads.types;
 
 import java.io.Serializable;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Node implements Serializable {
 	private static final long serialVersionUID = 69691337L;
     // private String name;
-    private InetSocketAddress address;
+    private PicoAddress address;
     private String cluster;
     // private int port;
 
@@ -19,7 +19,7 @@ public class Node implements Serializable {
         this.containers = new ArrayList<>();
     }
 
-    public Node(InetSocketAddress address, String cluster, ArrayList<PicoContainer> containers) {
+    public Node(PicoAddress address, String cluster, ArrayList<PicoContainer> containers) {
         this.address = address;
         this.cluster = cluster;
         this.containers = containers;
@@ -33,7 +33,7 @@ public class Node implements Serializable {
     //     this.name = name;
     // }
 
-    public InetSocketAddress getAddress() {
+    public PicoAddress getAddress() {
         return address;
     }
 
@@ -50,7 +50,7 @@ public class Node implements Serializable {
         return cluster;
     }
 
-	public void setAddress(InetSocketAddress addr) {
+	public void setAddress(PicoAddress addr) {
 		this.address = addr;
 	}
 
@@ -73,7 +73,7 @@ public class Node implements Serializable {
     }
 
     public String getIP() {
-        return address.getAddress().getHostAddress();
+        return address.getIP();
     }
 
     public int getPort() {

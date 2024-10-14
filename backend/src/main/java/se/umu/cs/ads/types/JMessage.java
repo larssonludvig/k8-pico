@@ -1,7 +1,7 @@
 package se.umu.cs.ads.types;
 
 import java.io.Serializable;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 
 import se.umu.cs.ads.communication.RpcMessage;
 import se.umu.cs.ads.serializers.*;
@@ -21,8 +21,8 @@ public class JMessage implements Serializable {
 
     private MessageType type;
     private Object payload;
-    private InetSocketAddress sender;
-	private InetSocketAddress destination;
+    private PicoAddress sender;
+	private PicoAddress destination;
 	private boolean broadcast = false;
 
 
@@ -45,12 +45,12 @@ public class JMessage implements Serializable {
 		return this;
 	}
 
-	public JMessage setDestination(InetSocketAddress address) {
+	public JMessage setDestination(PicoAddress address) {
 		this.destination = address;
 		return this;
 	}
 
-	public InetSocketAddress getDestination() {
+	public PicoAddress getDestination() {
 		return this.destination;
 	}
 
@@ -75,12 +75,12 @@ public class JMessage implements Serializable {
         return this.payload;
     }
 
-    public JMessage setSender(InetSocketAddress sender) {
+    public JMessage setSender(PicoAddress sender) {
         this.sender = sender;
 		return this;
     }
 
-    public InetSocketAddress getSender() {
+    public PicoAddress getSender() {
         return this.sender;
     }
 

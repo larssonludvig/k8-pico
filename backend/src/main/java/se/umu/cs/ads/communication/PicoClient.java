@@ -5,7 +5,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -20,22 +20,20 @@ import org.apache.logging.log4j.Logger;
 
 public class PicoClient {
 	private final static Logger logger = LogManager.getLogger(PicoClient.class);
-	private final Map<InetSocketAddress, ManagedChannel> channels;
-	private final Map<InetSocketAddress, RpcServiceFutureStub> stubs;
-    private final InetSocketAddress address;
+	private final Map<PicoAddress, ManagedChannel> channels;
+	private final Map<PicoAddress, RpcServiceFutureStub> stubs;
+    private final PicoAddress address;
 
-    public PicoClient(InetSocketAddress address) {
+    public PicoClient(PicoAddress address) {
 		this.address = address;
 		this.stubs = new ConcurrentHashMap<>();
 		this.channels = new ConcurrentHashMap<>();
     }
 
-	public void connectNewHost(InetSocketAddress address) {
-		String ip = address.getAddress().getHostAddress();
+	public void connectNewHost(PicoAddress address) {
+		String ip = address.getIP();
 		int port = address.getPort();
 		logger.info("Connecting to {} ...", address);
-		logger.info("IP: {}", ip);
-		logger.info("Port: {}", port);
 		ManagedChannel channel = ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build();
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
@@ -44,7 +42,7 @@ public class PicoClient {
 	}	
 
 
-	public RpcNodes join(InetSocketAddress remote, RpcNode msg) throws Exception {
+	public RpcNodes join(PicoAddress remote, RpcNode msg) throws Exception {
 		RpcServiceFutureStub stub = stubs.get(remote);
 
 		if (stub == null) {

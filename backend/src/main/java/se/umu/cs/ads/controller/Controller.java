@@ -2,7 +2,7 @@ package se.umu.cs.ads.controller;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.net.InetSocketAddress;
+import se.umu.cs.ads.types.PicoAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -98,7 +98,7 @@ public class Controller {
 
 	public PicoContainer createContainer(PicoContainer container) throws PicoException {
 		Future<PicoContainer> res = pool.submit(() -> {
-			InetSocketAddress leader = manager.getLeader();
+			PicoAddress leader = manager.getLeader();
 
 			JMessage msg = new JMessage()
 				.setType(MessageType.CONTAINER_ELECTION_START)
@@ -207,7 +207,7 @@ public class Controller {
 		return manager.getNode();
 	}
 
-	public Node getNode(InetSocketAddress ipPort) throws Exception {
+	public Node getNode(PicoAddress ipPort) throws Exception {
 		Future<Node> res = pool.submit(() -> {
 			return manager.getNode(ipPort);
 		});
@@ -235,7 +235,7 @@ public class Controller {
 		// }
 	}
 
-	public Performance getNodePerformance(InetSocketAddress ipPort) throws Exception {
+	public Performance getNodePerformance(PicoAddress ipPort) throws Exception {
 		Future<Performance> res = pool.submit(() -> {
 			return manager.getNodePerformance(ipPort);
 		});
