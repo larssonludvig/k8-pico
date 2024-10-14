@@ -15,13 +15,11 @@ import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.types.MessageType;
 import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.Performance;
 import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.PicoContainer;
 import se.umu.cs.ads.utils.Util;
-import se.umu.cs.ads.arguments.*;
 /**
  * Class for cluster management
  */
@@ -88,18 +86,22 @@ public class NodeManager {
 		// .toList();
 	}
 
-	public Performance getNodePerformance(PicoAddress ipPort) throws PicoException {
-		JMessage msg = new JMessage(
-				MessageType.FETCH_NODE_PERFORMANCE,
-				"");
-		msg.setDestination(ipPort);
+	public Performance getNodePerformance() {
+		return new Performance(
+			getCPULoad(),
+			getMemLoad()
+		);
+	}
 
-		JMessage res = send(msg);
-		Object payload = res.getPayload();
-		if (!(payload instanceof Performance))
-			throw new PicoException("Invalid response from FETCH_NODE_PERFORMANCE. Not of type Performance");
+	public Performance getNodePerformance(PicoAddress ipPort) {
+		if (getAddress().equals((ipPort))) {
+			return new Performance(
+				getCPULoad(),
+				getMemLoad()
+			);
+		}
 
-		return (Performance) payload;
+		return this.cluster.fetchNodePerformance(ipPort);
 	}
 
 	public synchronized void setActiveContainers(List<PicoContainer> containers) {

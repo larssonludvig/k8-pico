@@ -133,4 +133,12 @@ public class ClusterManager {
 	public Node fetchNode(PicoAddress adr) {
 		return this.comm.fetchNode(adr);
 	}
+
+	public Performance fetchNodePerformance() {
+		return this.manager.getNodePerformance();
+	}
+
+	public Performance fetchNodePerformance(PicoAddress adr) {
+		return this.comm.fetchNodePerformance(adr);
+	}
 }

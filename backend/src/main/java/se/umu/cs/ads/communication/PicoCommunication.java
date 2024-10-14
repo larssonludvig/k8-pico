@@ -16,10 +16,7 @@ import se.umu.cs.ads.messagehandler.MessageHandler;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.serializers.NodeSerializer;
-import se.umu.cs.ads.types.JMessage;
-import se.umu.cs.ads.types.MessageType;
-import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.PicoAddress;
+import se.umu.cs.ads.types.*;
 
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
@@ -180,5 +177,23 @@ public class PicoCommunication {
 		}
 
 		return this.cluster.fetchNode();
+	}
+
+	public Performance fetchNodePerformance(PicoAddress adr) {
+		if (!adr.equals(this.address)) {
+			try {
+				RpcPerformance perf = this.client.fetchPerformance(adr);
+				
+				return new Performance(
+					perf.getCpuLoad(),
+					perf.getMemLoad()
+				);
+			} catch (Exception e) {
+				logger.error("Failed to fetch node performance: {}", e);
+				throw new PicoException(e.getMessage());
+			}
+		}
+
+		return this.cluster.fetchNodePerformance();
 	}
 }

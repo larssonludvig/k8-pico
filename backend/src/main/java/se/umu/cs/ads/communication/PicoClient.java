@@ -79,4 +79,23 @@ public class PicoClient {
 		}
 		return stub; 
 	}
+
+	public Node fetchNode(PicoAddress remote) throws Exception {
+        RpcServiceFutureStub stub = stubs.get(remote);
+
+        if (stub == null) {
+            connectNewHost(remote);
+            stub = stubs.get(remote);
+        }
+
+        RpcMetadata meta = RpcMetadata.newBuilder()
+            .setIp(remote.getIP())
+            .setPort(remote.getPort())
+            .build();
+
+        logger.info("Sending FETCH_NODE to {}...", remote);
+        RpcNode reply = stub.fetchNode(meta).get();
+        logger.info("Received reply from FETCH_NODE");
+        return NodeSerializer.fromRPC(reply);
+    }
 }
