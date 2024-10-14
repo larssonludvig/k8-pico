@@ -11,22 +11,24 @@ import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.communication.PicoCommunication;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.nodemanager.NodeManager;
+
+import se.umu.cs.ads.communication.*;
+
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
 	private final Map<InetSocketAddress, Node> cluster;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	public final static String CLUSTER_NAME = "k8-pico";
-	
+
 	public ClusterManager(NodeManager manager) {
 		this.cluster = new ConcurrentHashMap<>();
 		this.manager = manager;
 		this.comm = new PicoCommunication(this, manager.getAddress());
 	}
 
-
 	/**
-	 * Create a new cluster with us as sole members  
+	 * Create a new cluster with us as sole members
 	 */
 	public void createCluster() {
 		cluster.put(manager.getAddress(), manager.getNode());
@@ -34,6 +36,7 @@ public class ClusterManager {
 
 	/**
 	 * Leave the cluster
+	 * 
 	 * @throws PicoException if any erros occurrs
 	 */
 	public void leaveCluster() throws PicoException {
@@ -47,23 +50,16 @@ public class ClusterManager {
 		return manager;
 	}
 
-	public void joinCluster(InetSocketAddress address) {
-		JMessage joinReq = new JMessage()
-			.setDestination(address)
-			.setType(MessageType.JOIN_REQUEST);
-		
-		JMessage res = send(joinReq);
+	public void joinCluster(InetSocketAddress address) throws PicoException {
+		// first add ourselves
+		Node self = manager.getNode();
+		cluster.put(manager.getAddress(), self);
 
-		// if (res.payload())
-		System.out.println("REssult: " + res);
+		// send join req and add members
+		List<Node> newMembers = this.comm.joinRequest(address, self);
 
-		List<Node> nodes = (List<Node>) res.getPayload();
-
-		for (Node node : nodes) {
+		for (Node node : newMembers)
 			cluster.put(node.getAddress(), node);
-		}
-
-		cluster.put(manager.getAddress(), manager.getNode());
 	}
 
 	public List<Node> getClusterMembers() {
@@ -96,40 +92,39 @@ public class ClusterManager {
 	}
 
 	public JMessage send(JMessage msg) {
-		return comm.sendJMessage(msg);
+		// return comm.sendJMessage(msg);
+		return null;
 	}
 
 	public List<JMessage> broadcast(JMessage msg) {
-		List<InetSocketAddress> addresses = new ArrayList<>(getNodes().stream().map(it -> it.getAddress()).toList());
-		if (msg.getType() == MessageType.JOIN_REQUEST || msg.getType() == MessageType.LEAVE_REQUEST)
-			addresses.remove(manager.getAddress());
-		
-		return comm.broadcast(addresses, msg);
+		// List<InetSocketAddress> addresses = new
+		// ArrayList<>(getNodes().stream().map(it -> it.getAddress()).toList());
+		// if (msg.getType() == MessageType.JOIN_REQUEST || msg.getType() ==
+		// MessageType.LEAVE_REQUEST)
+		// addresses.remove(manager.getAddress());
+
+		// return comm.broadcast(addresses, msg);
+		return new ArrayList<>();
 	}
 
 	public void receive(JMessage message) {
-        manager.receive(message);
-    }
+		manager.receive(message);
+	}
 
-    public JMessage join(JMessage msg) {
-        // Reliable multicast by passing along if the user is not registered
-        // by the current node
-        Node node = (Node) msg.getPayload();
-        InetSocketAddress adr = node.getAddress();
-        
-        // Check if joining node is in the cluster
-        if (!cluster.containsKey(adr)) {
-            return new JMessage()
-                .setType(MessageType.ERROR)
-                .setPayload("Node already in network");
-        }
+	public List<Node> join(Node node) {
+		// Reliable multicast by passing along if the user is not registered
+		// by the current node
+		InetSocketAddress adr = node.getAddress();
 
-        this.cluster.put(adr, node);
+		List<Node> members = cluster.values().stream().toList();
+		// Check if joining node is in the cluster
+		if (!cluster.containsKey(adr)) {
+			return members;
+		}
 
-        broadcast(msg);
-        
-        return new JMessage()
-            .setType(MessageType.EMPTY)
-            .setPayload("Successfully joined network.");
-    }
+		cluster.put(adr, node);
+
+		// broadcast(msg);
+		return members;
+	}
 }

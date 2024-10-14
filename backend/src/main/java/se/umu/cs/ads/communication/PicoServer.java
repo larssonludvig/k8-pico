@@ -8,9 +8,11 @@ import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import se.umu.cs.ads.types.*;
 
 public class PicoServer {
@@ -46,21 +48,14 @@ public class PicoServer {
 		}
 		
 		
-        @Override
-        public void send(RpcMessage msg, StreamObserver<RpcMessage> responseObserver) {
-            JMessage message = JMessage.fromJson(msg.getPayload());
-			JMessage reply = this.comm.receive(message);
-			RpcMessage rpcReply = JMessage.toRPC(reply);
-			responseObserver.onNext(rpcReply);
-			responseObserver.onCompleted();
-        }
-		
 		@Override
-		public void join(RpcMessage msg, StreamObserver<RpcMessage> responseObserver) {
-			JMessage message = JMessage.fromJson(msg.getPayload());
-			JMessage reply = this.comm.join(message);
-			RpcMessage rpcReply = JMessage.toRPC(reply);
-			responseObserver.onNext(rpcReply);
+		public void join(RpcNode msg, StreamObserver<RpcNodes> responseObserver) {
+
+			//TODO: broadcast
+			//Broadcast send reply back to other members
+			// return with list of cluster members
+			RpcNodes reply = this.comm.joinReply(msg);
+			responseObserver.onNext(reply);
 			responseObserver.onCompleted();
 		}
     }

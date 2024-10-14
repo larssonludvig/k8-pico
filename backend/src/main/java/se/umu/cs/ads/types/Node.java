@@ -1,16 +1,16 @@
 package se.umu.cs.ads.types;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Node implements Serializable {
 	private static final long serialVersionUID = 69691337L;
-    private String name;
+    // private String name;
     private InetSocketAddress address;
     private String cluster;
-    private int port;
+    // private int port;
 
     private final ArrayList<PicoContainer> containers;
     
@@ -19,27 +19,32 @@ public class Node implements Serializable {
         this.containers = new ArrayList<>();
     }
 
-
-    public String getName() {
-        return name;
+    public Node(InetSocketAddress address, String cluster, ArrayList<PicoContainer> containers) {
+        this.address = address;
+        this.cluster = cluster;
+        this.containers = containers;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    // public String getName() {
+    //     return name;
+    // }
+
+    // public void setName(String name) {
+    //     this.name = name;
+    // }
 
     public InetSocketAddress getAddress() {
         return address;
     }
 
 
-    public int getPort() {
-        return port;
-    }
+    // public int getPort() {
+    //     return port;
+    // }
 
-    public void setPort(int port) {
-        this.port = port;
-    }
+    // public void setPort(int port) {
+    //     this.port = port;
+    // }
 
     public String getCluster() {
         return cluster;
@@ -67,9 +72,17 @@ public class Node implements Serializable {
 		}
     }
 
+    public String getIP() {
+        return address.getAddress().getHostAddress();
+    }
+
+    public int getPort() {
+        return address.getPort();
+    }
+
 	@Override
 	public String toString() {
-		return String.format("%s (%s)", name, address);
+		return String.format("%s", address);
 	}
 
 	@Override

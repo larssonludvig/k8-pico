@@ -6,4 +6,5 @@ public enum PicoContainerState {
     RESTARTING,
     NAME_CONFLICT,
     PORT_CONFLICT,
+    UNKNOWN
 }

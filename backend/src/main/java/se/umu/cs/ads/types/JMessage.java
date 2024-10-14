@@ -14,8 +14,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@JsonSerialize(using = PicoMessageSerializer.class)
-@JsonDeserialize(using = PicoMessageDeserializer.class)
 public class JMessage implements Serializable {
     private static final long serialVersionUID = 1L;
 

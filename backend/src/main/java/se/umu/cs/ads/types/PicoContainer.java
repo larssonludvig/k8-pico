@@ -1,19 +1,17 @@
 package se.umu.cs.ads.types;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
 
-import se.umu.cs.ads.serializers.ContainerDeserializer;
-import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.utils.Util;
 
-import java.io.Serializable;
-import java.util.*;
 
-@JsonSerialize(using = ContainerSerializer.class)
-@JsonDeserialize(using = ContainerDeserializer.class)
 public class PicoContainer implements Serializable {
 	private static final long serialVersionUID = 13376969L;
 
@@ -74,6 +72,10 @@ public class PicoContainer implements Serializable {
 			formattedPorts.add(publicPort.toString() + ":" + internaPort.toString());
 		}
 		return formattedPorts;
+	}
+
+	public Map<Integer, Integer> getPortsMap() {
+		return ports;
 	}
 
 	public List<ExposedPort> getExposedPorts() {

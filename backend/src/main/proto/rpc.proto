@@ -10,7 +10,67 @@ message RpcMessage {
     string payload = 1;
 }
 
+message RpcMetadata {
+    string ip = 1;
+    int32 port = 2;
+}
+
+message RpcNode {
+    string clusterName = 1;
+    string ip = 2;
+    int32 port = 3;
+    RpcContainers containers = 4;
+}
+
+message RpcNodes {
+    repeated RpcNode nodes = 1;
+}
+
+enum RpcContainerState {
+    RUNNING = 0;
+    STOPPED = 1;
+    RESTARTING = 2;
+    NAME_CONFLICT = 3;
+    PORT_CONFLICT = 4;
+    UNKNOWN = 5;
+}
+
+message RpcStrings {
+    repeated string strings = 1;
+}
+
+message RpcMap {
+    map<int32, int32> map = 1;
+}
+
+message RpcContainer {
+    string name = 1;
+    string image = 2;
+    RpcMap ports = 3;
+    RpcStrings envs = 4;
+    RpcContainerState state = 5;
+}
+
+message RpcContainers {
+    repeated RpcContainer containers = 1;
+}
+
+
+message RpcPerformance {
+    double cpuLoad = 1;
+    double memLoad = 2;
+}
+
+message RpcEmpty {}
+
 service RpcService {
-    rpc send (RpcMessage) returns (RpcMessage);
-    rpc join (RpcMessage) returns (RpcMessage);
+    // rpc fetchNode               (RpcEmpty) returns (RpcNode);
+    // rpc fetchNodes              (RpcEmpty) returns (RpcNodes);
+    // rpc fetchNodePerformance    () returns (RpcPerformance);
+    // rpc createContainer         (RpcContainer) returns ();
+    // rpc containerList           () returns ();
+    // rpc containerElectionStart  () returns ();
+    // rpc containerElectionEnd    () returns ();
+    rpc join                    (RpcNode) returns (RpcNodes);
+    // rpc leave                   () returns ();
 }
