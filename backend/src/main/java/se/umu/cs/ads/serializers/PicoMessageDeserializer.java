@@ -70,7 +70,14 @@ public class PicoMessageDeserializer extends StdDeserializer<JMessage> {
         JsonNode payload = node.get("payload");
 		if (payload != null && typeObj != null) {
 			Class<?> clazz = MessageVerifier.getCorrectClass(result.getType());
-			result.setPayload(mapper.readValue(payload.asText(), clazz));		
+			logger.info("Curect class is: {}", clazz.getName());
+			if (clazz == List.class) {
+				Object[] collection = mapper.readValue(payload.asText(), Object[].class);
+				List<Object> list = Arrays.asList(collection);
+				result.setPayload(list);
+			} else {
+				result.setPayload(mapper.readValue(payload.asText(), clazz));		
+			}
 		}
 
         return result;

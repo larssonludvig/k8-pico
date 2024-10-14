@@ -36,7 +36,7 @@ public class NodeManager {
 
         this.node = new Node();
 		try {
-			this.node.setAddress(new InetSocketAddress(Inet4Address.getLocalHost(), port));
+			this.node.setAddress(new InetSocketAddress(Inet4Address.getLocalHost().getHostAddress(), port));
 		} catch (UnknownHostException e) {
 			logger.fatal("Could not determine local address: {}", e.getMessage());
 			System.exit(-1);
