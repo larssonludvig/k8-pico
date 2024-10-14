@@ -9,4 +9,5 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddSingleton<ApiService>();
 
-await builder.Build().RunAsync();
+var app = builder.Build();
+await app.RunAsync();
