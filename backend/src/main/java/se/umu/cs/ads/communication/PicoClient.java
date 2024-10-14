@@ -33,6 +33,9 @@ public class PicoClient {
 	public void connectNewHost(InetSocketAddress address) {
 		String ip = address.getAddress().getHostAddress();
 		int port = address.getPort();
+		logger.info("Connecting to {} ...", address);
+		logger.info("IP: {}", ip);
+		logger.info("Port: {}", port);
 		ManagedChannel channel = ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build();
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
@@ -41,18 +44,15 @@ public class PicoClient {
 	}	
 
 
-	public RpcNodes join(RpcNode msg) throws Exception {
-		String ip = msg.getIp();
-		int port = msg.getPort();
-		InetSocketAddress address = new InetSocketAddress(ip, port);
-		RpcServiceFutureStub stub = stubs.get(address);
+	public RpcNodes join(InetSocketAddress remote, RpcNode msg) throws Exception {
+		RpcServiceFutureStub stub = stubs.get(remote);
 
 		if (stub == null) {
-			connectNewHost(address);
-			stub = stubs.get(address);
+			connectNewHost(remote);
+			stub = stubs.get(remote);
 		}
 		
-		logger.info("Sending JOIN_REQUEST to {} ...", address);
+		logger.info("Sending JOIN_REQUEST to {} ...", remote);
 		RpcNodes reply = stub.join(msg).get();
 		logger.info("Received reply for JOIN_REQUEST");
 		return reply;

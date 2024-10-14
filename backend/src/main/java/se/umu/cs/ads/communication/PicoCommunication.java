@@ -81,11 +81,6 @@ public class PicoCommunication {
 		return address;
 	}
 
-	public void registerNewMember(InetSocketAddress address) {
-		client.connectNewHost(address);
-
-	}
-
 	public List<JMessage> broadcast(JMessage msg) throws PicoException {
 		List<InetSocketAddress> addresses = cluster.getClusterAddresses();
 		// return broadcast(addresses, msg);
@@ -189,7 +184,7 @@ public class PicoCommunication {
 				.build();
 
 		try {
-			RpcNodes nodes = client.join(rpcSelf);
+			RpcNodes nodes = client.join(remote, rpcSelf);
 			return NodeSerializer.fromRPC(nodes);
 		} catch (Exception e) {
 			logger.error("Failed to join cluster: {}", e);

@@ -51,9 +51,7 @@ public class ClusterManager {
 	}
 
 	public void joinCluster(InetSocketAddress address) throws PicoException {
-		// first add ourselves
 		Node self = manager.getNode();
-		cluster.put(manager.getAddress(), self);
 
 		// send join req and add members
 		List<Node> newMembers = this.comm.joinRequest(address, self);
