@@ -245,7 +245,7 @@ public class NodeManager {
 	}
 
 	public PicoContainer createLocalContainer(PicoContainer container) {
-		return this.controller.createContainer(container);
+		return this.controller.createLocalContainer(container);
 	}
 
 	public PicoContainer startContainer(String name) {

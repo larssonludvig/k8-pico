@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.messagehandler.MessageHandler;
+import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.JMessage;
@@ -29,9 +30,11 @@ public class PicoCommunication {
 	private final ExecutorService pool;
 	private final PicoClient client;
 	private final MessageHandler handler;
+	private final NodeManager manager;
 
-	public PicoCommunication(ClusterManager cluster, PicoAddress address) {
-		this.address = address;
+	public PicoCommunication(ClusterManager cluster, NodeManager manager) {
+		this.manager = manager;
+		this.address = manager.getAddress();
 		this.server = new PicoServer(this);
 		this.client = new PicoClient(address);
 		this.receivedMessages = ConcurrentHashMap.newKeySet();
@@ -145,6 +148,24 @@ public class PicoCommunication {
 		List<Node> nodes = cluster.getNodes();
 
 		return NodeSerializer.toRPC(nodes);
+	}
+
+	public RpcPerformance fetchPerformance() {
+		double cpuLoad = this.manager.getCPULoad();
+		double ramLoad = this.manager.getMemLoad();
+		double ramAvailable = this.manager.getFreeMem();
+
+		return RpcPerformance.newBuilder()
+			.setCpuLoad(cpuLoad)
+			.setMemLoad(ramLoad)
+			.setFreeRam(ramAvailable)
+			.build();
+	}
+
+	public RpcContainer createContainer(RpcContainer container) {
+		
+		PicoContainer result = this.manager.createLocalContainer(ContainerSerializer.fromRPC(container));
+		return ContainerSerializer.toRPC(result);
 	}
 
 	public Node fetchNode(PicoAddress adr) {

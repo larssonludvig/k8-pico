@@ -63,6 +63,7 @@ message RpcJoinRequest {
 message RpcPerformance {
     double cpuLoad = 1;
     double memLoad = 2;
+	double freeRam = 3;
 }
 
 message RpcEmpty {}
@@ -70,8 +71,8 @@ message RpcEmpty {}
 service RpcService {
     rpc fetchNode                   (RpcMetadata) returns (RpcNode);
     // rpc fetchNodes              (RpcEmpty) returns (RpcNodes);
-    // rpc fetchNodePerformance    () returns (RpcPerformance);
-    // rpc createContainer         (RpcContainer) returns ();
+    rpc fetchNodePerformance    (RpcEmpty) returns (RpcPerformance);
+    rpc createContainer         (RpcContainer) returns (RpcEmpty);
     // rpc containerList           () returns ();
     // rpc containerElectionStart  () returns ();
     // rpc containerElectionEnd    () returns ();

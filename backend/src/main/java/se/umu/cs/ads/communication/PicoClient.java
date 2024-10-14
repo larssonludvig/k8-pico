@@ -44,7 +44,7 @@ public class PicoClient {
 
 
 	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws Exception {
-		RpcServiceFutureStub stub = stubs.get(remote);
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 
 		if (stub == null) {
 			connectNewHost(remote);
@@ -57,48 +57,26 @@ public class PicoClient {
 		return reply;
 	}
 
-	public Node fetchNode(PicoAddress remote) throws Exception {
-		RpcServiceFutureStub stub = stubs.get(remote);
 
+	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		logger.info("Fetching performance from {}...", remote);		
+		try {
+			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build()).get();
+			logger.info("Done fetching performance from {}!", remote);
+			return result;
+		} catch (Exception e) {
+			logger.error("Could not fetch performance from {}: {}", remote, e.getMessage());
+			throw new PicoException("Could not fetch performance from: " + remote +": " + e.getMessage());
+		}
+	}
+
+	private RpcServiceFutureStub addRemoteIfNotConnected(PicoAddress remote) {
+		RpcServiceFutureStub stub = stubs.get(remote);
 		if (stub == null) {
 			connectNewHost(remote);
 			stub = stubs.get(remote);
 		}
-
-		RpcMetadata meta = RpcMetadata.newBuilder()
-			.setIp(remote.getIP())
-			.setPort(remote.getPort())
-			.build();
-
-		logger.info("Sending FETCH_NODE to {}...", remote);
-		RpcNode reply = stub.fetchNode(meta).get();
-		logger.info("Received reply from FETCH_NODE");
-		return NodeSerializer.fromRPC(reply);
+		return stub; 
 	}
-
-    // public String send(JMessage msg) throws RuntimeException {
-    //     RpcMessage rpcMessage = RpcMessage.newBuilder().setPayload(msg.toString()).build();
-	// 	RpcServiceFutureStub stub = stubs.get(msg.getDestination());
-
-	// 	if (stub == null) {
-	// 		logger.warn("Trying to send {} message to {} but client is not connected. Trying to connect ...",
-	// 			msg.getType(), msg.getDestination());
-	// 		connectNewHost(msg.getDestination());
-	// 		stub = stubs.get(msg.getDestination());
-	// 	}
-
-	// 	logger.info("Sending {} to remote {}", msg.getType(), msg.getDestination());
-	// 	// @SuppressWarnings("null")
-	// 	ListenableFuture<RpcMessage> future = stub.send(rpcMessage);
-
-    //     try {
-    //         return future.get().getPayload();
-    //     } catch (InterruptedException | CancellationException | ExecutionException e) {
-	// 		String error = String.format("Received interrupt while waiting for rpc message with cause: %s", e.getMessage());
-	// 		logger.error(error);
-    //         throw new PicoException(error);
-    //     }
-    // }
-
-	
 }
