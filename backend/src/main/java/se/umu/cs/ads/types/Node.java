@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ext.DOMDeserializer.NodeDeserializer;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 
-@JsonDeserialize(using = NodeDeserializer.class);
+@JsonDeserialize(using = NodeDeserializer.class)
 public class Node implements Serializable {
 	private static final long serialVersionUID = 69691337L;
     private String name;
