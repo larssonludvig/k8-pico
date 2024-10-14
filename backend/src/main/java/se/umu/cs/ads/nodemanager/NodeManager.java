@@ -12,13 +12,14 @@ import java.util.concurrent.ExecutorService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.utils.Util;
-
+import se.umu.cs.ads.arguments.*;
 /**
  * Class for cluster management
  */
@@ -32,9 +33,10 @@ public class NodeManager {
 	// name, containers
 	private final Map<PicoAddress, List<PicoContainer>> remoteContainers;
 
+
 	@SuppressWarnings("static-access")
 	public NodeManager(Controller controller) {
-		int port = 8083;
+		int port = CommandLineArguments.grpcPort;
 		String ip = Util.getLocalIP();
 
 		this.node = new Node();

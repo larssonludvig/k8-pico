@@ -19,7 +19,7 @@ public class ClusterManager {
 	private final Map<PicoAddress, Node> cluster;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
-	public final static String CLUSTER_NAME = "k8-pico";
+	public final String CLUSTER_NAME = "k8-pico";
 
 	public ClusterManager(NodeManager manager) {
 		this.cluster = new ConcurrentHashMap<>();
