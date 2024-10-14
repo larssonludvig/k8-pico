@@ -125,4 +125,12 @@ public class ClusterManager {
 		// broadcast(msg);
 		return members;
 	}
+
+	public Node fetchNode() {
+		return this.manager.getNode();
+	}
+
+	public Node fetchNode(PicoAddress adr) {
+		return this.comm.fetchNode(adr);
+	}
 }

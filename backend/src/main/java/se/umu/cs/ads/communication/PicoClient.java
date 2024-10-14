@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 import se.umu.cs.ads.communication.RpcServiceGrpc.RpcServiceFutureStub;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.serializers.*;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -44,12 +45,18 @@ public class PicoClient {
 
 	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws Exception {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+
+		if (stub == null) {
+			connectNewHost(remote);
+			stub = stubs.get(remote);
+		}
 		
 		logger.info("Sending JOIN_REQUEST to {} ...", remote);
 		RpcNodes reply = stub.join(msg).get();
 		logger.info("Received reply for JOIN_REQUEST");
 		return reply;
 	}
+
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
@@ -70,7 +77,6 @@ public class PicoClient {
 			connectNewHost(remote);
 			stub = stubs.get(remote);
 		}
-
 		return stub; 
 	}
 }

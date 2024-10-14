@@ -102,5 +102,14 @@ public class PicoServer {
 			responseObserver.onNext(reply);
 			responseObserver.onCompleted();
 		}
+
+		@Override
+		public void fetchNode(RpcMetadata msg, StreamObserver<RpcNode> responseObserver) {
+			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
+			Node node = this.comm.fetchNode(adr);
+
+			responseObserver.onNext(NodeSerializer.toRPC(node));
+			responseObserver.onCompleted();
+		}
     }
 }

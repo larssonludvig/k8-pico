@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.Performance;
+import se.umu.cs.ads.types.PicoAddress;
 
 @CrossOrigin(maxAge = 3600)
 @RestController
@@ -35,15 +35,22 @@ public class NodeController {
     }
 
 
-    @GetMapping("{name}")
-    public ResponseEntity<?> getNode(@PathVariable String name) {
-		return ResponseEntity.internalServerError().body(null);
-	    // try {
-        //     Node node = service.getController().getNode(name);
-        //     return ResponseEntity.status(HttpStatus.OK).body(node);
-        // } catch (Exception e) {
-        //     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        // }
+    /**
+     * Node variable is of "ip:port"
+     */
+    @GetMapping("{node}")
+    public ResponseEntity<?> getNode(@PathVariable String node) {
+	    try {
+            String[] buf = node.split(":");
+            String ip = buf[0];
+            int port = Integer.parseInt(buf[1]);
+            PicoAddress adr = new PicoAddress(ip, port);
+
+            Node res = service.getController().getNode(adr);
+            return ResponseEntity.status(HttpStatus.OK).body(res);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @GetMapping("{name}/performance")

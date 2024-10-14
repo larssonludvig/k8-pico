@@ -1,15 +1,11 @@
 package se.umu.cs.ads.communication;
 
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,8 +14,12 @@ import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.messagehandler.MessageHandler;
 import se.umu.cs.ads.nodemanager.NodeManager;
-import se.umu.cs.ads.serializers.*;
-import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.serializers.ContainerSerializer;
+import se.umu.cs.ads.serializers.NodeSerializer;
+import se.umu.cs.ads.types.JMessage;
+import se.umu.cs.ads.types.MessageType;
+import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.PicoAddress;
 
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
@@ -166,5 +166,19 @@ public class PicoCommunication {
 		
 		PicoContainer result = this.manager.createLocalContainer(ContainerSerializer.fromRPC(container));
 		return ContainerSerializer.toRPC(result);
+	}
+
+	public Node fetchNode(PicoAddress adr) {
+		if (!adr.equals(this.address)) {
+			// Send request to correct node
+			try {
+				return this.client.fetchNode(adr);
+			} catch (Exception e) {
+				logger.error("Failed to fetch node: {}", e);
+				throw new PicoException(e.getMessage());
+			}
+		}
+
+		return this.cluster.fetchNode();
 	}
 }

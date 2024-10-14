@@ -34,7 +34,7 @@ public class PicoAddress {
 			return false;
 
 		PicoAddress other = (PicoAddress) o;
-		return this.ip == other.ip && this.port == other.port;
+		return this.ip.equals(other.ip) && this.port == other.port;
 	}
 
 	@Override
