@@ -37,12 +37,12 @@
         }
 
         <QuickGrid Items="@nodes" Pagination=@pagination>
-            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
-            <PropertyColumn Property="@(x => x.Address)" />
-            <PropertyColumn Property="@(x => x.Port)" />
+            <TemplateColumn Title="Node">
+                <p style="margin: 0;">@context.Address?.Ip:@context.Address?.Port</p>
+            </TemplateColumn>
             <PropertyColumn Property="@(x => x.Cluster)" />
             <TemplateColumn>
-                <button @onclick='@(() => _nav.NavigateTo("/node/" + context.Name))'>-></button>
+                <button @onclick='@(() => _nav.NavigateTo("/node/" + context.Address?.Ip + ":" + context.Address?.Port))'>-></button>
             </TemplateColumn>
         </QuickGrid>
     </div>
