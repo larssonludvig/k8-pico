@@ -17,6 +17,7 @@ import se.umu.cs.ads.communication.*;
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
 	private final Map<PicoAddress, Node> cluster;
+	private final Map<PicoAddress, int> suspectedMembers;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	public final String CLUSTER_NAME = "k8-pico";
@@ -75,6 +76,7 @@ public class ClusterManager {
 
 	public void addNode(Node node) {
 		cluster.put(node.getAddress(), node);
+		suspectedMembers.remove(node.getAddress());
 	}
 
 	public void removeNode(Node node) {
@@ -148,5 +150,33 @@ public class ClusterManager {
 
 	public Performance fetchNodePerformance(PicoAddress adr) {
 		return this.comm.fetchNodePerformance(adr);
+	}
+
+	public void heartBeat() {
+		List<Node> members = getClusterMembers();
+
+		for (Node node : members) {
+			try {
+				// Send heartbeat to node
+				this.comm.heartBeat(node.getAddress());
+
+				// Remove node from suspected list
+				suspectedMembers.remove(node.getAddress());
+			} catch (PicoException e) {
+				// Handle heartbeat failure
+				if (suspectedMembers.containsKey(node.getAddress())) {
+					int count = suspectedMembers.get(node.getAddress());
+					if (count >= 3) {
+						// Ask nodes if node is suspected for them
+						// If it is suspedted by all nodes, remove it
+						// Otherwise continue
+					} else {
+						suspectedMembers.put(node.getAddress(), count + 1);
+					}
+				} else {
+					suspectedMembers.put(node.getAddress(), 1);
+				}
+			}
+		}
 	}
 }

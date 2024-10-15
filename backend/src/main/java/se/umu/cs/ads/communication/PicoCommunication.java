@@ -145,6 +145,10 @@ public class PicoCommunication {
 		return ContainerSerializer.toRPC(result);
 	}
 
+	public Node fetchNode() {
+		return this.cluster.fetchNode();
+	}
+
 	public Node fetchNode(PicoAddress adr) {
 		if (!adr.equals(this.address)) {
 			// Send request to correct node
@@ -213,5 +217,9 @@ public class PicoCommunication {
 
 		// Successfull exit
 		System.exit(0);
+	}
+
+	public Node heartBeat(PicoAddress adr) {
+		return this.cluster.heartBeat(adr);
 	}
 }

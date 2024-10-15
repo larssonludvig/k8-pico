@@ -131,4 +131,21 @@ public class PicoClient {
         logger.info("Received reply from FETCH_NODE");
         return NodeSerializer.fromRPC(reply);
     }
+
+	public Node heartBeat(PicoAddress remote) throws Exception {
+		RpcServiceFutureStub stub = stubs.get(remote);
+
+		if (stub == null) {
+			connectNewHost(remote);
+			stub = stubs.get(remote);
+		}
+
+		try {
+			return NodeSerializer.fromRPC(stub.heartBeat(RpcEmpty.newBuilder().build()).get());
+			logger.debug("Successfully sent HEARTBEAT to {}", remote);
+		} catch (Exception e) {
+			logger.error("Failed to send HEARTBEAT to {}: {}", remote, e.getMessage());
+			throw new PicoException("Failed to send HEARTBEAT to " + remote + ": " + e.getMessage());
+		}
+	}
 }

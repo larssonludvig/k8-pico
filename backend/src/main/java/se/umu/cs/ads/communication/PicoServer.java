@@ -129,5 +129,12 @@ public class PicoServer {
 			responseObserver.onNext(NodeSerializer.toRPC(node));
 			responseObserver.onCompleted();
 		}
+
+		@Override
+		public void heartBeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
+			Node node = this.comm.getNode();
+			responseObserver.onNext(NodeSerializer.toRPC(node));
+			responseObserver.onCompleted();
+		}
     }
 }

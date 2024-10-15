@@ -79,4 +79,5 @@ service RpcService {
     rpc join                        (RpcJoinRequest) returns (RpcNodes);
     rpc leave                   (RpcMetadata) returns (RpcEmpty);
     rpc removeNode              (RpcMetadata) returns (RpcEmpty);
+    rpc heartBeat               (RpcEmpty) returns (RpcNode);
 }
