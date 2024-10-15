@@ -53,7 +53,8 @@ public class ClusterManager {
 	}
 
 	public List<PicoAddress> getClusterAddresses() {
-		return cluster.values().stream().map(it -> it.getAddress()).toList();
+		List<PicoAddress> res = cluster.values().stream().map(it -> it.getAddress()).toList();
+		return new ArrayList<>(res);
 	}
 
 	public List<Node> getNodes() {
