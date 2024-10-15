@@ -6,12 +6,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.ContainerSerializer;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
+import se.umu.cs.ads.serializers.*;
+import se.umu.cs.ads.utils.*;
 
-import se.umu.cs.ads.utils.Util;
 
-
+@JsonSerialize(using = ContainerSerializer.class)
+@JsonDeserialize(using = ContainerDeserializer.class)
 public class PicoContainer implements Serializable {
 	private static final long serialVersionUID = 13376969L;
 
