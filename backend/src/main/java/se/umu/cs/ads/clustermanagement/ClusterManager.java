@@ -6,6 +6,7 @@ import java.util.concurrent.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.communication.PicoCommunication;
@@ -21,12 +22,14 @@ public class ClusterManager {
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	public final String CLUSTER_NAME = "k8-pico";
+	private final ExecutorService pool;
 
 	public ClusterManager(NodeManager manager) {
 		this.cluster = new ConcurrentHashMap<>();
 		this.manager = manager;
 		this.comm = new PicoCommunication(this, manager);
 		this.suspectedMembers = new HashMap<PicoAddress, Integer>();
+		this.pool = CommandLineArguments.pool;
 	}
 
 	/**
@@ -122,31 +125,33 @@ public class ClusterManager {
 		return this.comm.fetchNodePerformance(adr);
 	}
 
-	public void heartBeat(PicoAddress adr) {
+	public void heartbeat() {
 		List<Node> members = getClusterMembers();
 
 		for (Node node : members) {
-			try {
-				// Send heartbeat to node
-				this.comm.heartBeatRemote(node.getAddress());
+			pool.submit(() -> {
+				try {
+					// Send heartbeat to node
+					this.comm.heartbeatRemote(node.getAddress());
 
-				// Remove node from suspected list
-				suspectedMembers.remove(node.getAddress());
-			} catch (PicoException e) {
-				// Handle heartbeat failure
-				if (suspectedMembers.containsKey(node.getAddress())) {
-					int count = suspectedMembers.get(node.getAddress());
-					// Ask nodes if node is suspected for them
-					if (count >= 3 && isNodeDead(node.getAddress())) {
-						// If it is suspedted by all nodes, remove it
-						this.comm.removeNodeRemote(node.getAddress());
+					// Remove node from suspected list
+					suspectedMembers.remove(node.getAddress());
+				} catch (PicoException e) {
+					// Handle heartbeat failure
+					if (suspectedMembers.containsKey(node.getAddress())) {
+						int count = suspectedMembers.get(node.getAddress());
+						// Ask nodes if node is suspected for them
+						if (count >= 3 && isNodeDead(node.getAddress())) {
+							// If it is suspedted by all nodes, remove it
+							this.comm.removeNodeRemote(node.getAddress());
+						} else {
+							suspectedMembers.put(node.getAddress(), count + 1);
+						}
 					} else {
-						suspectedMembers.put(node.getAddress(), count + 1);
+						suspectedMembers.put(node.getAddress(), 1);
 					}
-				} else {
-					suspectedMembers.put(node.getAddress(), 1);
 				}
-			}
+			});
 		}
 	}
 

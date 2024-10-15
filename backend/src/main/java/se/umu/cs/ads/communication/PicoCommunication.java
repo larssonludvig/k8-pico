@@ -176,9 +176,12 @@ public class PicoCommunication {
 	public void removeNodeRemote(PicoAddress toRemove) {
 		logger.error("Removing self from remote nodes...");
 		List<Node> members = this.cluster.getNodes();
+		boolean removeSelf = false;
 
-		if (toRemove == null)
+		if (toRemove == null) {
+			removeSelf = true;
 			toRemove = this.manager.getAddress();
+		}
 
 		try {
 			for (Node member : members) {
@@ -194,13 +197,14 @@ public class PicoCommunication {
 			System.exit(1);
 		}
 
-		// Successfull exit
-		System.exit(0);
+		// Successfull exit if it removes self
+		if (removeSelf)
+			System.exit(0);
 	}
 
-	public Node heartBeatRemote(PicoAddress remote) throws PicoException {
+	public Node heartbeatRemote(PicoAddress remote) throws PicoException {
 		try {
-			return this.client.heartBeat(remote);
+			return this.client.heartbeat(remote);
 		} catch (Exception e) {
 			logger.error("Failed to get heart beat from node: {}", e);
 			throw new PicoException(e.getMessage());

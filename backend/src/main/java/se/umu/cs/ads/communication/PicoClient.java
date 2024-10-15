@@ -189,7 +189,7 @@ public class PicoClient {
 		}
 	}
 
-	public Node heartBeat(PicoAddress remote) throws Exception {
+	public Node heartbeat(PicoAddress remote) throws Exception {
 		RpcServiceFutureStub stub = stubs.get(remote);
 
 		if (stub == null) {
@@ -198,7 +198,7 @@ public class PicoClient {
 		}
 
 		try {
-			Node node = NodeSerializer.fromRPC(stub.heartBeat(RpcEmpty.newBuilder().build()).get());
+			Node node = NodeSerializer.fromRPC(stub.heartbeat(RpcEmpty.newBuilder().build()).get());
 			logger.debug("Successfully sent HEARTBEAT to {}", remote);
 			return node;
 		} catch (Exception e) {

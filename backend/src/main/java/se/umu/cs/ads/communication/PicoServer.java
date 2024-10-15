@@ -138,7 +138,7 @@ public class PicoServer {
 		}
 
 		@Override
-		public void heartBeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
+		public void heartbeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
 			Node node = this.comm.fetchNode();
 			responseObserver.onNext(NodeSerializer.toRPC(node));
 			responseObserver.onCompleted();
