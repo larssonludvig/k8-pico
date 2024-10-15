@@ -51,8 +51,8 @@ public class ContainerController {
 	public ResponseEntity<?> createContainer(@RequestBody PicoContainer container) {
 		
 		try {
-			PicoContainer created = service.getController().createContainer(container);
-			return ResponseEntity.ok().body(created);
+			service.getController().createContainer(container);
+			return ResponseEntity.ok().body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to create container {}: {}", container.getName(), e.getMessage());
 			return ResponseEntity.internalServerError().body(e);

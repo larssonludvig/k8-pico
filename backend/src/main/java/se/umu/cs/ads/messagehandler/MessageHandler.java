@@ -96,8 +96,8 @@ public class MessageHandler {
                 return new JMessage()
                     .setType(MessageType.EMPTY);
 
-            case CONTAINER_ELECTION_START:void
-
+            case CONTAINER_ELECTION_START:
+				return container_election_start(jmsg);
 			case JOIN_REQUEST:
 				return join_request(jmsg);
 			case LEAVE_REQUEST:
@@ -202,14 +202,14 @@ public class MessageHandler {
         }
         
         //check conflicting ports
-        String conflictingPort = nodeManager.conflictingPorts(container.getPorts());
-        if (conflictingPort != null) {
-            logger.warn("New container with name {} has port conflict: {} is already used", name, conflictingPort);
-            return new JMessage()
-                .setPayload(PORT_CONFLICT)
-                .setSender(nodeManager.getAddress())
-                .setType(MessageType.EMPTY);
-        }
+        // String conflictingPort = nodeManager.conflictingPorts(container.getPorts());
+        // if (conflictingPort != null) {
+        //     logger.warn("New container with name {} has port conflict: {} is already used", name, conflictingPort);
+        //     return new JMessage()
+        //         .setPayload(PORT_CONFLICT)
+        //         .setSender(nodeManager.getAddress())
+        //         .setType(MessageType.EMPTY);
+        // }
 
         logger.info("Score evaluated to: {}", score);
         

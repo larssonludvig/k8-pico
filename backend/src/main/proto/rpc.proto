@@ -80,7 +80,7 @@ service RpcService {
     rpc fetchNodePerformance    (RpcEmpty) returns (RpcPerformance);
     rpc createContainer         (RpcContainer) returns (RpcEmpty);
     // rpc containerList           () returns ();
-    rpc containerElectionStart  (RpcEmpty) returns (RpcEmpty);
+    rpc containerElectionStart  (RpcContainer) returns (RpcEmpty);
 	rpc elvaluateContainer		(RpcContainer) returns (RpcContainerEvaluation);
     // rpc containerElectionEnd    () returns ();
     rpc join                        (RpcJoinRequest) returns (RpcNodes);

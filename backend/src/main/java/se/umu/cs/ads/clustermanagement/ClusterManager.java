@@ -133,4 +133,9 @@ public class ClusterManager {
 	public Node fetchNode(PicoAddress adr) {
 		return this.comm.fetchNode(adr);
 	}
+
+	public void createContainer(PicoContainer container) {
+		PicoAddress leader = manager.getLeader();
+		this.comm.initiateContainerElection(container, leader);
+	}
 }

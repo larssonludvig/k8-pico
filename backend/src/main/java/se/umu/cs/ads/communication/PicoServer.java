@@ -4,6 +4,8 @@ import io.grpc.Grpc;
 import io.grpc.InsecureServerCredentials;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
@@ -111,10 +113,19 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
-		// @Override
-		// public void container_election_start(RpcContainer container, StreamObserver<> responseObserver) {
-
-		// }
+		@Override
+		public void containerElectionStart(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
+			logger.info("Received CONTAINER_ELECTION_START for container {}", container.getName());
+			try {
+				this.comm.containerElectionStart(container);
+				responseObserver.onNext(RpcEmpty.newBuilder().build());
+				responseObserver.onCompleted();
+			} catch (StatusRuntimeException e) {
+				responseObserver.onError(e);
+			} catch (Exception e) {
+				responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withCause(e)));
+			}
+		}
 
 		@Override
 		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {

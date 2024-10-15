@@ -93,10 +93,30 @@ public class PicoClient {
         return NodeSerializer.fromRPC(reply);
     }
 
-	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) {
+	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) throws Exception {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
-		logger.info("Sending evaluation request to {}", remote);
-		stub.elvaluateContainer(container);
+		logger.info("Sending evaluation request for {} to {} ...", container.getName(), remote);
+		RpcContainerEvaluation response = stub.elvaluateContainer(container).get();
 		logger.info("Received evaluation reply from {}", remote);
+		return response;
+	}
+
+	public void containerElectionStart(RpcContainer container, PicoAddress remote) throws PicoException {
+		logger.info("Initiating CONTAINER_ELECTION_START for {} to {}", container.getName(), remote);
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		try {
+			stub.containerElectionStart(container);
+		} catch (Exception e) {
+			logger.error("Received exception from CONTAINER_ELECTION_START: {}", e.getMessage());
+			throw new PicoException(e.getMessage());
+		}
+	}
+
+	public void createContainer(RpcContainer container, PicoAddress remote) throws Exception {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
+			container.getName(), remote);
+		
+		stub.createContainer(container);
 	}
 }
