@@ -11,13 +11,13 @@ import com.fasterxml.jackson.core.JacksonException;
 
 import se.umu.cs.ads.types.*;
 
-public class ContainerDeserializer extends StdDeserializer<PicoContainer> {
+public class PicoContainerDeserializer extends StdDeserializer<PicoContainer> {
 
-	public ContainerDeserializer() {
+	public PicoContainerDeserializer() {
 		this(null);
 	}
 
-	public ContainerDeserializer(Class<PicoContainer> t) {
+	public PicoContainerDeserializer(Class<PicoContainer> t) {
 		super(t);
 	}
 

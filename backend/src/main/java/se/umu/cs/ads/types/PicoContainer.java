@@ -15,8 +15,8 @@ import se.umu.cs.ads.serializers.*;
 import se.umu.cs.ads.utils.*;
 
 
-@JsonSerialize(using = ContainerSerializer.class)
-@JsonDeserialize(using = ContainerDeserializer.class)
+@JsonSerialize(using = PicoContainerSerializer.class)
+@JsonDeserialize(using = PicoContainerDeserializer.class)
 public class PicoContainer implements Serializable {
 	private static final long serialVersionUID = 13376969L;
 
