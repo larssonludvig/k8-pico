@@ -37,7 +37,7 @@ public class PicoCommunication {
 		this.manager = manager;
 		this.address = manager.getAddress();
 		this.server = new PicoServer(this);
-		this.client = new PicoClient(address);
+		this.client = new PicoClient();
 		this.cluster = cluster;
 		this.pool = CommandLineArguments.pool;
 

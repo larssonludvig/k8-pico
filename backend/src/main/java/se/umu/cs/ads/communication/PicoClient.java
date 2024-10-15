@@ -22,19 +22,19 @@ public class PicoClient {
 	private final static Logger logger = LogManager.getLogger(PicoClient.class);
 	private final Map<PicoAddress, ManagedChannel> channels;
 	private final Map<PicoAddress, RpcServiceFutureStub> stubs;
-    private final PicoAddress address;
 
-    public PicoClient(PicoAddress address) {
-		this.address = address;
+    public PicoClient() {
 		this.stubs = new ConcurrentHashMap<>();
 		this.channels = new ConcurrentHashMap<>();
     }
 
 	public void connectNewHost(PicoAddress address) {
-		String ip = address.getIP();
-		int port = address.getPort();
 		logger.info("Connecting to {} ...", address);
-		ManagedChannel channel = ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build();
+		ManagedChannel channel = ManagedChannelBuilder
+			.forAddress(address.getIP(), address.getPort())
+			.usePlaintext()
+			.build();
+			
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);
@@ -42,16 +42,19 @@ public class PicoClient {
 	}	
 
 
-	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws Exception {
+	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
-
-		if (stub == null) {
-			connectNewHost(remote);
-			stub = stubs.get(remote);
-		}
 		
 		logger.info("Sending JOIN_REQUEST to {} ...", remote);
-		RpcNodes reply = stub.join(msg).get();
+		RpcNodes reply = null;
+		try {
+			reply = stub.join(msg).get();
+		} catch (Exception e) {
+			String err = String.format("Received error from %s when sending JOIN_REQUEST: %s", remote, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
+		}
+
 		logger.info("Received reply for JOIN_REQUEST");
 		return reply;
 	}
@@ -70,16 +73,20 @@ public class PicoClient {
 			.build();
 
 		logger.info("Sending LEAVE to {} ...", remote);
-		stub.leave(meta);
+		
+		try {
+			stub.leave(meta);
+		} catch (Exception e) {
+			String err = String.format("Received error from %s when sending LEAVE: %s", remote, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
+		}
+		logger.info("Sucessfully sent LEAVE to {}", remote);
 	}
 
 	// Request to remove self from remote node
-	public void removeNode(PicoAddress remote, PicoAddress self) throws Exception {
-		RpcServiceFutureStub stub = stubs.get(remote);
-		if (stub == null) {
-			connectNewHost(remote);
-			stub = stubs.get(remote);
-		}
+	public void removeNode(PicoAddress remote, PicoAddress self) throws PicoException {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 
 		RpcMetadata meta = RpcMetadata.newBuilder()
 			.setIp(self.getIP())
@@ -87,7 +94,13 @@ public class PicoClient {
 			.build();
 
 		logger.info("Sending request to remove node {} to {}...", self, remote);
-		stub.removeNode(meta);
+		try {
+			stub.removeNode(meta);
+		} catch (Exception e) {
+			String err = String.format("Received error when removing node %s: %s", remote, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
+		}
 	}
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
@@ -98,8 +111,9 @@ public class PicoClient {
 			logger.info("Done fetching performance from {}!", remote);
 			return result;
 		} catch (Exception e) {
-			logger.error("Could not fetch performance from {}: {}", remote, e.getMessage());
-			throw new PicoException("Could not fetch performance from: " + remote +": " + e.getMessage());
+			String err = String.format("Could not fetch performance from %s: %s", remote, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
 		}
 	}
 
@@ -112,7 +126,7 @@ public class PicoClient {
 		return stub; 
 	}
 
-	public Node fetchNode(PicoAddress remote) throws Exception {
+	public Node fetchNode(PicoAddress remote) throws PicoException {
         RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 
         RpcMetadata meta = RpcMetadata.newBuilder()
@@ -121,17 +135,31 @@ public class PicoClient {
             .build();
 
         logger.info("Sending FETCH_NODE to {}...", remote);
-        RpcNode reply = stub.fetchNode(meta).get();
-        logger.info("Received reply from FETCH_NODE");
-        return NodeSerializer.fromRPC(reply);
+        try {
+			RpcNode reply = stub.fetchNode(meta).get();
+        	logger.info("Received reply from FETCH_NODE");
+        	return NodeSerializer.fromRPC(reply);
+		} catch (Exception e) {
+			String err = String.format("Received error from remote %s from FETCH_NODE: %s", remote, e.getMessage());
+			logger.info(err);
+			throw new PicoException(err);
+		}
     }
 
-	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) throws Exception {
+	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending evaluation request for {} to {} ...", container.getName(), remote);
-		RpcContainerEvaluation response = stub.elvaluateContainer(container).get();
-		logger.info("Received evaluation reply from {}", remote);
-		return response;
+
+		try {
+			RpcContainerEvaluation res = stub.elvaluateContainer(container).get(); 
+			logger.info("Received evaluation reply from {}: {}", remote, res.getScore());
+			return res;
+		} catch(Exception e) {
+			String err = String.format("Received error from remote %s when evaluating container %s: %s",
+				remote, container.getName(), e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
+		}		
 	}
 
 	public void containerElectionStart(RpcContainer container, PicoAddress remote) throws PicoException {
@@ -140,16 +168,24 @@ public class PicoClient {
 		try {
 			stub.containerElectionStart(container);
 		} catch (Exception e) {
-			logger.error("Received exception from CONTAINER_ELECTION_START: {}", e.getMessage());
-			throw new PicoException(e.getMessage());
+			String err = String.format("Received exception from CONTAINER_ELECTION_START: %s", e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
 		}
 	}
 
-	public void createContainer(RpcContainer container, PicoAddress remote) throws Exception {
+	public void createContainer(RpcContainer container, PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
 			container.getName(), remote);
 		
-		stub.createContainer(container);
+		try {
+			stub.createContainer(container);
+		} catch (Exception e) {
+			String err = String.format("Received error from remote %s when creating container %s: %s", 
+				remote, container.getName(), e.getMessage());
+			logger.error(err);
+			throw new PicoException(err);
+		}
 	}
 }

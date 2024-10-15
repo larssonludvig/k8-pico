@@ -1,11 +1,7 @@
 package se.umu.cs.ads.utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.util.*;
+import java.net.*;
 
 import com.github.dockerjava.api.model.ContainerPort;
 

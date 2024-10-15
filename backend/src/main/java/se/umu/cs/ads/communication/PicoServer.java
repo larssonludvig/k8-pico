@@ -24,7 +24,8 @@ public class PicoServer {
     private PicoCommunication comm;
 	private Server server;
 	private final PicoAddress address;
-    public PicoServer(PicoCommunication comm) {
+    
+	public PicoServer(PicoCommunication comm) {
         this.comm = comm;
 		this.address = this.comm.getAddress();
     }
