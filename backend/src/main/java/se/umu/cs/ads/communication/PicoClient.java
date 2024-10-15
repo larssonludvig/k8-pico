@@ -5,7 +5,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -78,5 +77,26 @@ public class PicoClient {
 			stub = stubs.get(remote);
 		}
 		return stub; 
+	}
+
+	public Node fetchNode(PicoAddress remote) throws Exception {
+        RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+
+        RpcMetadata meta = RpcMetadata.newBuilder()
+            .setIp(remote.getIP())
+            .setPort(remote.getPort())
+            .build();
+
+        logger.info("Sending FETCH_NODE to {}...", remote);
+        RpcNode reply = stub.fetchNode(meta).get();
+        logger.info("Received reply from FETCH_NODE");
+        return NodeSerializer.fromRPC(reply);
+    }
+
+	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		logger.info("Sending evaluation request to {}", remote);
+		stub.elvaluateContainer(container);
+		logger.info("Received evaluation reply from {}", remote);
 	}
 }

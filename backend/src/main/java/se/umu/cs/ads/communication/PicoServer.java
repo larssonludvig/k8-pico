@@ -7,7 +7,6 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -61,7 +60,7 @@ public class PicoServer {
 
 		@Override
 		public void createContainer(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
-			
+
 		}
 
 		@Override
@@ -110,6 +109,18 @@ public class PicoServer {
 
 			responseObserver.onNext(NodeSerializer.toRPC(node));
 			responseObserver.onCompleted();
+		}
+
+		// @Override
+		// public void container_election_start(RpcContainer container, StreamObserver<> responseObserver) {
+
+		// }
+
+		@Override
+		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
+			RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
+			ro.onNext(resp);
+			ro.onCompleted();
 		}
     }
 }

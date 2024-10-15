@@ -131,7 +131,7 @@ public class PicoCommunication {
 				.setContainers(builder.build())
 				.build();
 
-		RpcMetadata sender = RpcMetadata.newBuilder().setIp(self.getIP()).setPort(self.getPort()).build();
+		RpcMetadata sender = getSelfMetadata();
 		RpcJoinRequest request = RpcJoinRequest.newBuilder().setAspirant(rpcSelf).setSender(sender).build();
 		try {
 			RpcNodes nodes = client.join(remote, request);
@@ -181,5 +181,22 @@ public class PicoCommunication {
 		}
 
 		return this.cluster.fetchNode();
+	}
+	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) {
+		RpcContainer rpc = ContainerSerializer.fromRPC(container)
+		double evaluation = this.manager.evaluateContainer(container, remote);
+		return RpcContainerEvaluation.newBuilder()
+			.setContainer(container)
+			.setSender(getSelfMetadata())
+			.setScore(evaluation)
+			.build();
+
+	}
+
+	private RpcMetadata getSelfMetadata() {
+		return RpcMetadata.newBuilder()
+			.setIp(this.address.getIP())
+			.setPort(this.address.getPort())
+			.build();
 	}
 }

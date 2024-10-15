@@ -2,7 +2,6 @@ package se.umu.cs.ads.messagehandler;
 
 import java.util.*;
 import java.util.concurrent.*;
-import se.umu.cs.ads.types.PicoAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -97,14 +96,7 @@ public class MessageHandler {
                 return new JMessage()
                     .setType(MessageType.EMPTY);
 
-            case CONTAINER_ELECTION_START:
-                return container_election_start(jmsg);
-
-            case EVALUATE_CONTAINER_REQUEST:
-                return evaluate_container_request(jmsg);
-
-            case CONTAINER_ELECTION_END:
-                return container_election_end(jmsg);
+            case CONTAINER_ELECTION_START:void
 
 			case JOIN_REQUEST:
 				return join_request(jmsg);
@@ -210,7 +202,7 @@ public class MessageHandler {
         }
         
         //check conflicting ports
-        String conflictingPort = nodeManager.hasContainerPort(container.getPorts());
+        String conflictingPort = nodeManager.conflictingPorts(container.getPorts());
         if (conflictingPort != null) {
             logger.warn("New container with name {} has port conflict: {} is already used", name, conflictingPort);
             return new JMessage()
