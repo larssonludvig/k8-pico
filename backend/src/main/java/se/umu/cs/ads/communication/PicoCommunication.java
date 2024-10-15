@@ -291,4 +291,11 @@ public class PicoCommunication {
 			.setPort(this.address.getPort())
 			.build();
 	}
+
+	public RpcContainer createLocalContainer(RpcContainer rpc) {
+		PicoContainer container = ContainerSerializer.fromRPC(rpc);
+		PicoContainer res = this.manager.createLocalContainer(container);
+		return ContainerSerializer.toRPC(res);
+		
+	}
 }

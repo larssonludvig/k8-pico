@@ -61,8 +61,10 @@ public class PicoServer {
 		}
 
 		@Override
-		public void createContainer(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
-
+		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
+			RpcContainer res = this.comm.createLocalContainer(container);
+			responseObserver.onNext(res);
+			responseObserver.onCompleted();
 		}
 
 		@Override

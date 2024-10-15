@@ -78,7 +78,7 @@ service RpcService {
     rpc fetchNode               (RpcMetadata) returns (RpcNode);
     // rpc fetchNodes              (RpcEmpty) returns (RpcNodes);
     rpc fetchNodePerformance    (RpcEmpty) returns (RpcPerformance);
-    rpc createContainer         (RpcContainer) returns (RpcEmpty);
+    rpc createContainer         (RpcContainer) returns (RpcContainer);
     // rpc containerList           () returns ();
     rpc containerElectionStart  (RpcContainer) returns (RpcEmpty);
 	rpc elvaluateContainer		(RpcContainer) returns (RpcContainerEvaluation);
