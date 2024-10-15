@@ -19,7 +19,6 @@ import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.messagehandler.MessageHandler;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.serializers.NodeSerializer;
@@ -29,11 +28,9 @@ public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
 	private final PicoServer server;
 	private final PicoAddress address;
-	private final Set<JMessage> receivedMessages;
 	private final ClusterManager cluster;
 	private final ExecutorService pool;
 	private final PicoClient client;
-	private final MessageHandler handler;
 	private final NodeManager manager;
 
 	public PicoCommunication(ClusterManager cluster, NodeManager manager) {
@@ -41,10 +38,8 @@ public class PicoCommunication {
 		this.address = manager.getAddress();
 		this.server = new PicoServer(this);
 		this.client = new PicoClient(address);
-		this.receivedMessages = ConcurrentHashMap.newKeySet();
 		this.cluster = cluster;
 		this.pool = CommandLineArguments.pool;
-		this.handler = new MessageHandler(cluster.getNodeManager(), cluster);
 
 		try {
 			this.server.start();
@@ -63,12 +58,6 @@ public class PicoCommunication {
 		return address;
 	}
 
-	public List<JMessage> broadcast(JMessage msg) throws PicoException {
-		List<PicoAddress> addresses = cluster.getClusterAddresses();
-		// return broadcast(addresses, msg);
-		return new ArrayList<>();
-	}
-
 
 	/**
 	 * Adds a new member to the cluster
@@ -77,29 +66,6 @@ public class PicoCommunication {
 	public void addNewMember(RpcNode node) {
 		Node n = NodeSerializer.fromRPC(node);
 		this.cluster.addNode(n);
-	}
-
-	public JMessage receive(JMessage message) {
-		// Reliable multicast
-		// Have we received this message before, ín that case do nothing
-		MessageType type = message.getType();
-		PicoAddress sender = message.getSender();
-		logger.info("Received {} message from {}", type, sender);
-
-		System.out.println(message.toString());
-
-		if (receivedMessages.contains(message)) {
-			logger.info("Message {} from {} has already been received", type, sender);
-			return null; // TODO: return JMessage
-		}
-
-		receivedMessages.add(message);
-		logger.info("{} message from {} has not been received before, broadcasting to other members...", type, sender);
-		cluster.broadcast(message);
-
-		// handle message here
-
-		return handler.handle(message); // TODO: return JMessage
 	}
 
 	public List<Node> joinRequest(PicoAddress remote, Node self) throws PicoException {

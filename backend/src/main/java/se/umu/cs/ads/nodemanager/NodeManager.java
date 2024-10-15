@@ -17,7 +17,6 @@ import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.JMessage;
 import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.Performance;
 import se.umu.cs.ads.types.PicoAddress;
@@ -79,15 +78,6 @@ public class NodeManager {
 
 	public List<Node> getNodes() throws Exception {
 		return this.cluster.getNodes();
-
-		// JMessage msg = new JMessage(
-		// MessageType.FETCH_NODES,
-		// ""
-		// );
-
-		// return broadcast(msg).stream()
-		// .map(obj -> (Node) obj.getPayload())
-		// .toList();
 	}
 
 	public Performance getNodePerformance() {
@@ -254,23 +244,6 @@ public class NodeManager {
 		return (w_cpu * cpuFree) + (w_mem * memFree);
 	}
 
-	/**
-	 * Broadcast a message over the cluster
-	 * 
-	 * @throws Exception exception
-	 */
-	public List<JMessage> broadcast(JMessage msg) throws Exception {
-		// IP/Port should be added somewhere lower
-		return this.cluster.broadcast(msg);
-	}
-
-	/**
-	 * Send a message to a specific node
-	 */
-	public JMessage send(JMessage msg) {
-		return this.cluster.send(msg);
-	}
-
 	public ExecutorService getPool() {
 		return this.controller.getPool();
 	}
@@ -281,10 +254,6 @@ public class NodeManager {
 
 	public PicoContainer startContainer(String name) {
 		return this.controller.startContainer(name);
-	}
-
-	public void receive(JMessage message) {
-		// handle message here
 	}
 
 	public PicoAddress selectBestRemote(Map<PicoAddress, Double> evaluations) {

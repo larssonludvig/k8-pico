@@ -34,18 +34,6 @@ public class ClusterManager {
 		cluster.put(manager.getAddress(), manager.getNode());
 	}
 
-	/**
-	 * Leave the cluster
-	 * 
-	 * @throws PicoException if any erros occurrs
-	 */
-	public void leaveCluster() throws PicoException {
-		Node node = manager.getNode();
-		cluster.remove(node.getAddress());
-		JMessage leaveReq = new JMessage().setType(MessageType.LEAVE_REQUEST).setPayload(node);
-		broadcast(leaveReq);
-	}
-
 	public NodeManager getNodeManager() {
 		return manager;
 	}
@@ -95,26 +83,6 @@ public class ClusterManager {
 
 	public Node getNode(PicoAddress address) {
 		return cluster.get(address);
-	}
-
-	public JMessage send(JMessage msg) {
-		// return comm.sendJMessage(msg);
-		return null;
-	}
-
-	public List<JMessage> broadcast(JMessage msg) {
-		// List<PicoAddress> addresses = new
-		// ArrayList<>(getNodes().stream().map(it -> it.getAddress()).toList());
-		// if (msg.getType() == MessageType.JOIN_REQUEST || msg.getType() ==
-		// MessageType.LEAVE_REQUEST)
-		// addresses.remove(manager.getAddress());
-
-		// return comm.broadcast(addresses, msg);
-		return new ArrayList<>();
-	}
-
-	public void receive(JMessage message) {
-		manager.receive(message);
 	}
 
 	public List<Node> join(Node node) {
