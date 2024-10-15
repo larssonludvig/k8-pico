@@ -1,7 +1,5 @@
 package se.umu.cs.ads.communication;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
@@ -34,7 +32,7 @@ public class PicoClient {
 			.forAddress(address.getIP(), address.getPort())
 			.usePlaintext()
 			.build();
-			
+
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);

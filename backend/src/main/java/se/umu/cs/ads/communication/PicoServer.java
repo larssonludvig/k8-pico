@@ -1,11 +1,6 @@
 package se.umu.cs.ads.communication;
 
-import io.grpc.Grpc;
-import io.grpc.InsecureServerCredentials;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
@@ -13,12 +8,13 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters.InetAddressConverter;
-import org.bouncycastle.util.io.StreamOverflowException;
+
+import com.google.rpc.Code;
 
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
-import se.umu.cs.ads.communication.*;
+import se.umu.cs.ads.exception.*;
+
 public class PicoServer {
     private final static Logger logger = LogManager.getLogger(PicoServer.class);
     private PicoCommunication comm;
@@ -46,8 +42,16 @@ public class PicoServer {
 		}	
     }
 
+	public void shutdown() {
+		try {
+			this.server.awaitTermination();
+		} catch (InterruptedException e) {
+			logger.warn("Received interrupt while waiting for shutdown");
+		}
+	}
     private class RpcService extends RpcServiceGrpc.RpcServiceImplBase {
 		private final PicoCommunication comm; 
+		
 		public RpcService(PicoCommunication comm) {
 			this.comm = comm;
 		}
@@ -56,14 +60,24 @@ public class PicoServer {
 		@Override
 		public void fetchNodePerformance(RpcEmpty empty, StreamObserver<RpcPerformance> responseObserver) {
 			logger.info("Fetching performance...");
-			RpcPerformance resp = this.comm.fetchPerformance();
-			responseObserver.onNext(resp);
-			responseObserver.onCompleted();
+			try {
+				RpcPerformance resp = this.comm.fetchPerformance();
+				responseObserver.onNext(resp);
+				responseObserver.onCompleted();
+			} catch (PicoException e) {
+				responseObserver.onError(e.toStatusException());
+			}
 		}
 
 		@Override
 		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
-			RpcContainer res = this.comm.createLocalContainer(container);
+			RpcContainer res = null;
+			try {
+				res = this.comm.createLocalContainer(container);
+			} catch (PicoException e) {
+				logger.error(e.getMessage());
+				responseObserver.onError(e.toStatusException());
+			}
 			responseObserver.onNext(res);
 			responseObserver.onCompleted();
 		}
@@ -100,7 +114,11 @@ public class PicoServer {
 				if (addr.equals(aspirant))
 					continue;
 
-				this.comm.joinRequest(addr, NodeSerializer.fromRPC(aspirant));
+				try {
+					this.comm.joinRequest(addr, NodeSerializer.fromRPC(aspirant));
+				} catch(PicoException e) {
+					responseObserver.onError(e.toStatusException());
+				}
 			}
 			
 			responseObserver.onNext(reply);
@@ -110,6 +128,7 @@ public class PicoServer {
 		@Override
 		public void leave(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
+			//TODO: Error handling
 			this.comm.removeNodeRemote();
 
 			responseObserver.onNext(RpcEmpty.newBuilder().build());
@@ -141,18 +160,20 @@ public class PicoServer {
 				this.comm.containerElectionStart(container);
 				responseObserver.onNext(RpcEmpty.newBuilder().build());
 				responseObserver.onCompleted();
-			} catch (StatusRuntimeException e) {
-				responseObserver.onError(e);
-			} catch (Exception e) {
-				responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withCause(e)));
+			} catch (PicoException e) {
+				responseObserver.onError(e.toStatusException());
 			}
 		}
 
 		@Override
 		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
-			RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
-			ro.onNext(resp);
-			ro.onCompleted();
+			try {
+				RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
+				ro.onNext(resp);
+				ro.onCompleted();
+			} catch (PicoException e) {
+				ro.onError(e.toStatusException());
+			}
 		}
     }
 }

@@ -12,6 +12,8 @@ import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 
+import io.grpc.Status.Code;
+
 import com.github.dockerjava.api.exception.*;
 
 import org.json.*;
@@ -94,7 +96,8 @@ public class ContainerEngine {
         try {
             client.pullImageCmd(imageName).start().awaitCompletion();
         } catch (InterruptedException e) {
-            throw new PicoException(String.format("Unable to pull image %s, cause: %s", imageName, e.getMessage()));
+			String err = String.format("Unable to pull image %s, cause: %s", imageName, e.getMessage());
+            throw new PicoException(err, Code.CANCELLED);
         }
     }
 
@@ -168,7 +171,7 @@ public class ContainerEngine {
 	public PicoContainer getContainer(String name) throws PicoException {
 		PicoContainer p = containers.get(name);
 		if (p == null)
-			throw new PicoException("No container with name " + name);
+			throw new PicoException("No container with name " + name, Code.NOT_FOUND);
 		return p;
 	}
 
@@ -195,7 +198,7 @@ public class ContainerEngine {
 
 
         if (containers.containsKey(name))
-            throw new PicoException("Container with name " + name + " already exists");
+            throw new PicoException("Container with name " + name + " already exists", Code.ALREADY_EXISTS);
 
 
         logger.info("Creating container with name {} ...", name);
@@ -210,7 +213,7 @@ public class ContainerEngine {
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
-            throw new PicoException(message);
+            throw new PicoException(message, Code.INTERNAL);
         } catch (Exception e) {
             String message = e.getMessage();
             throw new PicoException(message);
@@ -228,7 +231,7 @@ public class ContainerEngine {
 				conts = readContainers(true);
             }
         } catch (InterruptedException e) {
-            throw new PicoException("Interrupted while creating new container");
+            throw new PicoException("Interrupted while creating new container", Code.CANCELLED);
 		}
 		PicoContainer created = conts.get(name);
 		containers.put(name, created);
@@ -265,8 +268,10 @@ public class ContainerEngine {
     public PicoContainer runContainer(String name) throws PicoException {
 		PicoContainer container;
 		synchronized (this) {
-			if (!containers.containsKey(name))
-				throw new PicoException(String.format("No container with name %s was found. Create it first!", name));
+			if (!containers.containsKey(name)) {
+				String err = String.format("No container with name %s was found. Create it first!", name);
+				throw new PicoException(err, Code.NOT_FOUND);
+			}
 			else
 				container = containers.get(name);
 		}
@@ -283,7 +288,8 @@ public class ContainerEngine {
             client.startContainerCmd(id).exec();
         } catch (DockerException e) {
             String msg = parseDockerException(e);
-            throw new PicoException(String.format("Unable to start container %s, cause: %s", name, msg));
+			String err = String.format("Unable to start container %s, cause: %s", name, msg);
+            throw new PicoException(err, Code.INTERNAL);
         }
 
 		container.setState(PicoContainerState.RUNNING);
@@ -298,7 +304,7 @@ public class ContainerEngine {
     public void restartContainer(String name) throws PicoException {
         PicoContainer container = containers.get(name);
         if (container == null)
-            throw new PicoException("Could not restart container. No container with name: " + name);
+            throw new PicoException("Could not restart container. No container with name: " + name, Code.NOT_FOUND);
 
 		String id = containerIDs.get(name);
 
@@ -307,7 +313,8 @@ public class ContainerEngine {
             client.restartContainerCmd(id).exec();
         } catch (DockerException e) {
             String msg = parseDockerException(e);
-            throw new PicoException(String.format("Unable to restart container %s with cause: %s", name, msg));
+			String err = String.format("Unable to restart container %s with cause: %s", name, msg);
+            throw new PicoException(err, Code.INTERNAL);
         }
 
 		container.setState(PicoContainerState.RESTARTING);
@@ -334,7 +341,8 @@ public class ContainerEngine {
 			logger.warn("Trying to stop a already stopped container. Ignoring");
         } catch (DockerException e) {
             String msg = parseDockerException(e);
-            throw new PicoException(String.format("Unable to stop container %s, cause: %s", name, msg));
+			String err = String.format("Unable to stop container %s, cause: %s", name, msg);
+            throw new PicoException(err, Code.INTERNAL);
 		}
 
 		PicoContainer container = containers.get(name);
@@ -355,7 +363,7 @@ public class ContainerEngine {
 			}
         } catch (DockerException e) {
             String msg = parseDockerException(e);
-            throw new PicoException(String.format("Failed to remove container %s, cause: %s", name, msg));
+            throw new PicoException(String.format("Failed to remove container %s, cause: %s", name, msg), Code.INTERNAL);
         }
 		logger.info("Done removing container {}", name);
     }
@@ -365,7 +373,7 @@ public class ContainerEngine {
 		
 		if (!containerIDs.containsKey(name)) {
 			logger.warn("No container with name {}", name);
-			return null;
+			return new ArrayList<>();
 		}
 		
 		String id = containerIDs.get(name);

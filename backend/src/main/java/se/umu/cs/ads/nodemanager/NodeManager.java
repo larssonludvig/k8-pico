@@ -15,7 +15,9 @@ import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
+import se.umu.cs.ads.exception.NameConflictException;
 import se.umu.cs.ads.exception.PicoException;
+import se.umu.cs.ads.exception.PortConflictException;
 import se.umu.cs.ads.metrics.SystemMetric;
 import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.Performance;
@@ -31,8 +33,6 @@ public class NodeManager {
 	private final SystemMetric metrics;
 	private final ClusterManager cluster;
 	public final Node node;
-	public final double NAME_CONFLICT = -1.0;
-	public final double PORT_CONFLICT = -2.0;
 	// name, containers
 	private final Map<PicoAddress, List<PicoContainer>> remoteContainers;
 
@@ -112,7 +112,7 @@ public class NodeManager {
 		List<PicoAddress> addresses = cluster.getClusterAddresses();
 		Collections.sort(addresses);
 		if (addresses.isEmpty())
-			return null;
+			return getAddress();
 			
 		return addresses.get(0);
 	}
@@ -210,12 +210,13 @@ public class NodeManager {
 		
 		if (nameConflict) {
 			logger.warn("Container {} under evaluation has conflicting a names!", container.getName());
-			return NAME_CONFLICT;
+			throw new NameConflictException(container.getName());
 		}
 
 		else if (!portConflicts.isEmpty()) {
 			logger.warn("Container {} has ports conflicts: {}", Arrays.toString(portConflicts.toArray()));
-			return PORT_CONFLICT;
+			int[] ports = portConflicts.stream().mapToInt(Integer::intValue).toArray();
+			throw new PortConflictException(ports);
 		}
 
 		return getScore();
@@ -244,9 +245,6 @@ public class NodeManager {
 		return (w_cpu * cpuFree) + (w_mem * memFree);
 	}
 
-	public ExecutorService getPool() {
-		return this.controller.getPool();
-	}
 
 	public PicoContainer createLocalContainer(PicoContainer container) {
 		return this.controller.createLocalContainer(container);
@@ -262,16 +260,7 @@ public class NodeManager {
 
 		for (PicoAddress remote : evaluations.keySet()) {
 			double score = evaluations.get(remote);
-			
-			//if there is a name conflict the container is invalid
-			if (score == NAME_CONFLICT) 
-				return null;
-			
-			//if there is a port conflict it can still run, just not on this machine
-			else if (score == PORT_CONFLICT)
-				continue;
-
-			else if (score < minScore) {
+			if (score < minScore) {
 				minScore = score;
 				minRemote = remote;
 			}

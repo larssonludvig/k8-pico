@@ -12,7 +12,6 @@ import se.umu.cs.ads.communication.PicoCommunication;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.nodemanager.NodeManager;
 
-import se.umu.cs.ads.communication.*;
 
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);

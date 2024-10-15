@@ -12,13 +12,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import javax.naming.InterruptedNamingException;
+import javax.sound.sampled.Port;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
+import se.umu.cs.ads.exception.NameConflictException;
 import se.umu.cs.ads.exception.PicoException;
+import se.umu.cs.ads.exception.PortConflictException;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.serializers.NodeSerializer;
@@ -249,18 +252,32 @@ public class PicoCommunication {
 			RpcContainerEvaluation eval = null;
 			try {
 				eval = future.get();
-			} catch (InterruptedException | ExecutionException | CancellationException e) {
+			} catch (InterruptedException | CancellationException e) {
 				exceptions.add(e);
 				logger.warn("Exception while evaluating container {} from: {}", 
 					container.getName(), e.getMessage());
 				continue;
-			}
-			double score = eval.getScore();
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause();
+				if (cause instanceof PortConflictException) {
+					PortConflictException pce = (PortConflictException) cause;
+					logger.warn("Container {} has port conflicts: {}", container.getName(), pce.getPorts());			
+					continue;
+				}
+				
+				else if (cause instanceof NameConflictException) 
+					throw (NameConflictException) cause;
+				
 
-			if (score == manager.NAME_CONFLICT) {
-				nameConflict = true;
-				break;
+				else if (cause instanceof PicoException) 
+					throw (PicoException) cause;
+
+				else
+					continue;
 			}
+
+
+			double score = eval.getScore();
 
 			RpcMetadata sender = eval.getSender();
 			PicoAddress remote = new PicoAddress(sender.getIp(), sender.getPort());
