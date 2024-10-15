@@ -104,6 +104,24 @@ public class PicoServer {
 		}
 
 		@Override
+		public void leave(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
+			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
+			this.comm.removeNodeRemote();
+
+			responseObserver.onNext(RpcEmpty.newBuilder().build());
+			responseObserver.onCompleted();
+		}
+
+		@Override
+		public void removeNode(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
+			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
+			this.comm.removeNode(adr);
+
+			responseObserver.onNext(RpcEmpty.newBuilder().build());
+			responseObserver.onCompleted();
+		}
+
+		@Override
 		public void fetchNode(RpcMetadata msg, StreamObserver<RpcNode> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
 			Node node = this.comm.fetchNode(adr);

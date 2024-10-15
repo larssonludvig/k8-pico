@@ -69,7 +69,7 @@ message RpcPerformance {
 message RpcEmpty {}
 
 service RpcService {
-    rpc fetchNode                   (RpcMetadata) returns (RpcNode);
+    rpc fetchNode               (RpcMetadata) returns (RpcNode);
     // rpc fetchNodes              (RpcEmpty) returns (RpcNodes);
     rpc fetchNodePerformance    (RpcEmpty) returns (RpcPerformance);
     rpc createContainer         (RpcContainer) returns (RpcEmpty);
@@ -77,5 +77,6 @@ service RpcService {
     // rpc containerElectionStart  () returns ();
     // rpc containerElectionEnd    () returns ();
     rpc join                        (RpcJoinRequest) returns (RpcNodes);
-    // rpc leave                   () returns ();
+    rpc leave                   (RpcMetadata) returns (RpcEmpty);
+    rpc removeNode              (RpcMetadata) returns (RpcEmpty);
 }

@@ -81,6 +81,14 @@ public class ClusterManager {
 		cluster.remove(node.getAddress());
 	}
 
+	public void removeNode(PicoAddress adr) {
+		cluster.remove(adr);
+	}
+
+	public void leaveRemote(PicoAddress adr) {
+		comm.leaveRemote(adr);
+	}
+
 	public void updateNode(Node node) {
 		cluster.put(node.getAddress(), node);
 	}

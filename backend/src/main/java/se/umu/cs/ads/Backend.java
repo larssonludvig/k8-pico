@@ -41,7 +41,7 @@ public class Backend {
 		
 
 		if (cmd.hasOption("ip"))
-			CommandLineArguments.initialMember = parseAddress(cmd.getOptionValue("ip"));
+			CommandLineArguments.initialMember = cmd.getOptionValue("ip");
 
 		if (cmd.hasOption("port")) 
 			CommandLineArguments.grpcPort = Integer.parseInt(cmd.getOptionValue("port"));

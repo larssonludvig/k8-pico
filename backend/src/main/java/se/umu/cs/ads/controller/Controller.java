@@ -39,8 +39,10 @@ public class Controller {
 			return;
 		}
 		
-		String ip = CommandLineArguments.initialMember;
-		int port = CommandLineArguments.grpcPort;
+		String[] buf = CommandLineArguments.initialMember.split(":");
+		String ip = buf[0];
+		int port = Integer.parseInt(buf[1]);
+		
 		PicoAddress initialMember = new PicoAddress(ip, port);
 		cluster.joinCluster(initialMember);
 	} 
@@ -251,6 +253,16 @@ public class Controller {
 			logger.error(msg);
 			throw new Exception(msg);
 		}
+	}
+
+	public void removeNode(PicoAddress adr) {
+		manager.removeNode(adr);
+	}
+
+	public void leaveRemote(PicoAddress adr) throws Exception {
+		pool.submit(() -> {
+			cluster.leaveRemote(adr);
+		});
 	}
 
 	public ExecutorService getPool() {

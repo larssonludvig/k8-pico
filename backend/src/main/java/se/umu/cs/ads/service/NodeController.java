@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,6 +65,21 @@ public class NodeController {
 
             Performance perf = service.getController().getNodePerformance(adr);
             return ResponseEntity.status(HttpStatus.OK).body(perf);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @DeleteMapping("{node}")
+    public ResponseEntity<?> removeNode(@PathVariable String node) {
+        String[] buf = node.split(":");
+        String ip = buf[0];
+        int port = Integer.parseInt(buf[1]);
+        PicoAddress adr = new PicoAddress(ip, port);
+
+        try {
+            service.getController().leaveRemote(adr);
+            return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }

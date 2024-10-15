@@ -57,6 +57,39 @@ public class PicoClient {
 		return reply;
 	}
 
+	// Request to remove a node from the network
+	public void leave(PicoAddress remote) throws Exception {
+		RpcServiceFutureStub stub = stubs.get(remote);
+		if (stub == null) {
+			connectNewHost(remote);
+			stub = stubs.get(remote);
+		}
+
+		RpcMetadata meta = RpcMetadata.newBuilder()
+			.setIp(remote.getIP())
+			.setPort(remote.getPort())
+			.build();
+
+		logger.info("Sending LEAVE to {} ...", remote);
+		stub.leave(meta);
+	}
+
+	// Request to remove self from remote node
+	public void removeNode(PicoAddress remote, PicoAddress self) throws Exception {
+		RpcServiceFutureStub stub = stubs.get(remote);
+		if (stub == null) {
+			connectNewHost(remote);
+			stub = stubs.get(remote);
+		}
+
+		RpcMetadata meta = RpcMetadata.newBuilder()
+			.setIp(self.getIP())
+			.setPort(self.getPort())
+			.build();
+
+		logger.info("Sending request to remove node {} to {}...", self, remote);
+		stub.removeNode(meta);
+	}
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);

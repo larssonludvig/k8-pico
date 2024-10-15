@@ -257,4 +257,8 @@ public class NodeManager {
 	public void receive(JMessage message) {
 		// handle message here
 	}
+
+	public void removeNode(PicoAddress adr) {
+		this.cluster.removeNode(adr);
+	}
 }

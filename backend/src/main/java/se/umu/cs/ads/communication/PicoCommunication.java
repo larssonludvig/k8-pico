@@ -95,26 +95,6 @@ public class PicoCommunication {
 		return handler.handle(message); // TODO: return JMessage
 	}
 
-	/**
-	 * When another member wished to leave the cluster
-	 * 
-	 * @param message
-	 * @return
-	 */
-	public JMessage leave(JMessage message) {
-		Object payload = message.getPayload();
-		if (!(payload instanceof Node) || payload == null) {
-			String err = "Message type was LEAVE_REQUEST but payload not instance of Node";
-			logger.error(err);
-			return JMessage.ERROR(err);
-		}
-
-		Node node = (Node) message.getPayload();
-		this.cluster.removeNode(node);
-		List<JMessage> replies = broadcast(message);
-		return new JMessage();
-	}
-
 	public List<Node> joinRequest(PicoAddress remote, Node self) throws PicoException {
 
 		RpcContainers.Builder builder = RpcContainers.newBuilder();
@@ -195,5 +175,43 @@ public class PicoCommunication {
 		}
 
 		return this.cluster.fetchNodePerformance();
+	}
+
+	public void removeNode(PicoAddress adr) {
+		this.cluster.removeNode(adr);
+		logger.info("Removed node {}", adr);
+	}
+
+	public void leaveRemote(PicoAddress adr) {
+		try {
+			logger.info("Sending LEAVE to {}", adr);
+			this.client.leave(adr);
+		} catch (Exception e) {
+			logger.error("Failed to remove node: {}", e);
+			throw new PicoException(e.getMessage());
+		}
+	}
+
+	public void removeNodeRemote() {
+		logger.error("Removing self from remote nodes...");
+		List<Node> members = this.cluster.getNodes();
+		PicoAddress selfAdr = this.manager.getAddress();
+
+		try {
+			for (Node member : members) {
+				PicoAddress remote = member.getAddress();
+				this.client.removeNode(remote, selfAdr);
+			}
+			
+			// TODO: Send start container request of all node containers to 
+			// leader node. This is to ensure that the containers are not lost
+
+		} catch (Exception e) {
+			logger.error("Failed to remove self ({}) from remote", selfAdr);
+			System.exit(1);
+		}
+
+		// Successfull exit
+		System.exit(0);
 	}
 }
