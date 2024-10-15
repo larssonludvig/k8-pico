@@ -17,7 +17,7 @@ import se.umu.cs.ads.communication.*;
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
 	private final Map<PicoAddress, Node> cluster;
-	private final Map<PicoAddress, int> suspectedMembers;
+	private final Map<PicoAddress, Integer> suspectedMembers;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	public final String CLUSTER_NAME = "k8-pico";
@@ -26,6 +26,7 @@ public class ClusterManager {
 		this.cluster = new ConcurrentHashMap<>();
 		this.manager = manager;
 		this.comm = new PicoCommunication(this, manager);
+		this.suspectedMembers = new HashMap<PicoAddress, Integer>();
 	}
 
 	/**
@@ -152,13 +153,13 @@ public class ClusterManager {
 		return this.comm.fetchNodePerformance(adr);
 	}
 
-	public void heartBeat() {
+	public void heartBeat(PicoAddress adr) {
 		List<Node> members = getClusterMembers();
 
 		for (Node node : members) {
 			try {
 				// Send heartbeat to node
-				this.comm.heartBeat(node.getAddress());
+				this.comm.heartBeatRemote(node.getAddress());
 
 				// Remove node from suspected list
 				suspectedMembers.remove(node.getAddress());

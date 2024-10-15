@@ -16,7 +16,12 @@ import se.umu.cs.ads.messagehandler.MessageHandler;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.serializers.NodeSerializer;
-import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.types.JMessage;
+import se.umu.cs.ads.types.MessageType;
+import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.Performance;
+import se.umu.cs.ads.types.PicoAddress;
+import se.umu.cs.ads.types.PicoContainer;
 
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
@@ -219,7 +224,12 @@ public class PicoCommunication {
 		System.exit(0);
 	}
 
-	public Node heartBeat(PicoAddress adr) {
-		return this.cluster.heartBeat(adr);
+	public Node heartBeatRemote(PicoAddress remote) throws PicoException {
+		try {
+			return this.client.heartBeat(remote);
+		} catch (Exception e) {
+			logger.error("Failed to get heart beat from node: {}", e);
+			throw new PicoException(e.getMessage());
+		}
 	}
 }

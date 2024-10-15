@@ -1,23 +1,18 @@
 package se.umu.cs.ads.communication;
 
-import io.grpc.Grpc;
-import io.grpc.InsecureServerCredentials;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
-import io.grpc.stub.StreamObserver;
-
 import java.io.IOException;
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters.InetAddressConverter;
-import org.bouncycastle.util.io.StreamOverflowException;
 
+import io.grpc.Grpc;
+import io.grpc.InsecureServerCredentials;
+import io.grpc.Server;
+import io.grpc.stub.StreamObserver;
 import se.umu.cs.ads.serializers.NodeSerializer;
-import se.umu.cs.ads.types.*;
-import se.umu.cs.ads.communication.*;
+import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.PicoAddress;
 public class PicoServer {
     private final static Logger logger = LogManager.getLogger(PicoServer.class);
     private PicoCommunication comm;
@@ -132,7 +127,7 @@ public class PicoServer {
 
 		@Override
 		public void heartBeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
-			Node node = this.comm.getNode();
+			Node node = this.comm.fetchNode();
 			responseObserver.onNext(NodeSerializer.toRPC(node));
 			responseObserver.onCompleted();
 		}
