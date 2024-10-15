@@ -22,8 +22,9 @@ public class Controller {
 	private final ScheduledExecutorService scheduler;
 	private final NodeManager manager;
 	private final ClusterManager cluster;
+	
 	public Controller() {
-		pool = Executors.newCachedThreadPool();
+		pool = CommandLineArguments.pool;
 		scheduler = Executors.newScheduledThreadPool(2);
 		engine = new ContainerEngine();
 		
@@ -102,30 +103,15 @@ public class Controller {
 		}
 	}
 
-	public PicoContainer createContainer(PicoContainer container) throws PicoException {
+	public void createContainer(PicoContainer container) throws PicoException {
 		Future<PicoContainer> res = pool.submit(() -> {
-			PicoAddress leader = manager.getLeader();
-
-			JMessage msg = new JMessage()
-				.setType(MessageType.CONTAINER_ELECTION_START)
-				.setPayload(container)
-				.setDestination(leader);
-			JMessage reply = manager.send(msg);
-			Object payload = reply.getPayload();
-			
-			if (!(payload instanceof PicoContainer))
-				throw new PicoException("Reply not instance of container");
-			
-			return (PicoContainer) payload;
+			cluster.createContainer(container);
+			return container;
 		});
 		try {
-			return res.get(1, TimeUnit.SECONDS);
-		} catch (TimeoutException e) {
-			logger.info("Timeout exceded, but we do not care");
-			return null;
+			res.get();
 		} catch (CancellationException | ExecutionException | InterruptedException e) {
 			String msg = "Error while creating containers " + container.getName() + ": " + e.getMessage();
-			e.printStackTrace();
 			logger.error(msg);
 			throw new PicoException(msg);
 		}

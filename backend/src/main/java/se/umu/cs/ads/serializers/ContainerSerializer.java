@@ -1,13 +1,56 @@
 package se.umu.cs.ads.serializers;
 
+import java.io.IOException;
 import java.util.*;
 import org.apache.logging.log4j.*;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.communication.*;
 
-public final class ContainerSerializer {
+public final class ContainerSerializer extends StdSerializer<PicoContainer> {
 
 	private final static Logger logger = LogManager.getLogger(ContainerSerializer.class);
+	
+	public ContainerSerializer() {
+		this(null);
+	}
+
+	public ContainerSerializer(Class<PicoContainer> t) {
+		super(t);
+	} 
+
+	@Override
+	public void serialize(
+		PicoContainer container, JsonGenerator jgen, SerializerProvider provider)
+		throws IOException {
+			jgen.writeStartObject();
+
+			jgen.writeStringField("name", container.getName());
+			jgen.writeStringField("image", container.getImage());
+			jgen.writeStringField("state", container.getState().toString());			
+			List<String> ports = container.getPorts();
+			if (ports.size() > 0) {
+				jgen.writeArrayFieldStart("ports");
+				for (String port : ports) 
+					jgen.writeString(port);
+				jgen.writeEndArray();
+			}
+			
+			List<String> env = container.getEnv();
+			if (env.size() > 0) {
+				jgen.writeArrayFieldStart("env");
+				for (String var : env)
+					jgen.writeString(var);
+				jgen.writeEndArray();
+			}
+
+			jgen.writeEndObject();		
+		}
+	
 	public static PicoContainer fromRPC(RpcContainer rpc) {
 		String name = rpc.getName();
 		String image = rpc.getImage();

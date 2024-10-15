@@ -1,5 +1,13 @@
 package se.umu.cs.ads.communication;
 
+import io.grpc.Grpc;
+import io.grpc.InsecureServerCredentials;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -18,7 +26,8 @@ public class PicoServer {
     private PicoCommunication comm;
 	private Server server;
 	private final PicoAddress address;
-    public PicoServer(PicoCommunication comm) {
+    
+	public PicoServer(PicoCommunication comm) {
         this.comm = comm;
 		this.address = this.comm.getAddress();
     }
@@ -55,8 +64,10 @@ public class PicoServer {
 		}
 
 		@Override
-		public void createContainer(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
-			
+		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
+			RpcContainer res = this.comm.createLocalContainer(container);
+			responseObserver.onNext(res);
+			responseObserver.onCompleted();
 		}
 
 		@Override
@@ -130,6 +141,27 @@ public class PicoServer {
 			Node node = this.comm.fetchNode();
 			responseObserver.onNext(NodeSerializer.toRPC(node));
 			responseObserver.onCompleted();
+		}
+
+		@Override
+		public void containerElectionStart(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
+			logger.info("Received CONTAINER_ELECTION_START for container {}", container.getName());
+			try {
+				this.comm.containerElectionStart(container);
+				responseObserver.onNext(RpcEmpty.newBuilder().build());
+				responseObserver.onCompleted();
+			} catch (StatusRuntimeException e) {
+				responseObserver.onError(e);
+			} catch (Exception e) {
+				responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withCause(e)));
+			}
+		}
+
+		@Override
+		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
+			RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
+			ro.onNext(resp);
+			ro.onCompleted();
 		}
     }
 }
