@@ -1,6 +1,6 @@
 package se.umu.cs.ads.types;
 
-public class PicoAddress {
+public class PicoAddress implements Comparable<PicoAddress> {
 	private final String ip;
 	private final int port;
 	
@@ -17,6 +17,12 @@ public class PicoAddress {
 		return this.port;
 	}
 
+
+	@Override 
+	public int compareTo(PicoAddress other) {
+		return this.toString().compareTo(other.toString());
+	}
+	
 	@Override
 	public String toString() {
 		return this.ip + ":" + this.port;

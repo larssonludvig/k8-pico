@@ -149,4 +149,9 @@ public class ClusterManager {
 	public Performance fetchNodePerformance(PicoAddress adr) {
 		return this.comm.fetchNodePerformance(adr);
 	}
+
+	public void createContainer(PicoContainer container) {
+		PicoAddress leader = manager.getLeader();
+		this.comm.initiateContainerElection(container, leader);
+	}
 }

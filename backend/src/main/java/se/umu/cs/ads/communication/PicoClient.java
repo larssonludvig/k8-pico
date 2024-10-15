@@ -5,7 +5,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -114,12 +113,7 @@ public class PicoClient {
 	}
 
 	public Node fetchNode(PicoAddress remote) throws Exception {
-        RpcServiceFutureStub stub = stubs.get(remote);
-
-        if (stub == null) {
-            connectNewHost(remote);
-            stub = stubs.get(remote);
-        }
+        RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 
         RpcMetadata meta = RpcMetadata.newBuilder()
             .setIp(remote.getIP())
@@ -131,4 +125,31 @@ public class PicoClient {
         logger.info("Received reply from FETCH_NODE");
         return NodeSerializer.fromRPC(reply);
     }
+
+	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) throws Exception {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		logger.info("Sending evaluation request for {} to {} ...", container.getName(), remote);
+		RpcContainerEvaluation response = stub.elvaluateContainer(container).get();
+		logger.info("Received evaluation reply from {}", remote);
+		return response;
+	}
+
+	public void containerElectionStart(RpcContainer container, PicoAddress remote) throws PicoException {
+		logger.info("Initiating CONTAINER_ELECTION_START for {} to {}", container.getName(), remote);
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		try {
+			stub.containerElectionStart(container);
+		} catch (Exception e) {
+			logger.error("Received exception from CONTAINER_ELECTION_START: {}", e.getMessage());
+			throw new PicoException(e.getMessage());
+		}
+	}
+
+	public void createContainer(RpcContainer container, PicoAddress remote) throws Exception {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
+			container.getName(), remote);
+		
+		stub.createContainer(container);
+	}
 }

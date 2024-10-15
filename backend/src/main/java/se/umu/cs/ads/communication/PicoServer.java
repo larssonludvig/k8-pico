@@ -4,10 +4,11 @@ import io.grpc.Grpc;
 import io.grpc.InsecureServerCredentials;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -61,7 +62,7 @@ public class PicoServer {
 
 		@Override
 		public void createContainer(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
-			
+
 		}
 
 		@Override
@@ -128,6 +129,27 @@ public class PicoServer {
 
 			responseObserver.onNext(NodeSerializer.toRPC(node));
 			responseObserver.onCompleted();
+		}
+
+		@Override
+		public void containerElectionStart(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
+			logger.info("Received CONTAINER_ELECTION_START for container {}", container.getName());
+			try {
+				this.comm.containerElectionStart(container);
+				responseObserver.onNext(RpcEmpty.newBuilder().build());
+				responseObserver.onCompleted();
+			} catch (StatusRuntimeException e) {
+				responseObserver.onError(e);
+			} catch (Exception e) {
+				responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withCause(e)));
+			}
+		}
+
+		@Override
+		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
+			RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
+			ro.onNext(resp);
+			ro.onCompleted();
 		}
     }
 }

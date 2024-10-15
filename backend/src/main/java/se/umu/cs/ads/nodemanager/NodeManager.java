@@ -1,8 +1,11 @@
 package se.umu.cs.ads.nodemanager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -29,7 +32,8 @@ public class NodeManager {
 	private final SystemMetric metrics;
 	private final ClusterManager cluster;
 	public final Node node;
-
+	public final double NAME_CONFLICT = -1.0;
+	public final double PORT_CONFLICT = -2.0;
 	// name, containers
 	private final Map<PicoAddress, List<PicoContainer>> remoteContainers;
 
@@ -115,8 +119,12 @@ public class NodeManager {
 	// }
 
 	public PicoAddress getLeader() {
-		// TODO: implement
-		return null;
+		List<PicoAddress> addresses = cluster.getClusterAddresses();
+		Collections.sort(addresses);
+		if (addresses.isEmpty())
+			return null;
+			
+		return addresses.get(0);
 	}
 
 	/**
@@ -187,19 +195,40 @@ public class NodeManager {
 		return hasName > 0;
 	}
 
-	public String hasContainerPort(List<String> ports) {
-		// "8080:80"
-		// "8080:443"
-		for (PicoContainer cont : node.getContainers()) {
-			for (String port : ports) {
-				String extPort = port.split(":")[0];
-				List<String> knownPorts = cont.getPorts();
-				if (knownPorts.stream().filter(p -> p.split(":")[0].equals(extPort)).count() > 0) {
-					return extPort;
-				}
+	/**
+	 * Check if any of the currently running containers have any of the provided ports
+	 * @param ports
+	 * @return
+	 */
+	public List<Integer> conflictingPorts(Set<Integer> external) {
+		List<Integer> conflicting = new ArrayList<>();
+
+		for (Integer port : external) {
+			for (PicoContainer cont : node.getContainers()) {
+				Set<Integer> currentExternal = cont.getPortsMap().keySet();
+				//we have a conflict
+				if (currentExternal.contains(port))
+					conflicting.add(port);
 			}
 		}
-		return null;
+		return conflicting;
+	}
+
+	public double evaluateContainer(PicoContainer container) {
+		List<Integer> portConflicts = conflictingPorts(container.getPortsMap().keySet());
+		boolean nameConflict = hasContainerName(container.getName());
+		
+		if (nameConflict) {
+			logger.warn("Container {} under evaluation has conflicting a names!", container.getName());
+			return NAME_CONFLICT;
+		}
+
+		else if (!portConflicts.isEmpty()) {
+			logger.warn("Container {} has ports conflicts: {}", Arrays.toString(portConflicts.toArray()));
+			return PORT_CONFLICT;
+		}
+
+		return getScore();
 	}
 
 	/**
@@ -257,6 +286,35 @@ public class NodeManager {
 	public void receive(JMessage message) {
 		// handle message here
 	}
+
+	public PicoAddress selectBestRemote(Map<PicoAddress, Double> evaluations) {
+		double minScore = Double.MAX_VALUE;
+		PicoAddress minRemote = null;
+
+		for (PicoAddress remote : evaluations.keySet()) {
+			double score = evaluations.get(remote);
+			
+			//if there is a name conflict the container is invalid
+			if (score == NAME_CONFLICT) 
+				return null;
+			
+			//if there is a port conflict it can still run, just not on this machine
+			else if (score == PORT_CONFLICT)
+				continue;
+
+			else if (score < minScore) {
+				minScore = score;
+				minRemote = remote;
+			}
+		}
+
+		if (minRemote != null) 
+			logger.info("Selected remote {} with score {} as best suited", minRemote, minScore);		
+		else 
+			logger.warn("No remote met the criteria. The container cannot be created");
+		
+		return minRemote;
+	} 
 
 	public void removeNode(PicoAddress adr) {
 		this.cluster.removeNode(adr);
