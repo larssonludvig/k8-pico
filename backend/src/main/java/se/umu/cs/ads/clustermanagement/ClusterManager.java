@@ -136,10 +136,10 @@ public class ClusterManager {
 				// Handle heartbeat failure
 				if (suspectedMembers.containsKey(node.getAddress())) {
 					int count = suspectedMembers.get(node.getAddress());
-					if (count >= 3) {
-						// Ask nodes if node is suspected for them
+					// Ask nodes if node is suspected for them
+					if (count >= 3 && isNodeDead(node.getAddress())) {
 						// If it is suspedted by all nodes, remove it
-						// Otherwise continue
+						this.comm.removeNodeRemote(node.getAddress());
 					} else {
 						suspectedMembers.put(node.getAddress(), count + 1);
 					}
@@ -148,6 +148,28 @@ public class ClusterManager {
 				}
 			}
 		}
+	}
+
+	private boolean isNodeDead(PicoAddress adr) {
+		List<Node> members = getClusterMembers();
+
+		for (Node node : members) {
+			try {
+				if (!adr.equals(node.getAddress()) && !this.comm.isSuspectRemote(node.getAddress(), adr)) {
+					return false;
+				}
+				
+			} catch (Exception e) {
+				logger.error("Failed to get ISSUSPECT from {}", node.getAddress());
+				// We do not need to handle this since it is already checking for dead nodes
+			}
+		}
+
+		return true;
+	}
+
+	public boolean isSuspect(PicoAddress adr) {
+		return suspectedMembers.containsKey(adr);
 	}
 
 	public void createContainer(PicoContainer container) {

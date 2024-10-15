@@ -172,22 +172,25 @@ public class PicoCommunication {
 		}
 	}
 
-	public void removeNodeRemote() {
+	// removes node from address, removes self if toRemove is null
+	public void removeNodeRemote(PicoAddress toRemove) {
 		logger.error("Removing self from remote nodes...");
 		List<Node> members = this.cluster.getNodes();
-		PicoAddress selfAdr = this.manager.getAddress();
+
+		if (toRemove == null)
+			toRemove = this.manager.getAddress();
 
 		try {
 			for (Node member : members) {
 				PicoAddress remote = member.getAddress();
-				this.client.removeNode(remote, selfAdr);
+				this.client.removeNode(remote, toRemove);
 			}
 			
 			// TODO: Send start container request of all node containers to 
 			// leader node. This is to ensure that the containers are not lost
 
 		} catch (Exception e) {
-			logger.error("Failed to remove self ({}) from remote", selfAdr);
+			logger.error("Failed to remove self ({}) from remote", toRemove);
 			System.exit(1);
 		}
 
@@ -202,6 +205,14 @@ public class PicoCommunication {
 			logger.error("Failed to get heart beat from node: {}", e);
 			throw new PicoException(e.getMessage());
 		}
+	}
+
+	public boolean isSuspect(PicoAddress adr) {
+		return this.cluster.isSuspect(adr);
+	}
+
+	public boolean isSuspectRemote(PicoAddress remote, PicoAddress suspect) throws Exception {
+		return this.client.isSuspect(remote, suspect);
 	}
 
 	/**

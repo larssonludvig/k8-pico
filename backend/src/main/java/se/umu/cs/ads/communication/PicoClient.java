@@ -203,7 +203,28 @@ public class PicoClient {
 			return node;
 		} catch (Exception e) {
 			logger.error("Failed to send HEARTBEAT to {}: {}", remote, e.getMessage());
-			throw new PicoException("Failed to send HEARTBEAT to " + remote + ": " + e.getMessage());
+			throw new PicoException(e.getMessage());
+		}
+	}
+
+	public boolean isSuspect(PicoAddress remote, PicoAddress suspect) throws Exception {
+		RpcServiceFutureStub stub = stubs.get(remote);
+
+		if (stub == null) {
+			connectNewHost(remote);
+			stub = stubs.get(remote);
+		}
+
+		RpcMetadata meta = RpcMetadata.newBuilder()
+			.setIp(suspect.getIP())
+			.setPort(suspect.getPort())
+			.build();
+
+		try {
+			return stub.isSuspect(meta).get().getValue();
+		} catch (Exception e) {
+			logger.error("Failed to send ISSUSPECT to {}: {}", remote, e.getMessage());
+			throw new PicoException(e.getMessage());
 		}
 	}
 }

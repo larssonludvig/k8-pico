@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.ui.context.ThemeSource;
 
 import io.grpc.Grpc;
 import io.grpc.InsecureServerCredentials;
@@ -112,7 +113,7 @@ public class PicoServer {
 		@Override
 		public void leave(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
-			this.comm.removeNodeRemote();
+			this.comm.removeNodeRemote(null);
 
 			responseObserver.onNext(RpcEmpty.newBuilder().build());
 			responseObserver.onCompleted();
@@ -140,6 +141,15 @@ public class PicoServer {
 		public void heartBeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
 			Node node = this.comm.fetchNode();
 			responseObserver.onNext(NodeSerializer.toRPC(node));
+			responseObserver.onCompleted();
+		}
+
+		@Override
+		public void isSuspect(RpcMetadata msg, StreamObserver<RpcBool> responseObserver) {
+			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
+			boolean res = this.comm.isSuspect(adr);
+
+			responseObserver.onNext(RpcBool.newBuilder().setValue(res).build());
 			responseObserver.onCompleted();
 		}
 
