@@ -132,11 +132,15 @@ public class ClusterManager {
 			pool.submit(() -> {
 				try {
 					// Send heartbeat to node
-					this.comm.heartbeatRemote(node.getAddress());
+					Node n = this.comm.heartbeatRemote(node.getAddress());
+
+					// Update node data in cluster
+					cluster.put(n.getAddress(), n);
 
 					// Remove node from suspected list
 					suspectedMembers.remove(node.getAddress());
 				} catch (PicoException e) {
+					logger.debug("Found suspected dead node {} adding or incrementing list of suspects.", node.getAddress());
 					// Handle heartbeat failure
 					if (suspectedMembers.containsKey(node.getAddress())) {
 						int count = suspectedMembers.get(node.getAddress());
@@ -165,7 +169,7 @@ public class ClusterManager {
 				}
 				
 			} catch (Exception e) {
-				logger.error("Failed to get ISSUSPECT from {}", node.getAddress());
+				logger.debug("Failed to get ISSUSPECT from {}", node.getAddress());
 				// We do not need to handle this since it is already checking for dead nodes
 			}
 		}
