@@ -237,6 +237,8 @@ public class ContainerEngine {
 		containers.put(name, created);
 		logger.info("Done creating container {}", name);
 		created.setState(PicoContainerState.STOPPED);
+
+		runContainer(name);
         return created;
 
 	}
@@ -265,7 +267,7 @@ public class ContainerEngine {
      * @return
      * @throws PicoException
      */
-    public PicoContainer runContainer(String name) throws PicoException {
+    public synchronized PicoContainer runContainer(String name) throws PicoException {
 		PicoContainer container;
 		synchronized (this) {
 			if (!containers.containsKey(name)) {

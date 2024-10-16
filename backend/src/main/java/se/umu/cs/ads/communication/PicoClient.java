@@ -29,7 +29,7 @@ public class PicoClient {
     }
 
 	public void connectNewHost(PicoAddress address) {
-		logger.info("Connecting to {} ...", address);
+		// logger.info("Connecting to {} ...", address);
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress(address.getIP(), address.getPort())
 			.usePlaintext()
@@ -38,7 +38,7 @@ public class PicoClient {
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);
-		logger.info("Connected to {}!", address);
+		// logger.info("Connected to {}!", address);
 	}	
 
 

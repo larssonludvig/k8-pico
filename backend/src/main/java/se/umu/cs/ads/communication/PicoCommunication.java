@@ -172,29 +172,30 @@ public class PicoCommunication {
 			toRemove = this.manager.getAddress();
 		}
 
-		try {
 			for (Node member : members) {
-				if (toRemove.equals(member.getAddress()))
-					continue;
-					
-				PicoAddress remote = member.getAddress();
-				this.client.removeNode(remote, toRemove);
+				try {
+					if (toRemove.equals(member.getAddress()))
+						continue;
+						
+					PicoAddress remote = member.getAddress();
+					this.client.removeNode(remote, toRemove);
+				} catch (Exception e) {
+					removeSelf = true;
+					logger.error("Failed to remove self ({}) from remote", toRemove);
+				}
 			}
 			
-			// Send start container request of all node containers to 
-			// leader node. This is to ensure that the containers are not lost
-			for (PicoContainer cont : this.cluster.getContainers(toRemove)) {
-				if (cont.getState() == PicoContainerState.RUNNING)
-					this.client.containerElectionStart(ContainerSerializer.toRPC(cont), this.cluster.getLeader());
-			}
-		} catch (Exception e) {
-			logger.error("Failed to remove self ({}) from remote", toRemove);
-			System.exit(1);
+		
+		// Send start container request of all node containers to 
+		// leader node. This is to ensure that the containers are not lost
+		for (PicoContainer cont : this.cluster.getContainers(toRemove)) {
+			if (cont.getState() == PicoContainerState.RUNNING)
+				this.client.containerElectionStart(ContainerSerializer.toRPC(cont), this.cluster.getLeader());
 		}
-
 		// Successfull exit if it removes self
 		if (removeSelf)
 			System.exit(0);
+
 	}
 
 	public Node heartbeatRemote(PicoAddress remote) throws PicoException {
@@ -324,7 +325,7 @@ public class PicoCommunication {
 			.build();
 	}
 
-	public RpcContainer createLocalContainer(RpcContainer rpc) {
+	public synchronized RpcContainer createLocalContainer(RpcContainer rpc) {
 		PicoContainer container = ContainerSerializer.fromRPC(rpc);
 		PicoContainer res = this.manager.createLocalContainer(container);
 		return ContainerSerializer.toRPC(res);
