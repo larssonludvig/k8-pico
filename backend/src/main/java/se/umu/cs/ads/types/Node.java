@@ -79,4 +79,17 @@ public class Node implements Serializable {
 	public int hashCode() {
 		return this.toString().hashCode();
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (this == o)
+			return true;
+		if (!(o instanceof Node))
+			return false;
+
+		Node n = (Node) o;
+		return this.address.equals(n.getAddress());
+	}
 }

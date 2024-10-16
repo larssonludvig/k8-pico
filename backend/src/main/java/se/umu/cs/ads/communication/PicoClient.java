@@ -29,7 +29,6 @@ public class PicoClient {
     }
 
 	public void connectNewHost(PicoAddress address) {
-		// logger.info("Connecting to {} ...", address);
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress(address.getIP(), address.getPort())
 			.usePlaintext()
@@ -38,7 +37,6 @@ public class PicoClient {
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);
-		// logger.info("Connected to {}!", address);
 	}	
 
 
@@ -51,9 +49,7 @@ public class PicoClient {
 			reply = stub.join(msg).get();
 		} catch (Exception e) {
 			String err = String.format("Received error from %s when sending JOIN_REQUEST: %s", remote, e.getMessage());
-			logger.error(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			throw handleError(remote, err);
 		}
 
 		logger.info("Received reply for JOIN_REQUEST");
@@ -80,9 +76,7 @@ public class PicoClient {
 			stubs.remove(remote);
 		} catch (Exception e) {
 			String err = String.format("Received error from %s when sending LEAVE: %s", remote, e.getMessage());
-			logger.error(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			handleError(remote, err);
 		}
 		logger.info("Sucessfully sent LEAVE to {}", remote);
 	}
@@ -102,9 +96,7 @@ public class PicoClient {
 			stubs.remove(remote);
 		} catch (Exception e) {
 			String err = String.format("Received error when removing node %s: %s", remote, e.getMessage());
-			logger.error(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			throw handleError(remote, err);
 		}
 	}
 
@@ -117,9 +109,7 @@ public class PicoClient {
 			return result;
 		} catch (Exception e) {
 			String err = String.format("Could not fetch performance from %s: %s", remote, e.getMessage());
-			logger.error(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			throw handleError(remote, err);
 		}
 	}
 
@@ -147,9 +137,7 @@ public class PicoClient {
         	return NodeSerializer.fromRPC(reply);
 		} catch (Exception e) {
 			String err = String.format("Received error from remote %s from FETCH_NODE: %s", remote, e.getMessage());
-			logger.info(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			throw handleError(remote, err);
 		}
     }
 
@@ -163,7 +151,11 @@ public class PicoClient {
 			return res;
 		} catch(Exception e) {
 			String msg = e.getMessage();
+			ManagedChannel channel = channels.get(remote);
+			channel.shutdownNow();
+			channels.remove(remote);
 			stubs.remove(remote);
+
 			String err = String.format("Received error from remote %s when evaluating container %s: %s",
 				remote, container.getName(), e.getMessage());
 			logger.error(err);
@@ -184,9 +176,7 @@ public class PicoClient {
 			stub.containerElectionStart(container);
 		} catch (Exception e) {
 			String err = String.format("Received exception from CONTAINER_ELECTION_START: %s", e.getMessage());
-			logger.error(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			throw handleError(remote, err);
 		}
 	}
 
@@ -200,9 +190,7 @@ public class PicoClient {
 		} catch (Exception e) {
 			String err = String.format("Received error from remote %s when creating container %s: %s", 
 				remote, container.getName(), e.getMessage());
-			logger.error(err);
-			stubs.remove(remote);
-			throw new PicoException(err);
+			throw handleError(remote, err);
 		}
 	}
 
@@ -218,9 +206,10 @@ public class PicoClient {
 			logger.info("Sending ELECTION_END for container {} to {} ...", container.getName(), to);
 			stub.containerElectionEnd(msg);
 		} catch (Exception e) {
-			logger.warn("Failed to send ELECTION_END for container {} to {}: {}", 
-				container.getName(), to, e.getMessage());
-			stubs.remove(to);
+			throw handleError(to, 
+				String.format("Failed to send ELECTION_END for container %s to %s: %s",
+					container.getName(), to, e.getMessage()));
+		
 		}
 	}
 
@@ -237,8 +226,7 @@ public class PicoClient {
 			logger.debug("Successfully sent HEARTBEAT to {}", remote);
 			return node;
 		} catch (Exception e) {
-			stubs.remove(remote);
-			throw new PicoException(e.getMessage());
+			throw handleError(remote, e.getMessage());
 		}
 	}
 
@@ -258,9 +246,17 @@ public class PicoClient {
 		try {
 			return stub.isSuspect(meta).get().getValue();
 		} catch (Exception e) {
-			stubs.remove(remote);
-			logger.error("Failed to send ISSUSPECT to {}: {}", remote, e.getMessage());
-			throw new PicoException(e.getMessage());
+			throw handleError(remote, String.format("Failed to send ISSUSPECT to %s: %s", remote, e.getMessage()));
 		}
+	}
+
+	private PicoException handleError(PicoAddress remote, String msg) {
+		ManagedChannel channel = channels.get(remote);
+		channel.shutdownNow();
+		channels.remove(remote);
+		stubs.remove(remote);
+
+		logger.error(msg);
+		return new PicoException(msg);
 	}
 }
