@@ -5,7 +5,7 @@ import io.grpc.Status.Code;
 public class NameConflictException extends PicoException {
 	private final String name;
 	public NameConflictException(String name) {
-		super("Container name " + name + " is already occupied!", Code.ALREADY_EXISTS);
+		super("NAME_CONFLICT: Continaer name " + name + " is already occupied!", Code.ALREADY_EXISTS);
 		this.name = name;
 	}
 

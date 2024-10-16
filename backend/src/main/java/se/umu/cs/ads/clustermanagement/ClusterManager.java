@@ -200,4 +200,13 @@ public class ClusterManager {
 		PicoAddress leader = manager.getClusterManager().getLeader();
 		this.comm.initiateContainerElection(container, leader);
 	}
+
+	public void addContainerToNode(PicoAddress address, PicoContainer container) {
+		Node n = cluster.get(address);
+		if (n == null) {
+			logger.warn("Cannot add container to node: No node with address {} in cluster", address);
+			return;
+		}
+		n.addContainer(container);
+	}
 }

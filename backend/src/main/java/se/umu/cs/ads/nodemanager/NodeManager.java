@@ -1,28 +1,17 @@
 package se.umu.cs.ads.nodemanager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.logging.log4j.*;
 
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
-import se.umu.cs.ads.exception.NameConflictException;
-import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.exception.PortConflictException;
+import se.umu.cs.ads.exception.*;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.Performance;
-import se.umu.cs.ads.types.PicoAddress;
-import se.umu.cs.ads.types.PicoContainer;
+import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.utils.Util;
 /**
  * Class for cluster management
@@ -33,8 +22,6 @@ public class NodeManager {
 	private final SystemMetric metrics;
 	private final ClusterManager cluster;
 	public final Node node;
-	// name, containers
-	private final Map<PicoAddress, List<PicoContainer>> remoteContainers;
 
 
 	@SuppressWarnings("static-access")
@@ -50,7 +37,6 @@ public class NodeManager {
 		this.node.setCluster(cluster.CLUSTER_NAME);
 
 		this.controller = controller;
-		this.remoteContainers = new ConcurrentHashMap<>();
 		this.metrics = new SystemMetric();
 	}
 
@@ -104,55 +90,6 @@ public class NodeManager {
 
 	// Cluster and channel management ----------------------------------------------
 
-	/**
-	 * Add a collection of containers to the list of known host for a remote
-	 * 
-	 * @param name       name of the remote host
-	 * @param containers containers to add
-	 */
-	public void updateRemoteContainers(PicoAddress name, List<PicoContainer> containers) {
-		List<PicoContainer> existing = remoteContainers.get(name);
-		if (existing == null) {
-			existing = new ArrayList<>();
-		}
-
-		existing.addAll(containers);
-		remoteContainers.put(name, existing);
-	}
-
-	/**
-	 * Add a container to the list of known remote containers for the given host
-	 * 
-	 * @param name      name of the host
-	 * @param container container to add
-	 */
-	public void updateRemoteContainers(PicoAddress name, PicoContainer container) {
-		List<PicoContainer> existingContainers = remoteContainers.get(name);
-		if (existingContainers == null) {
-			existingContainers = new ArrayList<>();
-
-		}
-
-		existingContainers.add(container);
-		remoteContainers.put(name, existingContainers);
-	}
-
-	/**
-	 * Returns a copy of the provided hosts containers
-	 * 
-	 * @param name the name of the host
-	 * @return list of all container
-	 */
-	public List<PicoContainer> getRemoteContainers(String name) {
-		// We create a copy so the original list can't be modified
-		List<PicoContainer> existing = remoteContainers.get(name);
-		List<PicoContainer> copy = new ArrayList<>();
-		if (existing == null)
-			existing = new ArrayList<>();
-
-		copy.addAll(existing);
-		return copy;
-	}
 
 	public double getCPULoad() {
 		return metrics.getCPULoad();
