@@ -104,19 +104,6 @@ public class NodeManager {
 
 	// Cluster and channel management ----------------------------------------------
 
-	// public boolean isLeader() {
-	// return getLeader().toString().equals(getChannelAddress());
-	// }
-
-	public PicoAddress getLeader() {
-		List<PicoAddress> addresses = cluster.getClusterAddresses();
-		Collections.sort(addresses);
-		if (addresses.isEmpty())
-			return getAddress();
-			
-		return addresses.get(0);
-	}
-
 	/**
 	 * Add a collection of containers to the list of known host for a remote
 	 * 

@@ -89,7 +89,7 @@ public class PicoCommunication {
 			RpcNodes nodes = client.join(remote, request);
 			return NodeSerializer.fromRPC(nodes);
 		} catch (Exception e) {
-			logger.error("Failed to join cluster: {}", e);
+			logger.error("Failed to join cluster: {}", e.getMessage());
 			throw new PicoException(e.getMessage());
 		}
 
@@ -119,6 +119,11 @@ public class PicoCommunication {
 		
 		PicoContainer result = this.manager.createLocalContainer(ContainerSerializer.fromRPC(container));
 		return ContainerSerializer.toRPC(result);
+	}
+
+	public RpcContainer startContainer(RpcContainer container) throws PicoException {
+		PicoContainer resutl = this.manager.startContainer(container.getName());
+		return ContainerSerializer.toRPC(resutl);
 	}
 
 	public Node fetchNode(PicoAddress adr) {

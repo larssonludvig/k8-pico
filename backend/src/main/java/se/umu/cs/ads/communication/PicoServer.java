@@ -59,7 +59,7 @@ public class PicoServer {
 		
 		@Override
 		public void fetchNodePerformance(RpcEmpty empty, StreamObserver<RpcPerformance> responseObserver) {
-			logger.info("Fetching performance...");
+			logger.debug("Fetching performance...");
 			try {
 				RpcPerformance resp = this.comm.fetchPerformance();
 				responseObserver.onNext(resp);
@@ -74,6 +74,7 @@ public class PicoServer {
 			RpcContainer res = null;
 			try {
 				res = this.comm.createLocalContainer(container);
+				res = this.comm.startContainer(res);
 			} catch (PicoException e) {
 				logger.error(e.getMessage());
 				responseObserver.onError(e.toStatusException());
@@ -81,6 +82,7 @@ public class PicoServer {
 			responseObserver.onNext(res);
 			responseObserver.onCompleted();
 		}
+
 
 		@Override
 		public void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {

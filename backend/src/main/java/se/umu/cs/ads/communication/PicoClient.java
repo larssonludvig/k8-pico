@@ -103,10 +103,10 @@ public class PicoClient {
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
-		logger.info("Fetching performance from {}...", remote);		
+		logger.debug("Fetching performance from {}...", remote);		
 		try {
 			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build()).get();
-			logger.info("Done fetching performance from {}!", remote);
+			logger.debug("Done fetching performance from {}!", remote);
 			return result;
 		} catch (Exception e) {
 			String err = String.format("Could not fetch performance from %s: %s", remote, e.getMessage());
