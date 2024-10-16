@@ -31,14 +31,8 @@ public class ContainerController {
 
 	@GetMapping("{name}")
 	public ResponseEntity<?> getContainer(@PathVariable String name) {
-		
-		if (!hasContainer(name)) {
-			logger.warn("No container with name {}", name);
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-		}
-
 		try {
-			PicoContainer container = service.getController().getRunningContainer(name);
+			PicoContainer container = service.getController().getContainer(name);
 			return ResponseEntity.status(HttpStatus.OK).body(container);
 		} catch (PicoException e) {
 			logger.error("Error while fetching container {}: {}", name, e.getMessage());

@@ -124,6 +124,10 @@ public class Controller {
 		}
 	}
 
+	public PicoContainer getContainer(String name) {
+		return cluster.getContainer(name);
+	}
+
 	public void createContainer(PicoContainer container) throws PicoException {
 		Future<PicoContainer> res = pool.submit(() -> {
 			cluster.createContainer(container);

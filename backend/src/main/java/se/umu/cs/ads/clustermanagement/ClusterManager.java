@@ -214,4 +214,19 @@ public class ClusterManager {
 		Node n = this.cluster.get(adr);
 		return n.getContainers();
 	}
+
+	public PicoContainer getContainer(String name) {
+		List<Node> nodes = new ArrayList<Node>(cluster.values());
+		if (!nodes.contains(manager.getNode()))
+			nodes.add(manager.getNode());
+
+		for (Node node : cluster.values()) {
+			for (PicoContainer container : node.getContainers()) {
+				if (container.getName().equals(name)) {
+					return container;
+				}
+			}
+		}
+		return null;
+	}
 }
