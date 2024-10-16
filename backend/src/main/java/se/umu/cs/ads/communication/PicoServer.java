@@ -177,5 +177,14 @@ public class PicoServer {
 				ro.onError(e.toStatusException());
 			}
 		}
+
+		@Override
+		public void containerElectionEnd(RpcContainerElectionEnd msg, StreamObserver<RpcEmpty> responseObserver) {
+			RpcMetadata sender = msg.getSender();
+			RpcContainer container = msg.getContainer();
+			this.comm.electionEnd(container, sender);
+			responseObserver.onNext(RpcEmpty.newBuilder().build());
+			responseObserver.onCompleted();
+		}
     }
 }

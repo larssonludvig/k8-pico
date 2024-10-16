@@ -318,6 +318,11 @@ public class PicoCommunication {
 		PicoContainer container = ContainerSerializer.fromRPC(rpc);
 		PicoContainer res = this.manager.createLocalContainer(container);
 		return ContainerSerializer.toRPC(res);
-		
+	}
+
+	public void electionEnd(RpcContainer rpc, RpcMetadata newHost) {
+		PicoAddress address = new PicoAddress(newHost.getIp(), newHost.getPort());
+		PicoContainer container = ContainerSerializer.fromRPC(rpc);
+		cluster.addContainerToNode(address, container);
 	}
 }

@@ -186,4 +186,20 @@ public class PicoClient {
 			throw new PicoException(err);
 		}
 	}
+
+	public void markElectionEnd(RpcContainer container, PicoAddress self, PicoAddress to) throws PicoException {
+		RpcMetadata rpcSelf = RpcMetadata.newBuilder().setIp(self.getIP()).setPort(self.getPort()).build();
+		RpcContainerElectionEnd msg = RpcContainerElectionEnd.newBuilder()
+			.setContainer(container)
+			.setSender(rpcSelf)
+			.build();
+
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(to);
+		try {
+			stub.containerElectionEnd(msg);
+		} catch (Exception e) {
+			logger.warn("Failed to send ELECTION_END for container {} to {}: {}", 
+				container.getName(), to, e.getMessage());
+		}
+	}
 }

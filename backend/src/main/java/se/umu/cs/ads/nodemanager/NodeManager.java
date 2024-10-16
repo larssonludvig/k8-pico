@@ -1,28 +1,17 @@
 package se.umu.cs.ads.nodemanager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.logging.log4j.*;
 
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
 import se.umu.cs.ads.controller.Controller;
-import se.umu.cs.ads.exception.NameConflictException;
-import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.exception.PortConflictException;
+import se.umu.cs.ads.exception.*;
 import se.umu.cs.ads.metrics.SystemMetric;
-import se.umu.cs.ads.types.Node;
-import se.umu.cs.ads.types.Performance;
-import se.umu.cs.ads.types.PicoAddress;
-import se.umu.cs.ads.types.PicoContainer;
+import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.utils.Util;
 /**
  * Class for cluster management
@@ -33,8 +22,6 @@ public class NodeManager {
 	private final SystemMetric metrics;
 	private final ClusterManager cluster;
 	public final Node node;
-	// name, containers
-	private final Map<PicoAddress, List<PicoContainer>> remoteContainers;
 
 
 	@SuppressWarnings("static-access")
