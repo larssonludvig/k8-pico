@@ -10,7 +10,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.rpc.Code;
+import org.springframework.ui.context.ThemeSource;
 
+import io.grpc.Grpc;
+import io.grpc.InsecureServerCredentials;
+import io.grpc.Server;
+import io.grpc.stub.StreamObserver;
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.exception.*;
@@ -152,6 +157,22 @@ public class PicoServer {
 			Node node = this.comm.fetchNode(adr);
 
 			responseObserver.onNext(NodeSerializer.toRPC(node));
+			responseObserver.onCompleted();
+		}
+
+		@Override
+		public void heartbeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
+			Node node = this.comm.fetchNode();
+			responseObserver.onNext(NodeSerializer.toRPC(node));
+			responseObserver.onCompleted();
+		}
+
+		@Override
+		public void isSuspect(RpcMetadata msg, StreamObserver<RpcBool> responseObserver) {
+			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
+			boolean res = this.comm.isSuspect(adr);
+
+			responseObserver.onNext(RpcBool.newBuilder().setValue(res).build());
 			responseObserver.onCompleted();
 		}
 

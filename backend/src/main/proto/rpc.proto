@@ -72,6 +72,10 @@ message RpcPerformance {
 	double freeRam = 3;
 }
 
+message RpcBool {
+    bool value = 1;
+}
+
 message RpcEmpty {}
 
 service RpcService {
@@ -86,4 +90,6 @@ service RpcService {
     rpc join                        (RpcJoinRequest) returns (RpcNodes);
     rpc leave                   (RpcMetadata) returns (RpcEmpty);
     rpc removeNode              (RpcMetadata) returns (RpcEmpty);
+    rpc heartbeat               (RpcEmpty) returns (RpcNode);
+    rpc isSuspect               (RpcMetadata) returns (RpcBool);
 }

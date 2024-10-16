@@ -25,7 +25,10 @@ import se.umu.cs.ads.exception.PortConflictException;
 import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.ContainerSerializer;
 import se.umu.cs.ads.serializers.NodeSerializer;
-import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.types.Node;
+import se.umu.cs.ads.types.Performance;
+import se.umu.cs.ads.types.PicoAddress;
+import se.umu.cs.ads.types.PicoContainer;
 
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
@@ -125,6 +128,10 @@ public class PicoCommunication {
 		PicoContainer resutl = this.manager.startContainer(container.getName());
 		return ContainerSerializer.toRPC(resutl);
 	}
+	
+	public Node fetchNode() {
+		return this.cluster.fetchNode();
+	}
 
 	public Node fetchNode(PicoAddress adr) {
 		if (!adr.equals(this.address)) {
@@ -173,27 +180,50 @@ public class PicoCommunication {
 		}
 	}
 
-	public void removeNodeRemote() {
+	// removes node from address, removes self if toRemove is null
+	public void removeNodeRemote(PicoAddress toRemove) {
 		logger.error("Removing self from remote nodes...");
 		List<Node> members = this.cluster.getNodes();
-		PicoAddress selfAdr = this.manager.getAddress();
+		boolean removeSelf = false;
+
+		if (toRemove == null) {
+			removeSelf = true;
+			toRemove = this.manager.getAddress();
+		}
 
 		try {
 			for (Node member : members) {
 				PicoAddress remote = member.getAddress();
-				this.client.removeNode(remote, selfAdr);
+				this.client.removeNode(remote, toRemove);
 			}
 			
 			// TODO: Send start container request of all node containers to 
 			// leader node. This is to ensure that the containers are not lost
 
 		} catch (Exception e) {
-			logger.error("Failed to remove self ({}) from remote", selfAdr);
+			logger.error("Failed to remove self ({}) from remote", toRemove);
 			System.exit(1);
 		}
 
-		// Successfull exit
-		System.exit(0);
+		// Successfull exit if it removes self
+		if (removeSelf)
+			System.exit(0);
+	}
+
+	public Node heartbeatRemote(PicoAddress remote) throws PicoException {
+		try {
+			return this.client.heartbeat(remote);
+		} catch (Exception e) {
+			throw new PicoException(e.getMessage());
+		}
+	}
+
+	public boolean isSuspect(PicoAddress adr) {
+		return this.cluster.isSuspect(adr);
+	}
+
+	public boolean isSuspectRemote(PicoAddress remote, PicoAddress suspect) throws Exception {
+		return this.client.isSuspect(remote, suspect);
 	}
 
 	/**

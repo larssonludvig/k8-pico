@@ -62,6 +62,14 @@ public class Controller {
 			logger.debug("Refreshed containers and images in {} ms", time);
 
 		}, 5, 5, TimeUnit.SECONDS);
+
+		// Heartbeat
+		scheduler.scheduleAtFixedRate(() -> {
+			long start = System.currentTimeMillis();
+			this.cluster.heartbeat();
+			long time = System.currentTimeMillis() - start;
+			logger.debug("Heartbeat completed in {} ms", time);
+		}, 5, 5, TimeUnit.SECONDS);
 	}
 
 	public void shutdown() {

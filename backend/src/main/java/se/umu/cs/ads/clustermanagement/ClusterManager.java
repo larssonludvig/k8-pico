@@ -6,6 +6,8 @@ import java.util.concurrent.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import se.umu.cs.ads.arguments.CommandLineArguments;
+import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.communication.PicoCommunication;
@@ -16,15 +18,19 @@ import se.umu.cs.ads.nodemanager.NodeManager;
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
 	private final Map<PicoAddress, Node> cluster;
+	private final Map<PicoAddress, Integer> suspectedMembers;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	private final ScheduledExecutorService scheduledPool = CommandLineArguments.scheduledPool;
 	public final String CLUSTER_NAME = "k8-pico";
+	private final ExecutorService pool;
 
 	public ClusterManager(NodeManager manager) {
 		this.cluster = new ConcurrentHashMap<>();
 		this.manager = manager;
 		this.comm = new PicoCommunication(this, manager);
+		this.suspectedMembers = new HashMap<PicoAddress, Integer>();
+		this.pool = CommandLineArguments.pool;
 
 		scheduledPool.scheduleAtFixedRate(() -> {
 			PicoAddress leader = getLeader();
@@ -78,6 +84,7 @@ public class ClusterManager {
 
 	public void addNode(Node node) {
 		cluster.put(node.getAddress(), node);
+		suspectedMembers.remove(node.getAddress());
 	}
 
 	public void removeNode(Node node) {
@@ -131,6 +138,62 @@ public class ClusterManager {
 
 	public Performance fetchNodePerformance(PicoAddress adr) {
 		return this.comm.fetchNodePerformance(adr);
+	}
+
+	public void heartbeat() {
+		List<Node> members = getClusterMembers();
+
+		for (Node node : members) {
+			pool.submit(() -> {
+				try {
+					// Send heartbeat to node
+					Node n = this.comm.heartbeatRemote(node.getAddress());
+
+					// Update node data in cluster
+					cluster.put(n.getAddress(), n);
+
+					// Remove node from suspected list
+					suspectedMembers.remove(node.getAddress());
+				} catch (PicoException e) {
+					logger.debug("Found suspected dead node {} adding or incrementing list of suspects.", node.getAddress());
+					// Handle heartbeat failure
+					if (suspectedMembers.containsKey(node.getAddress())) {
+						int count = suspectedMembers.get(node.getAddress());
+						// Ask nodes if node is suspected for them
+						if (count >= 3 && isNodeDead(node.getAddress())) {
+							// If it is suspedted by all nodes, remove it
+							this.comm.removeNodeRemote(node.getAddress());
+						} else {
+							suspectedMembers.put(node.getAddress(), count + 1);
+						}
+					} else {
+						suspectedMembers.put(node.getAddress(), 1);
+					}
+				}
+			});
+		}
+	}
+
+	private boolean isNodeDead(PicoAddress adr) {
+		List<Node> members = getClusterMembers();
+
+		for (Node node : members) {
+			try {
+				if (!adr.equals(node.getAddress()) && !this.comm.isSuspectRemote(node.getAddress(), adr)) {
+					return false;
+				}
+				
+			} catch (Exception e) {
+				logger.debug("Failed to get ISSUSPECT from {}", node.getAddress());
+				// We do not need to handle this since it is already checking for dead nodes
+			}
+		}
+
+		return true;
+	}
+
+	public boolean isSuspect(PicoAddress adr) {
+		return suspectedMembers.containsKey(adr);
 	}
 
 	public void createContainer(PicoContainer container) {
