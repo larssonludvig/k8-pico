@@ -79,7 +79,7 @@ public class ContainerController {
 				String logsAsString = service.getController().sendRemoteCommand(name, "FETCH_LOGS");
 				logs.addAll(Arrays.asList(logsAsString.split("\n")));
 			} else {
-				logs.addAll(service.getController().getContainerLogs(name))
+				logs.addAll(service.getController().getContainerLogs(name));
 			}
 			return ResponseEntity.ok(null);
 		} catch (Exception e) {
