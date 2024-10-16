@@ -155,6 +155,7 @@ public class ClusterManager {
 					// Remove node from suspected list
 					suspectedMembers.remove(node.getAddress());
 				} catch (PicoException e) {
+					logger.warn("Failed to send heartbeat to {}: {}", node.getAddress(), e.getMessage());
 					logger.debug("Found suspected dead node {} adding or incrementing list of suspects.", node.getAddress());
 					// Handle heartbeat failure
 					if (suspectedMembers.containsKey(node.getAddress())) {

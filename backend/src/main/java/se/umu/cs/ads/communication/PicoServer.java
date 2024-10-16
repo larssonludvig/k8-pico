@@ -78,6 +78,7 @@ public class PicoServer {
 
 		@Override
 		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
+			logger.info("Received create container request for container {}", container.getName());
 			RpcContainer res = null;
 			try {
 				pool.submit(() -> {
@@ -85,7 +86,7 @@ public class PicoServer {
 				});
 
 				res = this.comm.createLocalContainer(container);
-				res = this.comm.startContainer(res);
+				// res = this.comm.startContainer(container);
 			} catch (PicoException e) {
 				logger.error(e.getMessage());
 				responseObserver.onError(e.toStatusException());

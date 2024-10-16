@@ -150,6 +150,7 @@ public class Controller {
 	}
 
 	public PicoContainer createLocalContainer(PicoContainer container) throws PicoException {
+		logger.info("Queuing job for container creation: {}", container.getName());
 		Future<PicoContainer> res = pool.submit(() -> {
 			return engine.createContainer(container);
 		});
