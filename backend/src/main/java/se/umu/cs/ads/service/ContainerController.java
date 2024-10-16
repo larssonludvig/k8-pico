@@ -81,7 +81,7 @@ public class ContainerController {
 			} else {
 				logs.addAll(service.getController().getContainerLogs(name));
 			}
-			return ResponseEntity.ok(null);
+			return ResponseEntity.ok().body(logs);
 		} catch (Exception e) {
 			logger.error("Error trying to retrieve logs for container {}: {}", name, e.getMessage());
 			return ResponseEntity.internalServerError().body(e.getMessage());
