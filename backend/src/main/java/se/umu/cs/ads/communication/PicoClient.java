@@ -76,6 +76,7 @@ public class PicoClient {
 		
 		try {
 			stub.leave(meta);
+			stubs.remove(remote);
 		} catch (Exception e) {
 			String err = String.format("Received error from %s when sending LEAVE: %s", remote, e.getMessage());
 			logger.error(err);
