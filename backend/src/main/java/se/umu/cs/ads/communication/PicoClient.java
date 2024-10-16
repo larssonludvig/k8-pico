@@ -1,7 +1,5 @@
 package se.umu.cs.ads.communication;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
@@ -34,7 +32,7 @@ public class PicoClient {
 			.forAddress(address.getIP(), address.getPort())
 			.usePlaintext()
 			.build();
-			
+
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);
@@ -105,10 +103,10 @@ public class PicoClient {
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
-		logger.info("Fetching performance from {}...", remote);		
+		logger.debug("Fetching performance from {}...", remote);		
 		try {
 			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build()).get();
-			logger.info("Done fetching performance from {}!", remote);
+			logger.debug("Done fetching performance from {}!", remote);
 			return result;
 		} catch (Exception e) {
 			String err = String.format("Could not fetch performance from %s: %s", remote, e.getMessage());

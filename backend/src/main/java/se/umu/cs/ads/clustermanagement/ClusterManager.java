@@ -9,11 +9,11 @@ import org.apache.logging.log4j.Logger;
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.communication.PicoCommunication;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.nodemanager.NodeManager;
 
-import se.umu.cs.ads.communication.*;
 
 public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
@@ -21,6 +21,7 @@ public class ClusterManager {
 	private final Map<PicoAddress, Integer> suspectedMembers;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
+	private final ScheduledExecutorService scheduledPool = CommandLineArguments.scheduledPool;
 	public final String CLUSTER_NAME = "k8-pico";
 	private final ExecutorService pool;
 
@@ -30,6 +31,12 @@ public class ClusterManager {
 		this.comm = new PicoCommunication(this, manager);
 		this.suspectedMembers = new HashMap<PicoAddress, Integer>();
 		this.pool = CommandLineArguments.pool;
+
+		scheduledPool.scheduleAtFixedRate(() -> {
+			PicoAddress leader = getLeader();
+			int members = cluster.values().size();
+			logger.debug("Cluster {} has {} members with leader: {}", CLUSTER_NAME, members, leader);
+		}, 5, 5, TimeUnit.SECONDS); 
 	}
 
 	/**
@@ -41,6 +48,15 @@ public class ClusterManager {
 
 	public NodeManager getNodeManager() {
 		return manager;
+	}
+
+	public PicoAddress getLeader() {
+		List<PicoAddress> addresses = getClusterAddresses();
+		Collections.sort(addresses);
+		if (addresses.isEmpty())
+			return manager.getAddress();
+			
+		return addresses.get(0);
 	}
 
 	public void joinCluster(PicoAddress address) throws PicoException {
@@ -63,7 +79,6 @@ public class ClusterManager {
 	}
 
 	public List<Node> getNodes() {
-		logger.info("Cluster size: " + cluster.size());
 		return new ArrayList<Node>(cluster.values());
 	}
 
@@ -182,7 +197,7 @@ public class ClusterManager {
 	}
 
 	public void createContainer(PicoContainer container) {
-		PicoAddress leader = manager.getLeader();
+		PicoAddress leader = manager.getClusterManager().getLeader();
 		this.comm.initiateContainerElection(container, leader);
 	}
 }

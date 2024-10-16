@@ -4,10 +4,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import se.umu.cs.ads.types.PicoAddress;
 
-import org.apache.hc.core5.reactor.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.grpc.Status.Code;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.containerengine.ContainerEngine;
 import se.umu.cs.ads.types.*;
@@ -89,10 +89,16 @@ public class Controller {
 
 		try {
 			return res.get();
-		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while fetching containers: " + e.getMessage();
-			logger.error(msg);
-			throw new PicoException(msg);
+		} catch (CancellationException | InterruptedException e) {
+			logger.error("Error while fetching containers: " + e.getMessage());
+			throw new PicoException("Error while fetching containers: " + e.getMessage(), Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while fetching containers: " + e.getMessage());
+
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -104,10 +110,17 @@ public class Controller {
 
 		try {
 			return res.get();
-		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while retrieving container " + name + ": " + e.getMessage();
-			logger.error(msg);
-			throw new PicoException(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while retrieving container: " + e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while fetching container: " + e.getMessage());
+
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -118,10 +131,17 @@ public class Controller {
 		});
 		try {
 			res.get();
-		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while creating containers " + container.getName() + ": " + e.getMessage();
-			logger.error(msg);
-			throw new PicoException(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while creating container: " + e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while creating container: " + e.getMessage());
+			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -132,10 +152,17 @@ public class Controller {
 
 		try {
 			return res.get();
-		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while creating local container: " + e.getMessage();
-			logger.error(msg);
-			throw new PicoException(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while creating local container: " + e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while creating container: " + e.getMessage());
+			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -153,10 +180,17 @@ public class Controller {
 
 		try {
 			return res.get();
-		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while fetching container logs: " + e.getMessage();
-			logger.error(msg);
-			throw new PicoException(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while fetching container logs: " + e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while fetching container logs: " + e.getMessage());
+			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -167,10 +201,17 @@ public class Controller {
 
 		try {
 			return res.get();
-		} catch (CancellationException | ExecutionException | InterruptedException e) {
-			String msg = "Error while starting container " + name + ": " + e.getMessage();
-			logger.error(msg);
-			throw new PicoException(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while starting container: " + e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while starting container: " + e.getMessage());
+			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -207,45 +248,49 @@ public class Controller {
 		return manager.getNode();
 	}
 
-	public Node getNode(PicoAddress ipPort) throws Exception {
+	public Node getNode(PicoAddress address) throws Exception {
 		Future<Node> res = pool.submit(() -> {
-			return manager.getNode(ipPort);
+			return manager.getNode(address);
 		});
 
 		try {
 			return res.get();
-		} catch (Exception e) {
-			String msg = "Error while fetching node " + ipPort + ": " + e.getMessage();
-			logger.error(msg);
-			throw new Exception(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while fetching node %s: %s", address, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while fetching node {}: {} ", address, e.getMessage());
+			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
 	public List<Node> getNodes() throws Exception {
-		// Future<List<Node>> res = pool.submit(() -> {
 			return manager.getNodes();
-		// });
-
-		// try {
-		// 	return res.get();
-		// } catch (Exception e) {
-		// 	String msg = "Error while fetching nodes: " + e.getMessage();
-		// 	logger.error(msg);
-		// 	throw new Exception(msg);
-		// }
 	}
 
-	public Performance getNodePerformance(PicoAddress ipPort) throws Exception {
+	public Performance getNodePerformance(PicoAddress address) throws Exception {
 		Future<Performance> res = pool.submit(() -> {
-			return manager.getNodePerformance(ipPort);
+			return manager.getNodePerformance(address);
 		});
 
 		try {
 			return res.get();
-		} catch (Exception e) {
-			String msg = "Error while fetching node performance: " + e.getMessage();
-			logger.error(msg);
-			throw new Exception(msg);
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while fetching performance from node %s: %s", address, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {
+			logger.error("Error while fetching node {}: {} ", address, e.getMessage());
+			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
 		}
 	}
 
@@ -257,9 +302,5 @@ public class Controller {
 		pool.submit(() -> {
 			cluster.leaveRemote(adr);
 		});
-	}
-
-	public ExecutorService getPool() {
-		return this.pool;
 	}
 }
