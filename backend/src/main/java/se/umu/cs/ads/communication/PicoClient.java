@@ -213,6 +213,18 @@ public class PicoClient {
 		}
 	}
 
+	public String sendContainerCommand(RpcContainerCommand command, PicoAddress remote) {
+		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		try {
+
+			logger.info("Sending {} command to {} for container {}", 
+				command.getCommand().toString(), remote, command.getContainer().getName());
+			return stub.containerCommand(command).get().getPayload();
+		} catch (Exception e) {
+			throw handleError(remote, e.getMessage());
+		}
+	}
+
 	public Node heartbeat(PicoAddress remote) throws Exception {
 		RpcServiceFutureStub stub = stubs.get(remote);
 
@@ -250,6 +262,8 @@ public class PicoClient {
 		}
 	}
 
+
+
 	private PicoException handleError(PicoAddress remote, String msg) {
 		ManagedChannel channel = channels.get(remote);
 		channel.shutdownNow();
@@ -259,4 +273,7 @@ public class PicoClient {
 		logger.error(msg);
 		return new PicoException(msg);
 	}
+
+
+
 }

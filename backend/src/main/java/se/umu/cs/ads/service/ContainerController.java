@@ -1,5 +1,7 @@
 package se.umu.cs.ads.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -72,8 +74,14 @@ public class ContainerController {
 	@ResponseBody
 	public ResponseEntity<?> getContainerLogs(@PathVariable String name) {
 		try {
-			List<String> logs = service.getController().getContainerLogs(name);
-			return ResponseEntity.ok().body(logs);
+			ArrayList<String> logs = new ArrayList<>();
+			if (!hasContainer(name)) {
+				String logsAsString = service.getController().sendRemoteCommand(name, "FETCH_LOGS");
+				logs.addAll(Arrays.asList(logsAsString.split("\n")));
+			} else {
+				logs.addAll(service.getController().getContainerLogs(name))
+			}
+			return ResponseEntity.ok(null);
 		} catch (Exception e) {
 			logger.error("Error trying to retrieve logs for container {}: {}", name, e.getMessage());
 			return ResponseEntity.internalServerError().body(e.getMessage());
@@ -83,14 +91,15 @@ public class ContainerController {
 	@PutMapping("{name}/start")
 	@ResponseBody
 	public ResponseEntity<?> startContainer(@PathVariable String name) {
-		if (!hasContainer(name)) {
-			logger.warn("No container with name: {}", name);
-			return ResponseEntity.notFound().build();
-		}
-		
 		try {
-			PicoContainer container = service.getController().startContainer(name);
-			return ResponseEntity.status(HttpStatus.OK).body(container);
+			if (!hasContainer(name)) {
+				logger.warn("No container with name: {}", name);
+				service.getController().sendRemoteCommand(name, "START");
+			} else {
+				service.getController().startContainer(name);
+			}
+		
+			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to start container {}: {}", name, e.getMessage());
 			return ResponseEntity.internalServerError().body(e.getMessage());
@@ -101,13 +110,13 @@ public class ContainerController {
 	@ResponseBody
 	public ResponseEntity<?> stopContainer(@PathVariable String name) {
 		
-		if (!hasContainer(name)) {
-			logger.warn("No container with name {}", name);
-			return ResponseEntity.notFound().build();
-		}
-		
 		try {
-			service.getController().stopContainer(name);
+			if (!hasContainer(name)) {
+				logger.warn("No container with name {}", name);
+				service.getController().sendRemoteCommand(name, "STOP");;
+			} else {
+				service.getController().stopContainer(name);
+			}
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to stop container {}: {}", name, e.getMessage());
@@ -117,13 +126,14 @@ public class ContainerController {
 
 	@PutMapping("{name}/restart")
 	public ResponseEntity<?> restartContainer(@PathVariable String name) {
+		try {
 		
 		if (!hasContainer(name)) {
 			logger.warn("No container with name {}", name);
-			return ResponseEntity.notFound().build();
-		}
-		try {
+			service.getController().sendRemoteCommand(name, "RESTART");
+		} else {
 			service.getController().restartContainer(name);
+		}
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to restart container {}: {}", name, e.getMessage());

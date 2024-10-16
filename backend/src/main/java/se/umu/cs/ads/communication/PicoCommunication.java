@@ -346,4 +346,34 @@ public class PicoCommunication {
 			});
 		}
 	}
+
+	public String handleContainerCommand(RpcContainerCommand command) throws PicoException {
+		ContainerCommand cmd = command.getCommand();
+		RpcContainer container = command.getContainer();
+		String name = container.getName();
+		String response = "OK";
+		switch (cmd.getNumber()) {
+			case ContainerCommand.START_VALUE:
+				manager.startContainer(name);
+			case ContainerCommand.RESTART_VALUE:
+				manager.restartContainer(name);
+			case ContainerCommand.STOP_VALUE:
+				manager.stopContainer(name);
+			case ContainerCommand.REMOVE_VALUE:
+				manager.removeContainer(name);
+			case ContainerCommand.GET_LOGS_VALUE:
+				response = manager.getContainerLogs(name);
+			default:
+		}
+		return response;
+	}
+
+	public String sendCommunicationCommand(PicoContainer container, PicoAddress remote, ContainerCommand cmd) {
+		RpcContainer rpc = ContainerSerializer.toRPC(container);
+		RpcContainerCommand msg = RpcContainerCommand.newBuilder()
+			.setContainer(rpc)
+			.setCommand(cmd)
+			.build();
+		return client.sendContainerCommand(msg, remote);
+	}
 }

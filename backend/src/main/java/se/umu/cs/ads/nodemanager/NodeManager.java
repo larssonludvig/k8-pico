@@ -8,6 +8,7 @@ import org.apache.logging.log4j.*;
 
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
+import se.umu.cs.ads.communication.ContainerCommand;
 import se.umu.cs.ads.controller.Controller;
 import se.umu.cs.ads.exception.*;
 import se.umu.cs.ads.metrics.SystemMetric;
@@ -176,6 +177,73 @@ public class NodeManager {
 
 	public PicoContainer startContainer(String name) {
 		return this.controller.startContainer(name);
+	}
+
+	public void restartContainer(String name) {
+		this.controller.restartContainer(name);
+	}
+
+	public void stopContainer(String name) {
+		this.controller.stopContainer(name);
+	}
+
+	public void removeContainer(String name) {
+		this.controller.removeContainer(name);
+	}
+
+	
+	public String remoteContainerCommand(String name, String command) {
+		//find container and the node that has it
+		PicoAddress remote = null;
+		PicoContainer container = null;
+		ArrayList<Node> nodes = new ArrayList<>(cluster.getClusterMembers());
+		for (Node n : nodes) {
+			for (PicoContainer cont : n.getContainers()) {
+				if (cont.getName().equals(name)) {
+					remote = n.getAddress();
+					container = cont;
+				}
+			}
+		}
+
+		if (remote == null || container == null) {
+			logger.warn("Could not find any container with name {}", name);
+			return "NO OK";
+		}
+		ContainerCommand cmd = parseCommand(command);
+		if (cmd == null) {
+			logger.warn("Could not parse command {}, ignoring", command);
+			return "";
+		}
+
+		return cluster.getCommunication().sendCommunicationCommand(container, remote, cmd);
+	}
+
+
+	private ContainerCommand parseCommand(String command) {
+		switch (command) {
+			case "START":
+				return ContainerCommand.START;
+			case "RESTART":
+				return ContainerCommand.RESTART;
+			case "STOP":
+				return ContainerCommand.STOP;
+			case "REMOVE":
+				return ContainerCommand.REMOVE;
+			case "FETCH_LOGS":
+				return ContainerCommand.GET_LOGS;
+			default:
+				return null;
+		}
+	}
+
+	public String getContainerLogs(String name) throws PicoException {
+		List<String> logs = this.controller.getContainerLogs(name);
+		StringBuilder builder = new StringBuilder();
+		for (String log : logs) {
+			builder.append(log).append("\n");
+		}
+		return builder.toString();
 	}
 
 	public PicoAddress selectBestRemote(Map<PicoAddress, Double> evaluations) {

@@ -50,6 +50,10 @@ public class ClusterManager {
 		return manager;
 	}
 
+	public PicoCommunication getCommunication() {
+		return this.comm;
+	}
+
 	public PicoAddress getLeader() {
 		List<PicoAddress> addresses = getClusterAddresses();
 		Collections.sort(addresses);

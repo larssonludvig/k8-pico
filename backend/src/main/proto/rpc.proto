@@ -35,6 +35,14 @@ enum RpcContainerState {
     UNKNOWN = 5;
 }
 
+enum ContainerCommand {
+	START = 0;
+	STOP = 1;
+	RESTART = 2;
+	REMOVE = 3;
+	GET_LOGS = 4;
+}
+
 message RpcStrings {
     repeated string strings = 1;
 }
@@ -77,6 +85,11 @@ message RpcPerformance {
 	double freeRam = 3;
 }
 
+message RpcContainerCommand {
+	RpcContainer container = 1;
+	ContainerCommand command = 2;
+}
+
 message RpcBool {
     bool value = 1;
 }
@@ -85,14 +98,13 @@ message RpcEmpty {}
 
 service RpcService {
     rpc fetchNode               (RpcMetadata) returns (RpcNode);
-    // rpc fetchNodes              (RpcEmpty) returns (RpcNodes);
     rpc fetchNodePerformance    (RpcEmpty) returns (RpcPerformance);
     rpc createContainer         (RpcContainer) returns (RpcContainer);
-    // rpc containerList           () returns ();
+	rpc containerCommand		(RpcContainerCommand) returns (RpcMessage);
     rpc containerElectionStart  (RpcContainer) returns (RpcEmpty);
 	rpc elvaluateContainer		(RpcContainer) returns (RpcContainerEvaluation);
     rpc containerElectionEnd    (RpcContainerElectionEnd) returns (RpcEmpty);
-    rpc join                        (RpcJoinRequest) returns (RpcNodes);
+	rpc join                    (RpcJoinRequest) returns (RpcNodes);
     rpc leave                   (RpcMetadata) returns (RpcEmpty);
     rpc removeNode              (RpcMetadata) returns (RpcEmpty);
     rpc heartbeat               (RpcEmpty) returns (RpcNode);

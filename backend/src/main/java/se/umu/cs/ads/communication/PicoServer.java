@@ -217,5 +217,18 @@ public class PicoServer {
 			responseObserver.onNext(RpcEmpty.newBuilder().build());
 			responseObserver.onCompleted();
 		}
+
+		@Override
+		public void containerCommand(RpcContainerCommand action, StreamObserver<RpcMessage> responseObserver) {
+			String res = "";
+			try {
+				res = this.comm.handleContainerCommand(action);
+			} catch (PicoException e) {
+				responseObserver.onError(e.toStatusException());
+			}
+
+			responseObserver.onNext(RpcMessage.newBuilder().setPayload(res).build());
+			responseObserver.onCompleted();
+		}
     }
 }

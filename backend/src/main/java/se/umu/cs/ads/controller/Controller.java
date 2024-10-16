@@ -178,7 +178,7 @@ public class Controller {
 		);
 	}
 
-	public List<String> getContainerLogs(String name) throws Exception {
+	public List<String> getContainerLogs(String name) throws PicoException {
 		Future<List<String>> res = pool.submit(() -> {
 			return engine.containerLog(name);
 		});
@@ -307,5 +307,25 @@ public class Controller {
 		pool.submit(() -> {
 			cluster.leaveRemote(adr);
 		});
+	}
+
+	public String sendRemoteCommand(String containerName, String command) {
+		Future<String> res = pool.submit(() ->  {
+			return manager.remoteContainerCommand(containerName, command);
+		});
+
+		try {
+			return res.get();
+		} catch (CancellationException | InterruptedException e) {
+			String err = String.format("Error while executing remote command %s for container %s:%s", 
+				command, containerName, e.getMessage());
+			logger.error(err);
+			throw new PicoException(err, Code.CANCELLED);
+		} catch (ExecutionException e) {			
+			if (e.getCause() instanceof PicoException) {
+				throw (PicoException) e.getCause();
+			}
+			throw new PicoException(e.getMessage());
+		}
 	}
 }
