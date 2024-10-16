@@ -37,7 +37,6 @@ public class NodeManager {
 		this.node.setCluster(cluster.CLUSTER_NAME);
 
 		this.controller = controller;
-		this.remoteContainers = new ConcurrentHashMap<>();
 		this.metrics = new SystemMetric();
 	}
 
@@ -91,55 +90,6 @@ public class NodeManager {
 
 	// Cluster and channel management ----------------------------------------------
 
-	/**
-	 * Add a collection of containers to the list of known host for a remote
-	 * 
-	 * @param name       name of the remote host
-	 * @param containers containers to add
-	 */
-	public void updateRemoteContainers(PicoAddress name, List<PicoContainer> containers) {
-		List<PicoContainer> existing = remoteContainers.get(name);
-		if (existing == null) {
-			existing = new ArrayList<>();
-		}
-
-		existing.addAll(containers);
-		remoteContainers.put(name, existing);
-	}
-
-	/**
-	 * Add a container to the list of known remote containers for the given host
-	 * 
-	 * @param name      name of the host
-	 * @param container container to add
-	 */
-	public void updateRemoteContainers(PicoAddress name, PicoContainer container) {
-		List<PicoContainer> existingContainers = remoteContainers.get(name);
-		if (existingContainers == null) {
-			existingContainers = new ArrayList<>();
-
-		}
-
-		existingContainers.add(container);
-		remoteContainers.put(name, existingContainers);
-	}
-
-	/**
-	 * Returns a copy of the provided hosts containers
-	 * 
-	 * @param name the name of the host
-	 * @return list of all container
-	 */
-	public List<PicoContainer> getRemoteContainers(String name) {
-		// We create a copy so the original list can't be modified
-		List<PicoContainer> existing = remoteContainers.get(name);
-		List<PicoContainer> copy = new ArrayList<>();
-		if (existing == null)
-			existing = new ArrayList<>();
-
-		copy.addAll(existing);
-		return copy;
-	}
 
 	public double getCPULoad() {
 		return metrics.getCPULoad();

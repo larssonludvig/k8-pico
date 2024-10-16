@@ -5,6 +5,7 @@ import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,6 +14,7 @@ import com.google.rpc.Code;
 
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
+import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.exception.*;
 
 public class PicoServer {
@@ -20,7 +22,7 @@ public class PicoServer {
     private PicoCommunication comm;
 	private Server server;
 	private final PicoAddress address;
-    
+    private final ExecutorService pool = CommandLineArguments.pool;
 	public PicoServer(PicoCommunication comm) {
         this.comm = comm;
 		this.address = this.comm.getAddress();
@@ -73,6 +75,10 @@ public class PicoServer {
 		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
 			RpcContainer res = null;
 			try {
+				pool.submit(() -> {
+					this.comm.broadcastElectionEnd(container);
+				});
+
 				res = this.comm.createLocalContainer(container);
 				res = this.comm.startContainer(res);
 			} catch (PicoException e) {
@@ -182,7 +188,10 @@ public class PicoServer {
 		public void containerElectionEnd(RpcContainerElectionEnd msg, StreamObserver<RpcEmpty> responseObserver) {
 			RpcMetadata sender = msg.getSender();
 			RpcContainer container = msg.getContainer();
-			this.comm.electionEnd(container, sender);
+
+			logger.info("Received ELECTION_END for container {} from {}:{}", 
+				container.getName(), sender.getIp(), sender.getIp());
+			this.comm.receiveElectionEnd(container, sender);
 			responseObserver.onNext(RpcEmpty.newBuilder().build());
 			responseObserver.onCompleted();
 		}

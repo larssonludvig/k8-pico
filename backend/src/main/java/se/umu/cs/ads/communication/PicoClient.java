@@ -8,7 +8,9 @@ import java.util.concurrent.*;
 
 
 import se.umu.cs.ads.communication.RpcServiceGrpc.RpcServiceFutureStub;
+import se.umu.cs.ads.exception.NameConflictException;
 import se.umu.cs.ads.exception.PicoException;
+import se.umu.cs.ads.exception.PortConflictException;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.serializers.*;
 
@@ -153,9 +155,16 @@ public class PicoClient {
 			logger.info("Received evaluation reply from {}: {}", remote, res.getScore());
 			return res;
 		} catch(Exception e) {
+			String msg = e.getMessage();
 			String err = String.format("Received error from remote %s when evaluating container %s: %s",
 				remote, container.getName(), e.getMessage());
 			logger.error(err);
+
+			if (msg.startsWith("NAME_CONFLICT"))
+				throw new NameConflictException(msg);
+			if (msg.startsWith("PORT_CONFLICT"))
+				throw new PortConflictException(msg);
+				
 			throw new PicoException(err);
 		}		
 	}
@@ -196,6 +205,7 @@ public class PicoClient {
 
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(to);
 		try {
+			logger.info("Sending ELECTION_END for container {} to {} ...", container.getName(), to);
 			stub.containerElectionEnd(msg);
 		} catch (Exception e) {
 			logger.warn("Failed to send ELECTION_END for container {} to {}: {}", 

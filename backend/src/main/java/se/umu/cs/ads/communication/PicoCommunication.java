@@ -1,30 +1,14 @@
 package se.umu.cs.ads.communication;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import javax.naming.InterruptedNamingException;
-import javax.sound.sampled.Port;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.*;
+import java.util.concurrent.*;
+import org.apache.logging.log4j.*;
 
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.clustermanagement.ClusterManager;
-import se.umu.cs.ads.exception.NameConflictException;
-import se.umu.cs.ads.exception.PicoException;
-import se.umu.cs.ads.exception.PortConflictException;
+import se.umu.cs.ads.exception.*;
 import se.umu.cs.ads.nodemanager.NodeManager;
-import se.umu.cs.ads.serializers.ContainerSerializer;
-import se.umu.cs.ads.serializers.NodeSerializer;
+import se.umu.cs.ads.serializers.*;
 import se.umu.cs.ads.types.*;
 
 public class PicoCommunication {
@@ -205,14 +189,7 @@ public class PicoCommunication {
 	 */
 	public double evaluateRemoteContainer(PicoContainer container, PicoAddress remote) throws PicoException {
 		RpcContainer rpc = ContainerSerializer.toRPC(container);
-		RpcContainerEvaluation reply = null;
-		try {
-			reply = client.evaluateContainer(rpc, remote);
-		} catch(Exception e) {
-			String err = String.format("An error occurred while evaluating container for %s: %s", remote, e.getMessage());
-			logger.error(err);
-			throw new PicoException(err);
-		}
+		RpcContainerEvaluation reply = client.evaluateContainer(rpc, remote);
 		return reply.getScore();
 	}
 
@@ -320,9 +297,19 @@ public class PicoCommunication {
 		return ContainerSerializer.toRPC(res);
 	}
 
-	public void electionEnd(RpcContainer rpc, RpcMetadata newHost) {
+	public void receiveElectionEnd(RpcContainer rpc, RpcMetadata newHost) {
 		PicoAddress address = new PicoAddress(newHost.getIp(), newHost.getPort());
 		PicoContainer container = ContainerSerializer.fromRPC(rpc);
 		cluster.addContainerToNode(address, container);
+	}
+	public void broadcastElectionEnd(RpcContainer rpc) {
+		PicoAddress self = getAddress();
+		List<PicoAddress> addresses = cluster.getClusterAddresses();
+
+		for (PicoAddress remote : addresses) {
+			pool.submit(() -> {
+				client.markElectionEnd(rpc, self, remote);
+			});
+		}
 	}
 }
