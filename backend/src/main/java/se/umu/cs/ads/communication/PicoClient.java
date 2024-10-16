@@ -202,7 +202,6 @@ public class PicoClient {
 			logger.debug("Successfully sent HEARTBEAT to {}", remote);
 			return node;
 		} catch (Exception e) {
-			logger.error("Failed to send HEARTBEAT to {}: {}", remote, e.getMessage());
 			throw new PicoException(e.getMessage());
 		}
 	}

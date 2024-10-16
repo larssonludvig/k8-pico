@@ -206,7 +206,6 @@ public class PicoCommunication {
 		try {
 			return this.client.heartbeat(remote);
 		} catch (Exception e) {
-			logger.error("Failed to get heart beat from node: {}", e);
 			throw new PicoException(e.getMessage());
 		}
 	}
