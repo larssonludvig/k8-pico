@@ -197,7 +197,12 @@ public class ClusterManager {
 	}
 
 	public void createContainer(PicoContainer container) {
-		PicoAddress leader = manager.getClusterManager().getLeader();
+		PicoAddress leader = getLeader();
 		this.comm.initiateContainerElection(container, leader);
+	}
+
+	public List<PicoContainer> getContainers(PicoAddress adr) {
+		Node n = this.cluster.get(adr);
+		return n.getContainers();
 	}
 }

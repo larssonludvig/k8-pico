@@ -29,6 +29,7 @@ import se.umu.cs.ads.types.Node;
 import se.umu.cs.ads.types.Performance;
 import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.PicoContainer;
+import se.umu.cs.ads.types.PicoContainerState;
 
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
@@ -193,13 +194,19 @@ public class PicoCommunication {
 
 		try {
 			for (Node member : members) {
+				if (toRemove.equals(member.getAddress()))
+					continue;
+					
 				PicoAddress remote = member.getAddress();
 				this.client.removeNode(remote, toRemove);
 			}
 			
-			// TODO: Send start container request of all node containers to 
+			// Send start container request of all node containers to 
 			// leader node. This is to ensure that the containers are not lost
-
+			for (PicoContainer cont : this.cluster.getContainers(toRemove)) {
+				if (cont.getState() == PicoContainerState.RUNNING)
+					this.client.containerElectionStart(ContainerSerializer.toRPC(cont), this.cluster.getLeader());
+			}
 		} catch (Exception e) {
 			logger.error("Failed to remove self ({}) from remote", toRemove);
 			System.exit(1);
