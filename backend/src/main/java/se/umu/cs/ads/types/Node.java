@@ -25,26 +25,10 @@ public class Node implements Serializable {
         this.containers = containers;
     }
 
-    // public String getName() {
-    //     return name;
-    // }
-
-    // public void setName(String name) {
-    //     this.name = name;
-    // }
-
     public PicoAddress getAddress() {
         return address;
     }
 
-
-    // public int getPort() {
-    //     return port;
-    // }
-
-    // public void setPort(int port) {
-    //     this.port = port;
-    // }
 
     public String getCluster() {
         return cluster;
@@ -64,6 +48,12 @@ public class Node implements Serializable {
 			return new ArrayList<>(containers);
 		}
     }
+
+	public void addContainer(PicoContainer container) {
+		synchronized (this) {
+			this.containers.add(container);
+		}
+	}
 
     public void setContainers(List<PicoContainer> containers) {
         synchronized (this) {

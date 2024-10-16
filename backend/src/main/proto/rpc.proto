@@ -57,6 +57,11 @@ message RpcContainerEvaluation {
 	double score = 3;
 }
 
+message RpcContainerElectionEnd {
+	RpcMetadata sender = 1;
+	RpcContainer container = 2;
+}
+
 message RpcContainers {
     repeated RpcContainer containers = 1;
 }
@@ -86,7 +91,7 @@ service RpcService {
     // rpc containerList           () returns ();
     rpc containerElectionStart  (RpcContainer) returns (RpcEmpty);
 	rpc elvaluateContainer		(RpcContainer) returns (RpcContainerEvaluation);
-    // rpc containerElectionEnd    () returns ();
+    rpc containerElectionEnd    (RpcContainerElectionEnd) returns (RpcEmpty);
     rpc join                        (RpcJoinRequest) returns (RpcNodes);
     rpc leave                   (RpcMetadata) returns (RpcEmpty);
     rpc removeNode              (RpcMetadata) returns (RpcEmpty);

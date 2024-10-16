@@ -8,8 +8,13 @@ public class PortConflictException extends PicoException {
 	private final int[] ports;
 
 	public PortConflictException(int[] ports) {
-		super("Port " + Arrays.toString(ports) + " is alredy occupied!", Code.ALREADY_EXISTS);
+		super("PORT_CONFLICT: Ports " + Arrays.toString(ports) + " is already occupied!", Code.ALREADY_EXISTS);
 		this.ports = ports;
+	}
+
+	public PortConflictException(String message) {
+		super(message);
+		this.ports = null;
 	}
 
 	public int[] getPorts() {
