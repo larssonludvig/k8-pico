@@ -93,7 +93,7 @@ public class PicoClient {
 		logger.info("Sending request to remove node {} to {}...", self, remote);
 		try {
 			stub.removeNode(meta);
-			stubs.remove(remote);
+			logger.info("YAAAAAAAAASSSSS QUEEEEEEEEN");
 		} catch (Exception e) {
 			String err = String.format("Received error when removing node %s: %s", remote, e.getMessage());
 			throw handleError(remote, err);

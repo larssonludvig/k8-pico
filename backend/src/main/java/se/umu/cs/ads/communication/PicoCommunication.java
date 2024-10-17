@@ -163,7 +163,6 @@ public class PicoCommunication {
 
 	// removes node from address, removes self if toRemove is null
 	public void removeNodeRemote(PicoAddress toRemove) {
-		logger.error("Removing self from remote nodes...");
 		List<Node> members = this.cluster.getNodes();
 		boolean removeSelf = false;
 
@@ -171,28 +170,52 @@ public class PicoCommunication {
 			removeSelf = true;
 			toRemove = this.manager.getAddress();
 		}
+		
+		List<PicoContainer> zomboidContainers = this.cluster.getContainers(toRemove);
 
-			for (Node member : members) {
-				try {
-					if (toRemove.equals(member.getAddress()))
-						continue;
-						
-					PicoAddress remote = member.getAddress();
-					this.cluster.removeNode(remote);
-					this.client.removeNode(remote, toRemove);
-				} catch (Exception e) {
-					removeSelf = true;
-					logger.error("Failed to remove self ({}) from remote", toRemove);
-				}
-			}
+		manager.removeNode(toRemove);
+		logger.info("Removed node {} from self", toRemove);
+
+		for (Node member : members) {
+			PicoAddress remote = member.getAddress();
 			
+			// Safeguard
+			if (remote.equals(this.address))
+				continue;
+
+			if (remote.equals(this.cluster.getLeader()))
+				continue;
+				
+			if (toRemove.equals(remote))
+				continue;
+
+			try {
+				this.client.removeNode(remote, toRemove);
+			} catch (Exception e) {
+				removeSelf = true;
+				logger.error("Failed to remove {} from remote", toRemove);
+			}
+		}
 		
 		// Send start container request of all node containers to 
 		// leader node. This is to ensure that the containers are not lost
-		for (PicoContainer cont : this.cluster.getContainers(toRemove)) {
-			if (cont.getState() == PicoContainerState.RUNNING)
-				this.client.containerElectionStart(ContainerSerializer.toRPC(cont), this.cluster.getLeader());
+		logger.info("Leader: {}", this.cluster.getLeader());
+		PicoAddress leader = this.cluster.getLeader();
+		logger.info("MYSELF: {}", this.address);
+		if (leader.equals(this.address)) {
+			logger.info("Starting process to move running containers from {}", toRemove);
+			for (PicoContainer cont : zomboidContainers) {
+				if (cont.getState() == PicoContainerState.RUNNING) {
+					try {
+						containerElectionStart(ContainerSerializer.toRPC(cont));
+					} catch (Exception e) {
+						logger.error("Failed to move container {}", e);
+					}
+				}
+			}
+			logger.info("Finnished removing and moving {}", toRemove);
 		}
+
 		// Successfull exit if it removes self
 		if (removeSelf)
 			System.exit(0);
@@ -249,6 +272,7 @@ public class PicoCommunication {
 	public void containerElectionStart(RpcContainer container) throws PicoException {
 		//send container create to that node
 		//that node sends container_election_end
+		logger.info("Starting container election for {}", container.getName());
 
 		List<PicoAddress> clusterMembers = cluster.getClusterAddresses();
 		ArrayList<Future<RpcContainerEvaluation>> responses = new ArrayList<>();
@@ -293,8 +317,8 @@ public class PicoCommunication {
 					continue;
 			}
 
-
 			double score = eval.getScore();
+			logger.info("Got score for {} from {}", score, eval.getSender());
 
 			RpcMetadata sender = eval.getSender();
 			PicoAddress remote = new PicoAddress(sender.getIp(), sender.getPort());

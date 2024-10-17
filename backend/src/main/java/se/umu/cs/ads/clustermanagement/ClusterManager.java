@@ -29,7 +29,7 @@ public class ClusterManager {
 		this.cluster = new ConcurrentHashMap<>();
 		this.manager = manager;
 		this.comm = new PicoCommunication(this, manager);
-		this.suspectedMembers = new HashMap<PicoAddress, Integer>();
+		this.suspectedMembers = new ConcurrentHashMap<PicoAddress, Integer>();
 		this.pool = CommandLineArguments.pool;
 
 		scheduledPool.scheduleAtFixedRate(() -> {
@@ -147,8 +147,8 @@ public class ClusterManager {
 	public void heartbeat() {
 		List<Node> members = getClusterMembers();
 
-		for (Node node : members) {
-			pool.submit(() -> {
+		pool.submit(() -> {
+			for (Node node : members) {
 				try {
 					// Send heartbeat to node
 					Node n = this.comm.heartbeatRemote(node.getAddress());
@@ -175,8 +175,8 @@ public class ClusterManager {
 						suspectedMembers.put(node.getAddress(), 1);
 					}
 				}
-			});
-		}
+			}
+		});
 	}
 
 	private boolean isNodeDead(PicoAddress adr) {
