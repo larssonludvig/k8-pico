@@ -352,17 +352,23 @@ public class PicoCommunication {
 		RpcContainer container = command.getContainer();
 		String name = container.getName();
 		String response = "OK";
+		logger.info("Received command {} for container {}", cmd.toString(), container.getName());
 		switch (cmd.getNumber()) {
 			case ContainerCommand.START_VALUE:
 				manager.startContainer(name);
+				break;
 			case ContainerCommand.RESTART_VALUE:
 				manager.restartContainer(name);
+				break;
 			case ContainerCommand.STOP_VALUE:
 				manager.stopContainer(name);
+				break;
 			case ContainerCommand.REMOVE_VALUE:
 				manager.removeContainer(name);
+				break;
 			case ContainerCommand.GET_LOGS_VALUE:
 				response = manager.getContainerLogs(name);
+				break;
 			default:
 		}
 		return response;

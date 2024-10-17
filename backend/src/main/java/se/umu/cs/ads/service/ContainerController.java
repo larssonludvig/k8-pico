@@ -57,12 +57,13 @@ public class ContainerController {
 
 	@DeleteMapping("{name}")
 	public ResponseEntity<?> removeContainer(@PathVariable String name) {
-		
-		if (!service.getController().hasContainer(name))
-			return ResponseEntity.notFound().build();
-		
 		try {
-			service.getController().removeContainer(name);
+			
+			if (!hasContainer(name)) 
+				service.getController().sendRemoteCommand(name, "REMOVE");
+			else 
+				service.getController().removeContainer(name);
+	
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to remove container {}: {}", name, e.getMessage());
