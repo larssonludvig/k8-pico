@@ -178,6 +178,7 @@ public class PicoCommunication {
 						continue;
 						
 					PicoAddress remote = member.getAddress();
+					this.cluster.removeNode(remote);
 					this.client.removeNode(remote, toRemove);
 				} catch (Exception e) {
 					removeSelf = true;
