@@ -11,8 +11,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.ContainerSerializer;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports.Binding;
 import se.umu.cs.ads.serializers.*;
 import se.umu.cs.ads.utils.*;
+
 
 
 @JsonSerialize(using = PicoContainerSerializer.class)
@@ -90,7 +93,17 @@ public class PicoContainer implements Serializable {
 		return exposedPorts;
 	}
 
-
+	public List<PortBinding> getBindings() {
+        ArrayList<PortBinding> bindings = new ArrayList<>();
+        for (int publicPort : ports.keySet()) {
+            int internalPort = ports.get(publicPort);
+            Binding b = new Binding("0.0.0.0", String.valueOf(internalPort));
+            ExposedPort p = new ExposedPort(publicPort);
+            PortBinding binding = new PortBinding(b, p);
+            bindings.add(binding);
+        }
+        return bindings;
+    }
 
 	public List<String> getEnv() {
 		return env;

@@ -81,7 +81,7 @@ public class ContainerEngine {
 
     private HostConfig configureHost() {
         HostConfig conf = new HostConfig();
-        conf.withPublishAllPorts(true);
+        // conf.withPublishAllPorts(true);
         //Optionally set CPU and memory constraints
         return conf;
     }
@@ -204,12 +204,23 @@ public class ContainerEngine {
         logger.info("Creating container with name {} ...", name);
         CreateContainerResponse resp;
         try {
-			resp = client.createContainerCmd(image)
-                    .withHostConfig(hostConfig)
+            HostConfig cfg = new HostConfig();
+            cfg.withPortBindings(container.getBindings());
+            cfg.withPublishAllPorts(true);
+
+            /**
+             * We are limited to our time. Setting exported ports have been an
+             * issue with the library since 2020, be it has not been fixed yet.
+             * 
+             * See GitHub issue for more info:
+             *      https://github.com/docker-java/docker-java/issues/1281
+             */
+            resp = client.createContainerCmd(image)
+                    .withHostConfig(cfg)
                     .withName(name)
                     .withHostName(name)
-					.withEnv(container.getEnv())
-					.withExposedPorts(container.getExposedPorts())
+                    .withEnv(container.getEnv())
+                    // .withExposedPorts(container.getExposedPorts())
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);
