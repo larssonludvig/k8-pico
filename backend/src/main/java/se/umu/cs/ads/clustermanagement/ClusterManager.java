@@ -19,6 +19,7 @@ public class ClusterManager {
 	private final static Logger logger = LogManager.getLogger(ClusterManager.class);
 	private final Map<PicoAddress, Node> cluster;
 	private final Map<PicoAddress, Integer> suspectedMembers;
+	private final Map<PicoContainer, Long> initTimes;
 	private final PicoCommunication comm;
 	private final NodeManager manager;
 	private final ScheduledExecutorService scheduledPool = CommandLineArguments.scheduledPool;
@@ -27,6 +28,7 @@ public class ClusterManager {
 
 	public ClusterManager(NodeManager manager) {
 		this.cluster = new ConcurrentHashMap<>();
+		this.initTimes = new ConcurrentHashMap<>();
 		this.manager = manager;
 		this.comm = new PicoCommunication(this, manager);
 		this.suspectedMembers = new ConcurrentHashMap<PicoAddress, Integer>();
@@ -202,6 +204,8 @@ public class ClusterManager {
 	}
 
 	public void createContainer(PicoContainer container) {
+		logger.info("Initializing container creation for {} ...", container.getName());
+		initTimes.put(container, System.currentTimeMillis());
 		PicoAddress leader = getLeader();
 		this.comm.initiateContainerElection(container, leader);
 	}
@@ -213,6 +217,8 @@ public class ClusterManager {
 			return;
 		}
 		n.addContainer(container);
+		long createTime = initTimes.get(container) - System.currentTimeMillis();
+		logger.info("Finished container election process for {} after {} ms", container.getName(), createTime);
 	}
 
 	public List<PicoContainer> getContainers(PicoAddress adr) {
