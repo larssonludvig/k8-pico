@@ -3,6 +3,7 @@
 @inject NavigationManager _nav
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Text.RegularExpressions
 
 <div style="margin-bottom: 2rem;">
     <div>
@@ -21,15 +22,6 @@
 {
     <div style="height: 20rem; overflow-y: scroll;">
         <button @onclick="FetchNodes">Update node data</button>
-		<button @onclick="FetchContainers">List all containers</button>
-
-        <div>
-            <div>
-                <input type="text" @bind="image" placeholder="Image" />
-                <input type="text" @bind="containerName" placeholder="Name" />
-                <button @onclick="CreateContainer" disabled="@(String.IsNullOrEmpty(image) || String.IsNullOrEmpty(containerName))">Create</button>
-            </div>
-        </div>
 
         @if (!String.IsNullOrEmpty(nodesErrorStr))
         {
@@ -46,24 +38,24 @@
             </TemplateColumn>
         </QuickGrid>
     </div>
+    
+    <h2>Create new container</h2>
+    <div>
+        <div>
+            <input type="text" @bind="image" placeholder="Image" />
+            <input type="text" @bind="containerName" placeholder="Name" />
+            @* <input type="text" @bind="ports" placeholder="e:i, e:i..." /> *@
+            <input type="text" @bind="envs" placeholder="k=v, k=v..." />
+            <button @onclick="CreateContainer" disabled="@(String.IsNullOrEmpty(image) || String.IsNullOrEmpty(containerName))">Create</button>
+        </div>
+    </div>
 
-	<div style="height: 20rem; overflow-y: scroll;">
-        <QuickGrid Items="@containers">
-            <PropertyColumn Property="@(x => x.Name)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
-            <PropertyColumn Property="@(x => x.Image)" Sortable="true" />
-            <PropertyColumn Property="@(x => x.State)" Sortable="true" />
-            <TemplateColumn>
-                <button @onclick='@(() => _nav.NavigateTo("/container/" + context.Name))'>-></button>
-            </TemplateColumn>
-        </QuickGrid>
-	</div>
 }
 
 
 @code {
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
     private IQueryable<Node>? nodes;
-	private IQueryable<PicoContainer>? containers;
 
     private string? ip = "http://localhost";
     private string? port = "8080";
@@ -73,6 +65,8 @@
 
     private string? image = null;
     private string? containerName = null;
+    private string? ports = null;
+    private string? envs = null;
 
     protected override async Task OnInitializedAsync() {
         await FetchNodes();
@@ -97,19 +91,6 @@
         }
     }
 
-	private async Task FetchContainers() {
-		try {
-			containers = null;
-			if (hasConnection) {
-				containers = (await Api.Get<List<PicoContainer>>("containers")).AsQueryable();
-			}
-			StateHasChanged();
-		} catch (HttpRequestException e) {
-			containers = null;
-			Console.WriteLine("Could not fetch nodes: " + e.Message);
-		}
-	}
-
     private async Task Connect() {
         try {
             CultureInfo ci = new CultureInfo("en-US");
@@ -124,7 +105,6 @@
                 hasConnection = true;
 
                 await FetchNodes();
-                await FetchContainers();
             }
         } catch (UriFormatException e) {
             connectionErrorStr = "The hostname could not be parsed.";
@@ -139,6 +119,12 @@
             PicoContainer container = new PicoContainer();
             container.Name = containerName != null ? containerName : "";
             container.Image = image != null ? image : "";
+
+            List<String> ports = this.ports != null ? Regex.Replace(this.ports, @"\s+", "").Split(',').ToList() : new List<String>();
+            container.Ports = ports;
+
+            List<String> env = this.envs != null ? Regex.Replace(this.envs, @"\s+", "").Split(',').ToList() : new List<String>();
+            container.Env = env;
 
             container = await Api.Post<PicoContainer>("containers", container);
 

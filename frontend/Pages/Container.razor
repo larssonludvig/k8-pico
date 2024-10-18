@@ -30,40 +30,37 @@
             <p>@container?.Name</p>
             <p>@container?.Image</p>
 			@if (container.Ports != null) {
-
-				<p>@for (int i = 0; i < container.Ports.Count; i++) { 
-					@* next last element *@
-					if (i <= container.Ports.Count - 2) {
-						@($"{@container.Ports[i]}, ") 
-					} else {
-						@container.Ports[i]
-					}
-				}</p>
+                @if (container.Ports.Count == 0) {
+                    <p>None exposed</p>
+                } else {
+                    <p>@for (int i = 0; i < container.Ports.Count; i++) { 
+                        @* next last element *@
+                        if (i <= container.Ports.Count - 2) {
+                            @($"{@container.Ports[i]}, ") 
+                        } else {
+                            @container.Ports[i]
+                        }
+                    }</p>
+                }
 			}
 			
 			@if (container.Env != null) {
-				<p>@for (int i = 0; i < container.Env.Count; i++) { 
-					@* next last element *@
-					if (i <= container.Env.Count - 2) {
-						@($"{@container.Env[i]}, ") 
-					} else {
-						@container.Env[i]
-					}
-				}</p>
+                @if (container.Env.Count == 0) {
+                    <p>None</p>
+                } else {
+                    <p>@for (int i = 0; i < container.Env.Count; i++) { 
+                        @* next last element *@
+                        if (i <= container.Env.Count - 2) {
+                            @($"{@container.Env[i]}, ") 
+                        } else {
+                            @container.Env[i]
+                        }
+                    }</p>
+                }
 			}
         </div>
 
 		}
-    </div>
-    <div style="flex: 1; display: flex;">
-        <div style="margin-right: 2rem;">
-            <p style="font-weight: bold;">CPU usage: </p>
-            <p style="font-weight: bold;">RAM usage: </p>
-        </div>
-        <div>
-            <p>Not fetched</p>
-            <p>Not fetched</p>
-        </div>
     </div>
 </div>
 
