@@ -84,7 +84,7 @@ public class Controller {
 
 	public List<PicoContainer> listAllContainers() throws PicoException {
 		Future<List<PicoContainer>> res = pool.submit(() -> {
-			return engine.getContainers(true);
+			return cluster.getAllContainers();
 			});
 
 		try {

@@ -40,7 +40,7 @@
     </div>
     
     <h2>Create new container</h2>
-    <div>
+    <div style="margin-bottom: 75px;">
         <div>
             <input type="text" @bind="image" placeholder="Image" />
             <input type="text" @bind="containerName" placeholder="Name" />
@@ -50,12 +50,26 @@
         </div>
     </div>
 
+	<h2>Cluster overview</h2>
+	<div style="height: 20rem; overflow-y: scroll; margin-bottom: 75px;">
+        <QuickGrid Items="@containers">
+            <PropertyColumn Property="@(x => x.Name)" Sortable="true"/>
+            <PropertyColumn Property="@(x => x.Image)" Sortable="true" />
+            <PropertyColumn Property="@(x => x.State)" Sortable="true" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+            <TemplateColumn>
+                <button @onclick='@(() => _nav.NavigateTo("/container/" + context.Name))'>-></button>
+            </TemplateColumn>
+        </QuickGrid>
+	</div>
+
 }
 
 
 @code {
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
     private IQueryable<Node>? nodes;
+
+	private IQueryable<PicoContainer>? containers;
 
     private string? ip = "http://localhost";
     private string? port = "8080";
@@ -91,6 +105,19 @@
         }
     }
 
+	private async Task FetchContainers() {
+		try {
+			containers = null;
+			if (hasConnection) {
+				containers = (await Api.Get<List<PicoContainer>>("containers")).AsQueryable();
+			}
+			StateHasChanged();
+		} catch (HttpRequestException e) {
+			containers = null;
+			Console.WriteLine("Could not fetch nodes: " + e.Message);
+		}
+	}
+
     private async Task Connect() {
         try {
             CultureInfo ci = new CultureInfo("en-US");
@@ -105,6 +132,7 @@
                 hasConnection = true;
 
                 await FetchNodes();
+				await FetchContainers();
             }
         } catch (UriFormatException e) {
             connectionErrorStr = "The hostname could not be parsed.";
