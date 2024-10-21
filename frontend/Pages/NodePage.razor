@@ -12,11 +12,13 @@
             <p style="font-weight: bold;">Address: </p>
             <p style="font-weight: bold;">Port: </p>
             <p style="font-weight: bold;">Cluster: </p>
+            <p style="font-weight: bold;">Number of containers: </p>
         </div>
         <div>
             <p>@node?.Address?.Ip</p>
             <p>@node?.Address?.Port</p>
             <p>@node?.Cluster</p>
+			<p>@node?.Containers.Count()</p>
         </div>
     </div>
     <div style="flex: 1; display: flex;">

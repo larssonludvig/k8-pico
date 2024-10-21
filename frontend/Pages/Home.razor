@@ -51,6 +51,10 @@
     </div>
 
 	<h2>Cluster overview</h2>
+	@if (containers != null) 
+	{
+		<p>Number of containers: @containers.Count()</p>
+	}
 	<div style="height: 20rem; overflow-y: scroll; margin-bottom: 75px;">
         <QuickGrid Items="@containers">
             <PropertyColumn Property="@(x => x.Name)" Sortable="true"/>
