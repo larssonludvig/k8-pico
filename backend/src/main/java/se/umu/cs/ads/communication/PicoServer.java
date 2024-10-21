@@ -66,7 +66,6 @@ public class PicoServer {
 		
 		@Override
 		public void fetchNodePerformance(RpcEmpty empty, StreamObserver<RpcPerformance> responseObserver) {
-			logger.debug("Fetching performance...");
 			try {
 				RpcPerformance resp = this.comm.fetchPerformance();
 				responseObserver.onNext(resp);
@@ -97,7 +96,7 @@ public class PicoServer {
 
 
 		@Override
-		public void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
+		public synchronized void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
 			RpcNode aspirant = msg.getAspirant();
 			RpcNodes reply = this.comm.joinReply(aspirant);
 			List<PicoAddress> clusterMembers = this.comm.getClusterAddresses();
@@ -140,7 +139,7 @@ public class PicoServer {
 		}
 
 		@Override
-		public void leave(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
+		public synchronized void leave(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
 			//TODO: Error handling
 			this.comm.removeNodeRemote(null);
@@ -198,6 +197,8 @@ public class PicoServer {
 		@Override
 		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
 			try {
+				logger.info("Received evaluation reply for container {}",
+					container.getName());
 				RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
 				ro.onNext(resp);
 				ro.onCompleted();

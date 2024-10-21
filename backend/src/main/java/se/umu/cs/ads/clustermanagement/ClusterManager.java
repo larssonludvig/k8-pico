@@ -7,7 +7,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import se.umu.cs.ads.arguments.CommandLineArguments;
-import se.umu.cs.ads.types.PicoAddress;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.communication.PicoCommunication;
 import se.umu.cs.ads.exception.PicoException;
@@ -149,6 +148,8 @@ public class ClusterManager {
 		List<Node> members = getClusterMembers();
 
 		pool.submit(() -> {
+			long start = System.currentTimeMillis();
+
 			for (Node node : members) {
 				try {
 					// Send heartbeat to node
@@ -177,6 +178,8 @@ public class ClusterManager {
 					}
 				}
 			}
+			long time = System.currentTimeMillis() - start;
+			logger.info("Cluster heartbeat completed after {} ms", time);
 		});
 	}
 
@@ -216,8 +219,10 @@ public class ClusterManager {
 			return;
 		}
 		n.addContainer(container);
-		long createTime = initTimes.get(container) - System.currentTimeMillis();
-		logger.info("Finished container election process for {} after {} ms", container.getName(), createTime);
+		if (initTimes.containsKey(container)) {
+			long createTime = initTimes.get(container) - System.currentTimeMillis();
+			logger.info("Finished container election process for {} after {} ms", container.getName(), createTime);
+		}
 	}
 
 	public List<PicoContainer> getContainers(PicoAddress adr) {
@@ -226,12 +231,13 @@ public class ClusterManager {
 	}
 
 	public List<PicoContainer> getAllContainers() {
-		ArrayList<PicoContainer> all = new ArrayList<>();
+		//ignore duplicates if running multiple instance on same node
+		HashSet<PicoContainer> set = new HashSet<>(); 
 	
 		for (Node n : getNodes()) 
-			all.addAll(n.getContainers());
+			set.addAll(n.getContainers());
 		
-		return all;
+		return new ArrayList<>(set);
 	}
 
 	public PicoContainer getContainer(String name) {

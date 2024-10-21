@@ -14,6 +14,7 @@ import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.types.*;
 
 import org.apache.logging.log4j.Logger;
+import org.checkerframework.checker.units.qual.s;
 
 
 @CrossOrigin(maxAge = 3600)
@@ -58,12 +59,15 @@ public class ContainerController {
 	@DeleteMapping("{name}")
 	public ResponseEntity<?> removeContainer(@PathVariable String name) {
 		try {
-			
+			logger.info("Starting delete process for container {}", name);
+			long start = System.currentTimeMillis();
 			if (!hasContainer(name)) 
 				service.getController().sendRemoteCommand(name, "REMOVE");
 			else 
 				service.getController().removeContainer(name);
-	
+
+			long time = System.currentTimeMillis() - start;
+			logger.info("Proces to remove container {} finished after {} ms", name, time);
 			return ResponseEntity.status(HttpStatus.OK).body(null);
 		} catch (PicoException e) {
 			logger.error("Error trying to remove container {}: {}", name, e.getMessage());

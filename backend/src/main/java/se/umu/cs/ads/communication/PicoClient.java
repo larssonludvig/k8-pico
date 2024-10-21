@@ -106,12 +106,12 @@ public class PicoClient {
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
-		logger.debug("Fetching performance from {}...", remote);		
+		logger.info("Fetching performance from {}...", remote);		
 		try {
 			long start = System.currentTimeMillis();
 			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build()).get();
 			long time = System.currentTimeMillis() - start;
-			logger.debug("Done fetching performance from {} after {} ms", remote, time);
+			logger.info("Done fetching performance from {} after {} ms", remote, time);
 			return result;
 		} catch (Exception e) {
 			String err = String.format("Could not fetch performance from %s: %s", remote, e.getMessage());
@@ -155,7 +155,7 @@ public class PicoClient {
 		long start = System.currentTimeMillis();
 		try {
 			RpcContainerEvaluation res = stub.elvaluateContainer(container).get(); 
-			long time = System.currentTimeMillis();
+			long time = System.currentTimeMillis() - start;
 			logger.info("Received evaluation reply ({}) from {} after {} ms", res.getScore(), remote, time);
 			return res;
 		} catch(Exception e) {
@@ -243,7 +243,7 @@ public class PicoClient {
 			long start = System.currentTimeMillis();
 			Node node = NodeSerializer.fromRPC(stub.heartbeat(RpcEmpty.newBuilder().build()).get());
 			long time = System.currentTimeMillis() - start;
-			logger.debug("Successfully sent HEARTBEAT to {} after {} ms", remote, time);
+			logger.info("Successfully sent HEARTBEAT to {} after {} ms", remote, time);
 			return node;
 		} catch (Exception e) {
 			throw handleError(remote, e.getMessage());

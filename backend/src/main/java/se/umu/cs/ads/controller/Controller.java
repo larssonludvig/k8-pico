@@ -52,23 +52,23 @@ public class Controller {
 
 	private void startPeriodicRefresh() {
 		scheduler.scheduleAtFixedRate(() -> {
-			long start = System.currentTimeMillis();
-			Map<String, PicoContainer> containers = engine.readContainers(true);
-			List<String> images = engine.readImages();
-			engine.setContainers(containers);
-			engine.setImages(images);
-			long time = System.currentTimeMillis() - start;
-			manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
-			logger.debug("Refreshed containers and images in {} ms", time);
-
+			try {
+				long start = System.currentTimeMillis();
+				Map<String, PicoContainer> containers = engine.readContainers(true);
+				List<String> images = engine.readImages();
+				engine.setContainers(containers);
+				engine.setImages(images);
+				long time = System.currentTimeMillis() - start;
+				manager.setActiveContainers(new ArrayList<PicoContainer>(containers.values()));
+				logger.info("Refreshed containers and images in {} ms", time);
+			} catch (Exception e) {
+				logger.error("Failed to refresh container: {}", e.getMessage());
+			}
 		}, 5, 5, TimeUnit.SECONDS);
 
 		// Heartbeat
 		scheduler.scheduleAtFixedRate(() -> {
-			long start = System.currentTimeMillis();
 			this.cluster.heartbeat();
-			long time = System.currentTimeMillis() - start;
-			logger.debug("Heartbeat completed in {} ms", time);
 		}, 5, 5, TimeUnit.SECONDS);
 	}
 
@@ -222,16 +222,7 @@ public class Controller {
 
 
 	public boolean hasContainer(String name) {
-		Future<Boolean> res = pool.submit(() -> {
-			return engine.hasContainer(name);
-		});
-
-		try {
-			return res.get();
-		} catch (Exception e) {
-			return false;
-		}
-	
+		return manager.hasContainerName(name);	
 	}
 
 	public void stopContainer(String name) throws PicoException {

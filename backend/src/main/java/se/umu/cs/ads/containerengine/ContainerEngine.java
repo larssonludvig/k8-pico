@@ -132,10 +132,10 @@ public class ContainerEngine {
 			List<String> env = parseEnv(resp.getConfig().getEnv());
 			PicoContainerState state = parseState(resp.getState());
 
-            logger.debug("Found container {} of image {} with id {}", name, image, id);
+            logger.info("Found container {} of image {} with id {}", name, image, id);
 
             PicoContainer container = new PicoContainer(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
-            containers.put(container.getName(), container);
+            containers.put(name, container);
 			containerIDs.put(name, id);
         }
 		return containers;
@@ -207,6 +207,7 @@ public class ContainerEngine {
             HostConfig cfg = new HostConfig();
             cfg.withPortBindings(container.getBindings());
             cfg.withPublishAllPorts(true);
+			cfg.withRestartPolicy(RestartPolicy.unlessStoppedRestart());
 
             /**
              * We are limited to our time. Setting exported ports have been an
@@ -220,7 +221,6 @@ public class ContainerEngine {
                     .withName(name)
                     .withHostName(name)
                     .withEnv(container.getEnv())
-                    // .withExposedPorts(container.getExposedPorts())
                     .exec();
         } catch (DockerException e) {
             String message = parseDockerException(e);

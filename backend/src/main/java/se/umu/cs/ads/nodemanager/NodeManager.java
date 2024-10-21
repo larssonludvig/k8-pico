@@ -143,8 +143,9 @@ public class NodeManager {
 			int[] ports = portConflicts.stream().mapToInt(Integer::intValue).toArray();
 			throw new PortConflictException(ports);
 		}
-
-		return getScore();
+		double score = getScore();
+		logger.info("Evaluated container {} with score {}", container.getName(), score);
+		return score;
 	}
 
 	/**
@@ -208,7 +209,7 @@ public class NodeManager {
 
 		if (remote == null || container == null) {
 			logger.warn("Could not find any container with name {}", name);
-			return "NO OK";
+			return null;
 		}
 		ContainerCommand cmd = parseCommand(command);
 		if (cmd == null) {

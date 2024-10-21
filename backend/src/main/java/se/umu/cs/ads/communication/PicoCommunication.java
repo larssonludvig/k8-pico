@@ -272,10 +272,11 @@ public class PicoCommunication {
 	public void containerElectionStart(RpcContainer container) throws PicoException {
 		//send container create to that node
 		//that node sends container_election_end
-		logger.info("Starting container election for {}", container.getName());
 
 		List<PicoAddress> clusterMembers = cluster.getClusterAddresses();
 		ArrayList<Future<RpcContainerEvaluation>> responses = new ArrayList<>();
+		logger.info("Starting container election for {}, sending evaluation request to {} nodes", 
+			container.getName(), clusterMembers.size());
 
 		//evaluate container at all hosts
 		for (PicoAddress remote : clusterMembers) {

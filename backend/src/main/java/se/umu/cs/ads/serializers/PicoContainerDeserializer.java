@@ -35,14 +35,18 @@ public class PicoContainerDeserializer extends StdDeserializer<PicoContainer> {
 		JsonNode node = jp.getCodec().readTree(jp);
 		String name = node.get("name").asText();
 		String image = node.get("image").asText();
-		String stateStr = node.get("state").asText();
-		PicoContainerState state = getState(stateStr);
 
 		JsonNode portsRaw = node.get("ports");
 		JsonNode envRaw = node.get("env");
+		JsonNode stateRaw = node.get("state");
 
 		Map<Integer, Integer> ports = new HashMap<>();
 		List<String> env = new ArrayList<>();
+		PicoContainerState state = PicoContainerState.UNKNOWN; 
+		
+		if (stateRaw != null) {
+			state = getState(stateRaw.asText());
+		}
 
 		if (portsRaw != null && !portsRaw.isNull()) {
 
