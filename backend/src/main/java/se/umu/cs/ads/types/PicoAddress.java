@@ -47,5 +47,4 @@ public class PicoAddress implements Comparable<PicoAddress> {
 	public int hashCode() {
 		return this.toString().hashCode();
 	}
-	
 }

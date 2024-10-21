@@ -71,6 +71,9 @@ public class ClusterManager {
 
 		for (Node node : newMembers)
 			cluster.put(node.getAddress(), node);
+
+		//finally add ourselves
+		cluster.put(manager.getAddress(), manager.getNode());
 	}
 
 	public List<Node> getClusterMembers() {
@@ -78,7 +81,7 @@ public class ClusterManager {
 	}
 
 	public List<PicoAddress> getClusterAddresses() {
-		List<PicoAddress> res = cluster.values().stream().map(it -> it.getAddress()).toList();
+		Set<PicoAddress> res = cluster.keySet();
 		return new ArrayList<>(res);
 	}
 
@@ -89,6 +92,7 @@ public class ClusterManager {
 	public void addNode(Node node) {
 		cluster.put(node.getAddress(), node);
 		suspectedMembers.remove(node.getAddress());
+		logger.info("Cluster now contains {} members", cluster.size());
 	}
 
 	public void removeNode(Node node) {
@@ -111,23 +115,7 @@ public class ClusterManager {
 		return cluster.get(address);
 	}
 
-	public List<Node> join(Node node) {
-		// Reliable multicast by passing along if the user is not registered
-		// by the current node
-		PicoAddress adr = node.getAddress();
-
-		List<Node> members = cluster.values().stream().toList();
-		// Check if joining node is in the cluster
-		if (!cluster.containsKey(adr)) {
-			return members;
-		}
-
-		cluster.put(adr, node);
-
-		// broadcast(msg);
-		return members;
-	}
-
+	
 	public Node fetchNode() {
 		return this.manager.getNode();
 	}
@@ -183,7 +171,7 @@ public class ClusterManager {
 				}
 			}
 			long time = System.currentTimeMillis() - start;
-			logger.info("Cluster heartbeat completed after {} ms", time);
+			logger.info("Heartbeat with cluster of size {} completed after {} ms", cluster.size(), time);
 		});
 	}
 

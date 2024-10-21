@@ -132,7 +132,7 @@ public class ContainerEngine {
 			List<String> env = parseEnv(resp.getConfig().getEnv());
 			PicoContainerState state = parseState(resp.getState());
 
-            logger.info("Found container {} of image {} with id {}", name, image, id);
+            logger.debug("Found container {} of image {} with id {}", name, image, id);
 
             PicoContainer container = new PicoContainer(cont).setName(name).setImage(image).setPorts(ports).setEnv(env).setState(state);
             containers.put(name, container);

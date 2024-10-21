@@ -37,6 +37,7 @@ public class PicoClient {
 		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
 		channels.put(address, channel);
 		stubs.put(address, stub);
+		logger.info("Connected to new host: {}!", address);
 	}	
 
 
@@ -60,6 +61,7 @@ public class PicoClient {
 	// Request to remove a node from the network
 	public void leave(PicoAddress remote) throws Exception {
 		RpcServiceFutureStub stub = stubs.get(remote);
+		
 		if (stub == null) {
 			connectNewHost(remote);
 			stub = stubs.get(remote);
@@ -193,11 +195,8 @@ public class PicoClient {
 		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
 			container.getName(), remote);
-		long start = System.currentTimeMillis();
 		try {
 			stub.createContainer(container);
-			long time = System.currentTimeMillis() - start;
-			logger.info("CREATE_CONTAINER for {} has finished after {} ms", container.getName(), time);
 		} catch (Exception e) {
 			String err = String.format("Received error from remote %s when creating container %s: %s", 
 				remote, container.getName(), e.getMessage());
@@ -273,12 +272,12 @@ public class PicoClient {
 
 
 	private PicoException handleError(PicoAddress remote, String msg) {
+		logger.error(msg);
 		ManagedChannel channel = channels.get(remote);
 		channel.shutdownNow();
 		channels.remove(remote);
 		stubs.remove(remote);
 
-		logger.error(msg);
 		return new PicoException(msg);
 	}
 

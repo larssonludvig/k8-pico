@@ -13,6 +13,8 @@ import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports.Binding;
+import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
+
 import se.umu.cs.ads.serializers.*;
 import se.umu.cs.ads.utils.*;
 
@@ -126,6 +128,11 @@ public class PicoContainer implements Serializable {
         }
         return false;
     }
+
+	@Override
+	public int hashCode() {
+		return this.toString().hashCode();
+	}
 
 	@Override
 	public String toString() {

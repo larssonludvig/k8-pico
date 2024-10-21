@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.commons.collections.functors.ExceptionClosure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -85,10 +86,11 @@ public class PicoServer {
 				});
 
 				res = this.comm.createLocalContainer(container);
-				// res = this.comm.startContainer(container);
 			} catch (PicoException e) {
 				logger.error(e.getMessage());
 				responseObserver.onError(e.toStatusException());
+			} catch (Exception e) {
+				logger.error("Error creating local container: {}", e.getMessage());
 			}
 			responseObserver.onNext(res);
 			responseObserver.onCompleted();
@@ -98,18 +100,18 @@ public class PicoServer {
 		@Override
 		public synchronized void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
 			RpcNode aspirant = msg.getAspirant();
-			RpcNodes reply = this.comm.joinReply(aspirant);
-			List<PicoAddress> clusterMembers = this.comm.getClusterAddresses();
 			RpcMetadata metadata = msg.getSender();
 
 
 			PicoAddress aspirantAddress = new PicoAddress(aspirant.getIp(), aspirant.getPort());
 			PicoAddress senderAddress = new PicoAddress(metadata.getIp(), metadata.getPort());
 		
+			logger.info("Received JOIN_REQUEST from {} for {}", senderAddress, aspirantAddress);
 
 			//if sender != aspirant we just add it to our system
 			//otherwise we forward it to other members
 			if (!senderAddress.equals(aspirantAddress)) {
+				logger.info("Join request has been forwarded, adding aspirant {} to cluster", aspirantAddress);
 				this.comm.addNewMember(aspirant);
 				//create empty response
 				RpcNodes empty = RpcNodes.newBuilder().build();
@@ -117,23 +119,32 @@ public class PicoServer {
 				responseObserver.onCompleted();
 				return;
 			}
+			
+			RpcNodes reply = this.comm.joinReply(aspirant);
+			List<PicoAddress> clusterMembers = this.comm.getClusterAddresses();
 		
+			String b = "Broadcasting JOIN_REQUEST to () {}:\n";
 			//now send request to members in cluster
 			//except ourselves and the aspirant
 			for (PicoAddress addr : clusterMembers) {
+
 				if (addr.equals(this.comm.getAddress()))
 					continue;
 
-				if (addr.equals(aspirant))
+				if (addr.equals(aspirantAddress))
 					continue;
 
 				try {
+					b += "\t" + addr + "\n";
 					this.comm.joinRequest(addr, NodeSerializer.fromRPC(aspirant));
 				} catch(PicoException e) {
 					responseObserver.onError(e.toStatusException());
+				} catch(Exception e) {
+					logger.error("Failed to broadcast join request: {}", e.getMessage());
 				}
 			}
 			
+			logger.info(b, clusterMembers.size());
 			responseObserver.onNext(reply);
 			responseObserver.onCompleted();
 		}
@@ -197,7 +208,7 @@ public class PicoServer {
 		@Override
 		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
 			try {
-				logger.info("Received evaluation reply for container {}",
+				logger.info("Received evaluation request for container {}",
 					container.getName());
 				RpcContainerEvaluation resp = this.comm.evaluateContainer(container);
 				ro.onNext(resp);

@@ -3,26 +3,24 @@ package se.umu.cs.ads.types;
 import java.io.Serializable;
 import se.umu.cs.ads.types.PicoAddress;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Node implements Serializable {
 	private static final long serialVersionUID = 69691337L;
-    // private String name;
     private PicoAddress address;
     private String cluster;
-    // private int port;
 
-    private final ArrayList<PicoContainer> containers;
+    private final HashSet<PicoContainer> containers;
     
 
     public Node() {
-        this.containers = new ArrayList<>();
+        this.containers = new HashSet<>();
     }
 
     public Node(PicoAddress address, String cluster, ArrayList<PicoContainer> containers) {
         this.address = address;
         this.cluster = cluster;
-        this.containers = containers;
+        this.containers = new HashSet<>(containers);
     }
 
     public PicoAddress getAddress() {
@@ -72,7 +70,7 @@ public class Node implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("%s", address);
+		return address.toString();
 	}
 
 	@Override

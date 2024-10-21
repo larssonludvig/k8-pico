@@ -55,20 +55,20 @@ public class PicoCommunication {
 		this.cluster.addNode(n);
 	}
 
-	public List<Node> joinRequest(PicoAddress remote, Node self) throws PicoException {
+	public synchronized List<Node> joinRequest(PicoAddress remote, Node aspirant) throws PicoException {
 
 		RpcContainers.Builder builder = RpcContainers.newBuilder();
-		self.getContainers().forEach(it -> ContainerSerializer.toRPC(it));
+		// aspirant.getContainers().forEach(it -> ContainerSerializer.toRPC(it));
 
-		RpcNode rpcSelf = RpcNode.newBuilder()
-				.setClusterName(self.getCluster())
-				.setIp(self.getIP())
-				.setPort(self.getPort())
+		RpcNode rpcAspirant = RpcNode.newBuilder()
+				.setClusterName(aspirant.getCluster())
+				.setIp(aspirant.getIP())
+				.setPort(aspirant.getPort())
 				.setContainers(builder.build())
 				.build();
 
 		RpcMetadata sender = getSelfMetadata();
-		RpcJoinRequest request = RpcJoinRequest.newBuilder().setAspirant(rpcSelf).setSender(sender).build();
+		RpcJoinRequest request = RpcJoinRequest.newBuilder().setAspirant(rpcAspirant).setSender(sender).build();
 		try {
 			RpcNodes nodes = client.join(remote, request);
 			return NodeSerializer.fromRPC(nodes);
@@ -79,7 +79,7 @@ public class PicoCommunication {
 
 	}
 
-	public RpcNodes joinReply(RpcNode msg) {
+	public synchronized RpcNodes joinReply(RpcNode msg) {
 		Node newMember = NodeSerializer.fromRPC(msg);
 		cluster.addNode(newMember);
 		List<Node> nodes = cluster.getNodes();
@@ -337,7 +337,11 @@ public class PicoCommunication {
 
 		//send create-container to best
 		try {
-			client.createContainer(container, best);
+
+			if (best.equals(manager.getAddress()))
+				createLocalContainer(container);
+			else
+				client.createContainer(container, best);
 		} catch(Exception e) {
 			logger.error("Could not send CREATE_CONTAINER to remote {}", best);
 			throw new PicoException("Could not send CREATE_CONTAINER to remote " + best);
