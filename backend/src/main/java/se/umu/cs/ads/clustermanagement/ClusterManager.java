@@ -151,6 +151,10 @@ public class ClusterManager {
 			long start = System.currentTimeMillis();
 
 			for (Node node : members) {
+				// Filter out self
+				if (node.getAddress().equals(manager.getAddress()))
+					continue;
+
 				try {
 					// Send heartbeat to node
 					Node n = this.comm.heartbeatRemote(node.getAddress());
