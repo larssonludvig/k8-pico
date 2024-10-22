@@ -112,8 +112,8 @@ public class NodeManager {
 
 	/**
 	 * Check if any of the currently running containers have any of the provided ports
-	 * @param ports
-	 * @return
+	 * @param external Set of ports to check
+	 * @return List of conflicting ports
 	 */
 	public List<Integer> conflictingPorts(Set<Integer> external) {
 		List<Integer> conflicting = new ArrayList<>();

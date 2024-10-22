@@ -48,7 +48,7 @@ public class PicoCommunication {
 
 	/**
 	 * Adds a new member to the cluster
-	 * @param address
+	 * @param node the new member to add
 	 */
 	public void addNewMember(RpcNode node) {
 		Node n = NodeSerializer.fromRPC(node);
