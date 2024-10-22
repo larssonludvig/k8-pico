@@ -78,7 +78,7 @@ public class NodeManager {
 		if (getAddress().equals((ipPort))) {
 			return new Performance(
 				getCPULoad(),
-				getMemLoad()
+				1 - getMemLoad()
 			);
 		}
 
