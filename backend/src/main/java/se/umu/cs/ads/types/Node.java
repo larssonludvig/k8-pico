@@ -1,7 +1,6 @@
 package se.umu.cs.ads.types;
 
 import java.io.Serializable;
-import se.umu.cs.ads.types.PicoAddress;
 import java.util.ArrayList;
 import java.util.*;
 

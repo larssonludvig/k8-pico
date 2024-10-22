@@ -120,6 +120,8 @@ public final class ContainerSerializer extends StdSerializer<PicoContainer> {
 				return RpcContainerState.NAME_CONFLICT;
 			case PORT_CONFLICT:
 				return RpcContainerState.PORT_CONFLICT;
+			case UNKNOWN:
+				return RpcContainerState.UNKNOWN;
 			default:
 				logger.warn("Could not parse state: {}. Treating as UNKNOWN", state);
 				return RpcContainerState.UNKNOWN;
@@ -138,6 +140,8 @@ public final class ContainerSerializer extends StdSerializer<PicoContainer> {
 				return PicoContainerState.NAME_CONFLICT;
 			case PORT_CONFLICT:
 				return PicoContainerState.PORT_CONFLICT;
+			case UNKNOWN:
+				return PicoContainerState.UNKNOWN;
 			default:
 				logger.warn("Could not parse state: {}. Treating as UNKNOWN", state);
 				return PicoContainerState.UNKNOWN;

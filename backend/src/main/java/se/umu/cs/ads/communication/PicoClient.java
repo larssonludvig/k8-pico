@@ -6,8 +6,8 @@ import io.grpc.ManagedChannelBuilder;
 import java.util.*;
 import java.util.concurrent.*;
 
-
-import se.umu.cs.ads.communication.RpcServiceGrpc.RpcServiceFutureStub;
+import se.umu.cs.ads.arguments.CommandLineArguments;
+import se.umu.cs.ads.communication.RpcServiceGrpc.*;
 import se.umu.cs.ads.exception.NameConflictException;
 import se.umu.cs.ads.exception.PicoException;
 import se.umu.cs.ads.exception.PortConflictException;
@@ -21,20 +21,28 @@ import org.apache.logging.log4j.Logger;
 public class PicoClient {
 	private final static Logger logger = LogManager.getLogger(PicoClient.class);
 	private final Map<PicoAddress, ManagedChannel> channels;
-	private final Map<PicoAddress, RpcServiceFutureStub> stubs;
-
+	private final Map<PicoAddress, RpcServiceBlockingStub> stubs;
+	private final static Executor pool = CommandLineArguments.pool;
+   
     public PicoClient() {
 		this.stubs = new ConcurrentHashMap<>();
 		this.channels = new ConcurrentHashMap<>();
     }
 
+	@SuppressWarnings(value = "static-access")
 	public void connectNewHost(PicoAddress address) {
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress(address.getIP(), address.getPort())
 			.usePlaintext()
+			// .keepAliveTimeout(60, TimeUnit.SECONDS)
+			// .keepAliveTime(60, TimeUnit.SECONDS)
+			// .enableRetry()
 			.build();
 
-		RpcServiceFutureStub stub = RpcServiceGrpc.newFutureStub(channel);
+		RpcServiceBlockingStub stub = RpcServiceGrpc
+			.newBlockingStub(channel)
+			.withDeadlineAfter(5, TimeUnit.MINUTES);
+
 		channels.put(address, channel);
 		stubs.put(address, stub);
 		logger.info("Connected to new host: {}!", address);
@@ -42,13 +50,13 @@ public class PicoClient {
 
 
 	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws PicoException {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		
 		logger.info("Sending JOIN_REQUEST to {} ...", remote);
 		long start = System.currentTimeMillis();
 		RpcNodes reply = null;
 		try {
-			reply = stub.join(msg).get();
+			reply = stub.join(msg);
 		} catch (Exception e) {
 			String err = String.format("Received error from %s when sending JOIN_REQUEST: %s", remote, e.getMessage());
 			throw handleError(remote, err);
@@ -60,7 +68,7 @@ public class PicoClient {
 
 	// Request to remove a node from the network
 	public void leave(PicoAddress remote) throws Exception {
-		RpcServiceFutureStub stub = stubs.get(remote);
+		RpcServiceBlockingStub stub = stubs.get(remote);
 		
 		if (stub == null) {
 			connectNewHost(remote);
@@ -87,7 +95,7 @@ public class PicoClient {
 
 	// Request to remove self from remote node
 	public void removeNode(PicoAddress remote, PicoAddress self) throws PicoException {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 
 		RpcMetadata meta = RpcMetadata.newBuilder()
 			.setIp(self.getIP())
@@ -107,11 +115,11 @@ public class PicoClient {
 	}
 
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Fetching performance from {}...", remote);		
 		try {
 			long start = System.currentTimeMillis();
-			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build()).get();
+			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build());
 			long time = System.currentTimeMillis() - start;
 			logger.info("Done fetching performance from {} after {} ms", remote, time);
 			return result;
@@ -121,8 +129,8 @@ public class PicoClient {
 		}
 	}
 
-	private RpcServiceFutureStub addRemoteIfNotConnected(PicoAddress remote) {
-		RpcServiceFutureStub stub = stubs.get(remote);
+	private RpcServiceBlockingStub addRemoteIfNotConnected(PicoAddress remote) {
+		RpcServiceBlockingStub stub = stubs.get(remote);
 		if (stub == null) {
 			connectNewHost(remote);
 			stub = stubs.get(remote);
@@ -131,7 +139,7 @@ public class PicoClient {
 	}
 
 	public Node fetchNode(PicoAddress remote) throws PicoException {
-        RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+        RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 
         RpcMetadata meta = RpcMetadata.newBuilder()
             .setIp(remote.getIP())
@@ -141,7 +149,7 @@ public class PicoClient {
         logger.info("Sending FETCH_NODE to {}...", remote);
 		long start = System.currentTimeMillis();
         try {
-			RpcNode reply = stub.fetchNode(meta).get();
+			RpcNode reply = stub.fetchNode(meta);
 			long time = System.currentTimeMillis() - start;
         	logger.info("Received reply from FETCH_NODE after {} ms", time);
         	return NodeSerializer.fromRPC(reply);
@@ -152,11 +160,11 @@ public class PicoClient {
     }
 
 	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) throws PicoException {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending evaluation request for {} to {} ...", container.getName(), remote);
 		long start = System.currentTimeMillis();
 		try {
-			RpcContainerEvaluation res = stub.elvaluateContainer(container).get(); 
+			RpcContainerEvaluation res = stub.elvaluateContainer(container);
 			long time = System.currentTimeMillis() - start;
 			logger.info("Received evaluation reply ({}) from {} after {} ms", res.getScore(), remote, time);
 			return res;
@@ -182,7 +190,7 @@ public class PicoClient {
 
 	public void containerElectionStart(RpcContainer container, PicoAddress remote) throws PicoException {
 		logger.info("Initiating CONTAINER_ELECTION_START for {} to {}", container.getName(), remote);
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		try {
 			stub.containerElectionStart(container);
 		} catch (Exception e) {
@@ -192,7 +200,7 @@ public class PicoClient {
 	}
 
 	public void createContainer(RpcContainer container, PicoAddress remote) throws PicoException {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
 			container.getName(), remote);
 		try {
@@ -211,7 +219,7 @@ public class PicoClient {
 			.setSender(rpcSelf)
 			.build();
 
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(to);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(to);
 		try {
 			logger.info("Sending ELECTION_END for container {} to {} ...", container.getName(), to);
 			stub.containerElectionEnd(msg);
@@ -224,23 +232,23 @@ public class PicoClient {
 	}
 
 	public String sendContainerCommand(RpcContainerCommand command, PicoAddress remote) {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		try {
 
 			logger.info("Sending {} command to {} for container {}", 
 				command.getCommand().toString(), remote, command.getContainer().getName());
-			return stub.containerCommand(command).get().getPayload();
+			return stub.containerCommand(command).getPayload();
 		} catch (Exception e) {
 			throw handleError(remote, e.getMessage());
 		}
 	}
 
 	public Node heartbeat(PicoAddress remote) throws Exception {
-		RpcServiceFutureStub stub = addRemoteIfNotConnected(remote);
+		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 
 		try {
 			long start = System.currentTimeMillis();
-			Node node = NodeSerializer.fromRPC(stub.heartbeat(RpcEmpty.newBuilder().build()).get());
+			Node node = NodeSerializer.fromRPC(stub.heartbeat(RpcEmpty.newBuilder().build()));
 			long time = System.currentTimeMillis() - start;
 			logger.info("Successfully sent HEARTBEAT to {} after {} ms", remote, time);
 			return node;
@@ -250,7 +258,7 @@ public class PicoClient {
 	}
 
 	public boolean isSuspect(PicoAddress remote, PicoAddress suspect) throws Exception {
-		RpcServiceFutureStub stub = stubs.get(remote);
+		RpcServiceBlockingStub stub = stubs.get(remote);
 
 		if (stub == null) {
 			connectNewHost(remote);
@@ -263,7 +271,7 @@ public class PicoClient {
 			.build();
 
 		try {
-			return stub.isSuspect(meta).get().getValue();
+			return stub.isSuspect(meta).getValue();
 		} catch (Exception e) {
 			throw handleError(remote, String.format("Failed to send ISSUSPECT to %s: %s", remote, e.getMessage()));
 		}

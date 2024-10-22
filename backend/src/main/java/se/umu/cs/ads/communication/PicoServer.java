@@ -6,6 +6,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.collections.functors.ExceptionClosure;
 import org.apache.logging.log4j.LogManager;
@@ -80,6 +81,7 @@ public class PicoServer {
 		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
 			logger.info("Received create container request for container {}", container.getName());
 			RpcContainer res = null;
+			
 			try {
 				pool.submit(() -> {
 					this.comm.broadcastElectionEnd(container);
