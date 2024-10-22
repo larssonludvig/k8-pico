@@ -19,23 +19,34 @@ import io.grpc.Grpc;
 import io.grpc.InsecureServerCredentials;
 import io.grpc.Server;
 import io.grpc.stub.StreamObserver;
+
 import se.umu.cs.ads.serializers.NodeSerializer;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.arguments.CommandLineArguments;
 import se.umu.cs.ads.exception.*;
 
+/**
+ * gRPC server for handling communication between nodes
+ */
 public class PicoServer {
     private final static Logger logger = LogManager.getLogger(PicoServer.class);
     private PicoCommunication comm;
 	private Server server;
 	private final PicoAddress address;
     private final ExecutorService pool = CommandLineArguments.pool;
+	
+	/**
+	 * Constructor for the PicoServer
+	 * @param comm PicoCommunication object
+	 */
 	public PicoServer(PicoCommunication comm) {
         this.comm = comm;
 		this.address = this.comm.getAddress();
     }
 
-	
+	/**
+	 * Starts the gRPC server
+	 */
     public void start() {
 		int port = address.getPort();
         try {
@@ -51,6 +62,9 @@ public class PicoServer {
 		}	
     }
 
+	/**
+	 * Shuts down the gRPC server
+	 */
 	public void shutdown() {
 		try {
 			this.server.awaitTermination();
@@ -58,14 +72,26 @@ public class PicoServer {
 			logger.warn("Received interrupt while waiting for shutdown");
 		}
 	}
+
+	/**
+	 * gRPC service implementation
+	 */
     private class RpcService extends RpcServiceGrpc.RpcServiceImplBase {
 		private final PicoCommunication comm; 
 		
+		/**
+		 * Constructor for the RpcService
+		 * @param comm PicoCommunication object
+		 */
 		public RpcService(PicoCommunication comm) {
 			this.comm = comm;
 		}
 		
-		
+		/**
+		 * Fetches the performance of the local node
+		 * @param empty Empty request
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void fetchNodePerformance(RpcEmpty empty, StreamObserver<RpcPerformance> responseObserver) {
 			try {
@@ -77,6 +103,11 @@ public class PicoServer {
 			}
 		}
 
+		/**
+		 * Create a container on the local node, returns the created container
+		 * @param container Container to create
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void createContainer(RpcContainer container, StreamObserver<RpcContainer> responseObserver) {
 			logger.info("Received create container request for container {}", container.getName());
@@ -98,7 +129,12 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
-
+		/**
+		 * Adds a remote node to the cluster, returns the known nodes in 
+		 * the cluster
+		 * @param msg Metadata of the remote node
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public synchronized void join(RpcJoinRequest msg, StreamObserver<RpcNodes> responseObserver) {
 			RpcNode aspirant = msg.getAspirant();
@@ -151,6 +187,11 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Removes itself from the cluster, returns nothing
+		 * @param msg Metadata of the node
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public synchronized void leave(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
@@ -161,6 +202,11 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Removes a remote node from the cluster, returns nothing
+		 * @param msg Metadata of the node
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void removeNode(RpcMetadata msg, StreamObserver<RpcEmpty> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
@@ -170,6 +216,11 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Fetches a node from the cluster, returns the node
+		 * @param msg Metadata of the node
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void fetchNode(RpcMetadata msg, StreamObserver<RpcNode> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
@@ -179,6 +230,11 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Handles a heartbeat request, returns the node
+		 * @param empty Empty request
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void heartbeat(RpcEmpty empty, StreamObserver<RpcNode> responseObserver) {
 			Node node = this.comm.fetchNode();
@@ -186,6 +242,11 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Checks if a remote node is suspected of being dead by the local node
+		 * @param msg Metadata of the node
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void isSuspect(RpcMetadata msg, StreamObserver<RpcBool> responseObserver) {
 			PicoAddress adr = new PicoAddress(msg.getIp(), msg.getPort());
@@ -195,6 +256,12 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Handles a CONTAINER_ELECTION_START request. Starts the container on 
+		 * a node desided by the load balancer, returns nothing
+		 * @param container Container to start election for
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void containerElectionStart(RpcContainer container, StreamObserver<RpcEmpty> responseObserver) {
 			logger.info("Received CONTAINER_ELECTION_START for container {}", container.getName());
@@ -207,6 +274,12 @@ public class PicoServer {
 			}
 		}
 
+		/**
+		 * Evaluates the current load on the local node, returns the performance
+		 * evaluation
+		 * @param empty Empty request
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void elvaluateContainer(RpcContainer container, StreamObserver<RpcContainerEvaluation> ro) {
 			try {
@@ -220,6 +293,12 @@ public class PicoServer {
 			}
 		}
 
+		/**
+		 * Handles a CONTAINER_ELECTION_END request. Ends the election for the 
+		 * container, returns nothing
+		 * @param msg Metadata of the sender
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void containerElectionEnd(RpcContainerElectionEnd msg, StreamObserver<RpcEmpty> responseObserver) {
 			RpcMetadata sender = msg.getSender();
@@ -232,6 +311,12 @@ public class PicoServer {
 			responseObserver.onCompleted();
 		}
 
+		/**
+		 * Handles a CONTAINER_COMMAND request. Executes the command on the 
+		 * container, returns the result
+		 * @param action Container command to execute
+		 * @param responseObserver StreamObserver for the response
+		 */
 		@Override
 		public void containerCommand(RpcContainerCommand action, StreamObserver<RpcMessage> responseObserver) {
 			String res = "";

@@ -14,22 +14,30 @@ import se.umu.cs.ads.exception.PortConflictException;
 import se.umu.cs.ads.types.*;
 import se.umu.cs.ads.serializers.*;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * gRPC client for communication with other nodes
+ */
 public class PicoClient {
 	private final static Logger logger = LogManager.getLogger(PicoClient.class);
 	private final Map<PicoAddress, ManagedChannel> channels;
 	private final Map<PicoAddress, RpcServiceBlockingStub> stubs;
 	private final static Executor pool = CommandLineArguments.pool;
    
+	/**
+	 * Constructor for the PicoClient
+	 */
     public PicoClient() {
 		this.stubs = new ConcurrentHashMap<>();
 		this.channels = new ConcurrentHashMap<>();
     }
 
-	@SuppressWarnings(value = "static-access")
+	/**
+	 * Method to connect to a new host
+	 * @param address PicoAddress object
+	 */
 	public void connectNewHost(PicoAddress address) {
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress(address.getIP(), address.getPort())
@@ -48,7 +56,13 @@ public class PicoClient {
 		logger.info("Connected to new host: {}!", address);
 	}	
 
-
+	/**
+	 * Method to send a JOIN_REQUEST to a remote node
+	 * @param remote PicoAddress object
+	 * @param msg RpcJoinRequest object
+	 * @return RpcNodes object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public RpcNodes join(PicoAddress remote, RpcJoinRequest msg) throws PicoException {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		
@@ -66,7 +80,11 @@ public class PicoClient {
 		return reply;
 	}
 
-	// Request to remove a node from the network
+	/**
+	 * Request to remove a node from the network
+	 * @param remote PicoAddress object
+	 * @throws Exception if an error occurs during the call
+	 */
 	public void leave(PicoAddress remote) throws Exception {
 		RpcServiceBlockingStub stub = stubs.get(remote);
 		
@@ -93,7 +111,12 @@ public class PicoClient {
 		logger.info("Received LEAVE_REPLY from {} after {} ms", remote, time);
 	}
 
-	// Request to remove self from remote node
+	/**
+	 * Request to remove self from remote node
+	 * @param remote PicoAddress object
+	 * @param self PicoAddress object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public void removeNode(PicoAddress remote, PicoAddress self) throws PicoException {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 
@@ -114,6 +137,12 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Request to fetch the performance of a remote node
+	 * @param remote PicoAddress object
+	 * @return RpcPerformance object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public RpcPerformance fetchPerformance(PicoAddress remote) throws PicoException {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Fetching performance from {}...", remote);		
@@ -129,6 +158,11 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Creates a new stub connection if it does not exist
+	 * @param remote PicoAddress object
+	 * @return RpcServiceBlockingStub object
+	 */
 	private RpcServiceBlockingStub addRemoteIfNotConnected(PicoAddress remote) {
 		RpcServiceBlockingStub stub = stubs.get(remote);
 		if (stub == null) {
@@ -138,6 +172,12 @@ public class PicoClient {
 		return stub; 
 	}
 
+	/**
+	 * Request to fetch the node information of a remote node
+	 * @param remote PicoAddress object
+	 * @return Node object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public Node fetchNode(PicoAddress remote) throws PicoException {
         RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 
@@ -159,6 +199,13 @@ public class PicoClient {
 		}
     }
 
+	/**
+	 * Request to evaluate the nodes in the network for a container
+	 * @param container RpcContainer object
+	 * @param remote PicoAddress object
+	 * @return RpcContainerEvaluation object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public RpcContainerEvaluation evaluateContainer(RpcContainer container, PicoAddress remote) throws PicoException {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending evaluation request for {} to {} ...", container.getName(), remote);
@@ -188,6 +235,12 @@ public class PicoClient {
 		}		
 	}
 
+	/**
+	 * Request to start an election for a container
+	 * @param container RpcContainer object
+	 * @param remote PicoAddress object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public void containerElectionStart(RpcContainer container, PicoAddress remote) throws PicoException {
 		logger.info("Initiating CONTAINER_ELECTION_START for {} to {}", container.getName(), remote);
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
@@ -199,6 +252,12 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Request to create a container on a remote node
+	 * @param container RpcContainer object
+	 * @param remote PicoAddress object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public void createContainer(RpcContainer container, PicoAddress remote) throws PicoException {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
@@ -212,6 +271,13 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Request to mark the election as ended on a remote node
+	 * @param container RpcContainer object
+	 * @param self PicoAddress object
+	 * @param to PicoAddress object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public void markElectionEnd(RpcContainer container, PicoAddress self, PicoAddress to) throws PicoException {
 		RpcMetadata rpcSelf = RpcMetadata.newBuilder().setIp(self.getIP()).setPort(self.getPort()).build();
 		RpcContainerElectionEnd msg = RpcContainerElectionEnd.newBuilder()
@@ -231,6 +297,13 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Request to send a command to a container on a remote node
+	 * @param command RpcContainerCommand object
+	 * @param remote PicoAddress object
+	 * @return String response from the container
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public String sendContainerCommand(RpcContainerCommand command, PicoAddress remote) {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		try {
@@ -243,6 +316,12 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Request to send a HEARTBEAT to a remote node
+	 * @param remote PicoAddress object
+	 * @return Node object
+	 * @throws PicoException if an error occurs during the call
+	 */
 	public Node heartbeat(PicoAddress remote) throws Exception {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 
@@ -257,6 +336,13 @@ public class PicoClient {
 		}
 	}
 
+	/**
+	 * Sends a request to check if a node is susepcted on the remote node
+	 * @param remote PicoAddress object
+	 * @param suspect PicoAddress object
+	 * @return boolean value
+	 * @throws Exception if an error occurs during the call
+	 */
 	public boolean isSuspect(PicoAddress remote, PicoAddress suspect) throws Exception {
 		RpcServiceBlockingStub stub = stubs.get(remote);
 
@@ -277,8 +363,12 @@ public class PicoClient {
 		}
 	}
 
-
-
+	/**
+	 * General error handler for the client
+	 * @param remote PicoAddress object
+	 * @param msg String message
+	 * @return PicoException object
+	 */
 	private PicoException handleError(PicoAddress remote, String msg) {
 		logger.error(msg);
 		ManagedChannel channel = channels.get(remote);
@@ -288,7 +378,4 @@ public class PicoClient {
 
 		return new PicoException(msg);
 	}
-
-
-
 }
