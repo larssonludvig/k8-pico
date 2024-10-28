@@ -89,7 +89,6 @@ public class ContainerEngine {
     /**
      * Pull a specific image: "image:version"
      * @param imageName its name including version.
-     * @throws InterruptedException
      */
     public void pullImage(String imageName) throws PicoException {
         logger.info("Pulling container image {}", imageName);
@@ -177,7 +176,7 @@ public class ContainerEngine {
 
     /**
      * Check if a container is running
-     * @param id the id of the container
+     * @param name the name of the container
      * @return true or false
      * @throws PicoException If the operation failed
      */

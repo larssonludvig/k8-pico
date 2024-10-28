@@ -11,6 +11,9 @@ import se.umu.cs.ads.nodemanager.NodeManager;
 import se.umu.cs.ads.serializers.*;
 import se.umu.cs.ads.types.*;
 
+/**
+ * Class for communication between nodes
+ */
 public class PicoCommunication {
 	private static final Logger logger = LogManager.getLogger(PicoCommunication.class);
 	private final PicoServer server;
@@ -20,6 +23,11 @@ public class PicoCommunication {
 	private final PicoClient client;
 	private final NodeManager manager;
 
+	/**
+	 * Constructor for the PicoCommunication
+	 * @param cluster ClusterManager object
+	 * @param manager NodeManager object
+	 */
 	public PicoCommunication(ClusterManager cluster, NodeManager manager) {
 		this.manager = manager;
 		this.address = manager.getAddress();
@@ -35,12 +43,18 @@ public class PicoCommunication {
 		}
 	}
 
-
+	/**
+	 * Method for getting the addresses of nodes in the cluster.
+	 * @return List of PicoAddress objects
+	 */
 	public List<PicoAddress> getClusterAddresses() {
 		return this.cluster.getClusterAddresses();
 	}
 
-
+	/**
+	 * Method for getting the address of the current node.
+	 * @return PicoAddress object
+	 */
 	public PicoAddress getAddress() {
 		return address;
 	}
@@ -48,15 +62,21 @@ public class PicoCommunication {
 
 	/**
 	 * Adds a new member to the cluster
-	 * @param address
+	 * @param node the new member to add
 	 */
 	public void addNewMember(RpcNode node) {
 		Node n = NodeSerializer.fromRPC(node);
 		this.cluster.addNode(n);
 	}
 
+	/**
+	 * Method for sending a join request to a remote node.
+	 * @param remote Address of the remote node
+	 * @param aspirant Node object
+	 * @return List of Node objects
+	 * @throws PicoException If the join request fails
+	 */
 	public synchronized List<Node> joinRequest(PicoAddress remote, Node aspirant) throws PicoException {
-
 		RpcContainers.Builder builder = RpcContainers.newBuilder();
 		// aspirant.getContainers().forEach(it -> ContainerSerializer.toRPC(it));
 
@@ -79,6 +99,11 @@ public class PicoCommunication {
 
 	}
 
+	/**
+	 * Method for constructing a reply to a join request.
+	 * @param msg Join request message
+	 * @return List of Node objects
+	 */
 	public synchronized RpcNodes joinReply(RpcNode msg) {
 		Node newMember = NodeSerializer.fromRPC(msg);
 		cluster.addNode(newMember);
@@ -87,6 +112,10 @@ public class PicoCommunication {
 		return NodeSerializer.toRPC(nodes);
 	}
 
+	/**
+	 * Method for fetching the performance of a node.
+	 * @return RpcPerformance rpc object
+	 */
 	public RpcPerformance fetchPerformance() {
 		double cpuLoad = this.manager.getCPULoad();
 		double ramLoad = this.manager.getMemLoad();
@@ -99,21 +128,41 @@ public class PicoCommunication {
 			.build();
 	}
 
+	/**
+	 * Method for creating a local container.
+	 * @param container Container object
+	 * @return RpcContainer object
+	 */
 	public RpcContainer createContainer(RpcContainer container) {
 		
 		PicoContainer result = this.manager.createLocalContainer(ContainerSerializer.fromRPC(container));
 		return ContainerSerializer.toRPC(result);
 	}
 
+	/**
+	 * Method for starting a local container.
+	 * @param container Container object
+	 * @return RpcContainer object
+	 * @throws PicoException If the container cannot be started
+	 */
 	public RpcContainer startContainer(RpcContainer container) throws PicoException {
 		PicoContainer resutl = this.manager.startContainer(container.getName());
 		return ContainerSerializer.toRPC(resutl);
 	}
 	
+	/**
+	 * Method for fetching a node from the cluster.
+	 * @return Node object
+	 */
 	public Node fetchNode() {
 		return this.cluster.fetchNode();
 	}
 
+	/**
+	 * Method for fetching a node from the cluster by address.
+	 * @param adr Address of the node
+	 * @return Node object
+	 */
 	public Node fetchNode(PicoAddress adr) {
 		if (!adr.equals(this.address)) {
 			// Send request to correct node
@@ -128,6 +177,11 @@ public class PicoCommunication {
 		return this.cluster.fetchNode();
 	}
 
+	/**
+	 * Method for fetching the performance of a node.
+	 * @param adr Address of the node
+	 * @return Performance object
+	 */
 	public Performance fetchNodePerformance(PicoAddress adr) {
 		if (!adr.equals(this.address)) {
 			try {
@@ -146,11 +200,19 @@ public class PicoCommunication {
 		return this.cluster.fetchNodePerformance();
 	}
 
+	/**
+	 * Method for removing a node from the cluster.
+	 * @param adr Address of the node
+	 */
 	public void removeNode(PicoAddress adr) {
 		this.cluster.removeNode(adr);
 		logger.info("Removed node {}", adr);
 	}
 
+	/**
+	 * Method for sending a leave request to a remote node.
+	 * @param adr Address of the remote node
+	 */
 	public void leaveRemote(PicoAddress adr) {
 		try {
 			logger.info("Sending LEAVE to {}", adr);
@@ -161,7 +223,10 @@ public class PicoCommunication {
 		}
 	}
 
-	// removes node from address, removes self if toRemove is null
+	/**
+	 * Mehod for removing a remote node from the cluster
+	 * @param toRemove Address of the node to remove
+	 */
 	public void removeNodeRemote(PicoAddress toRemove) {
 		List<Node> members = this.cluster.getNodes();
 		boolean removeSelf = false;
@@ -222,6 +287,12 @@ public class PicoCommunication {
 
 	}
 
+	/**
+	 * Method for sending a heartbeat to a remote node.
+	 * @param remote Address of the remote node
+	 * @return Node object
+	 * @throws PicoException If the heartbeat fails
+	 */
 	public Node heartbeatRemote(PicoAddress remote) throws PicoException {
 		try {
 			return this.client.heartbeat(remote);
@@ -230,10 +301,21 @@ public class PicoCommunication {
 		}
 	}
 
+	/**
+	 * Method for checking if the given address is suspected by the current node
+	 * @param adr Address of the node
+	 * @return True if the node is suspected, false otherwise
+	 */
 	public boolean isSuspect(PicoAddress adr) {
 		return this.cluster.isSuspect(adr);
 	}
 
+	/**
+	 * Method for sending a isSuspect request to a remote node.
+	 * @param remote Address of the remote node
+	 * @param suspect Address of the suspected node
+	 * @return True if the node is suspected, false otherwise
+	 */
 	public boolean isSuspectRemote(PicoAddress remote, PicoAddress suspect) throws Exception {
 		return this.client.isSuspect(remote, suspect);
 	}
@@ -251,6 +333,11 @@ public class PicoCommunication {
 		return reply.getScore();
 	}
 
+	/**
+	 * Evaluate the posibility for the container to run on the current node
+	 * @param container container to evaluate
+	 * @return the score of the container
+	 */
 	public RpcContainerEvaluation evaluateContainer(RpcContainer container) {
 		PicoContainer cont = ContainerSerializer.fromRPC(container);
 		double evaluation = this.manager.evaluateContainer(cont);
@@ -261,14 +348,21 @@ public class PicoCommunication {
 			.build();
 	}
 
-
-
+	/** 
+	 * Initiates a container election for a node on the cluster
+	 * @param container container to evaluate
+	 * @param remote remote to evaluate
+	 */
 	public void initiateContainerElection(PicoContainer container, PicoAddress remote) {
 		RpcContainer rpc = ContainerSerializer.toRPC(container);
 		client.containerElectionStart(rpc, remote);
 	}
 
-
+	/**
+	 * Method for starting a container election
+	 * @param container Container object
+	 * @throws PicoException If the container cannot be started
+	 */
 	public void containerElectionStart(RpcContainer container) throws PicoException {
 		//send container create to that node
 		//that node sends container_election_end
@@ -348,6 +442,10 @@ public class PicoCommunication {
 		}
 	}
 
+	/**
+	 * Creates a metadata object of the current node
+	 * @return metadata object
+	 */
 	private RpcMetadata getSelfMetadata() {
 		return RpcMetadata.newBuilder()
 			.setIp(this.address.getIP())
@@ -355,17 +453,32 @@ public class PicoCommunication {
 			.build();
 	}
 
+	/**
+	 * Creating a container on the local node
+	 * @param rpc Container object
+	 * @return RpcContainer object
+	 */
 	public synchronized RpcContainer createLocalContainer(RpcContainer rpc) {
 		PicoContainer container = ContainerSerializer.fromRPC(rpc);
 		PicoContainer res = this.manager.createLocalContainer(container);
 		return ContainerSerializer.toRPC(res);
 	}
 
+	/**
+	 * Handles a container election end sent from a remote node
+	 * @param rpc Container object
+	 * @param newHost Address of the new host
+	 */
 	public void receiveElectionEnd(RpcContainer rpc, RpcMetadata newHost) {
 		PicoAddress address = new PicoAddress(newHost.getIp(), newHost.getPort());
 		PicoContainer container = ContainerSerializer.fromRPC(rpc);
 		cluster.addContainerToNode(address, container);
 	}
+
+	/**
+	 * Broadcasts the end of a container election to all nodes in the cluster
+	 * @param rpc Container object
+	 */
 	public void broadcastElectionEnd(RpcContainer rpc) {
 		PicoAddress self = getAddress();
 		List<PicoAddress> addresses = cluster.getClusterAddresses();
@@ -377,6 +490,12 @@ public class PicoCommunication {
 		}
 	}
 
+	/**
+	 * Parses and handles a container command request
+	 * @param command Container command object
+	 * @return Response from the container
+	 * @throws PicoException If the command fails
+	 */
 	public String handleContainerCommand(RpcContainerCommand command) throws PicoException {
 		ContainerCommand cmd = command.getCommand();
 		RpcContainer container = command.getContainer();
@@ -404,6 +523,13 @@ public class PicoCommunication {
 		return response;
 	}
 
+	/**
+	 * Sends a container command to a remote node
+	 * @param container Container object
+	 * @param remote Address of the remote node
+	 * @param cmd Command to send
+	 * @return Response from the container
+	 */
 	public String sendCommunicationCommand(PicoContainer container, PicoAddress remote, ContainerCommand cmd) {
 		RpcContainer rpc = ContainerSerializer.toRPC(container);
 		RpcContainerCommand msg = RpcContainerCommand.newBuilder()
