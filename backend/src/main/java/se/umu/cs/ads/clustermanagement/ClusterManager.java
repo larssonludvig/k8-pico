@@ -212,7 +212,7 @@ public class ClusterManager {
 		}
 		n.addContainer(container);
 		if (initTimes.containsKey(container)) {
-			long createTime = initTimes.get(container) - System.currentTimeMillis();
+			long createTime = System.currentTimeMillis() - initTimes.get(container);
 			logger.info("Finished container election process for {} after {} ms", container.getName(), createTime);
 		}
 	}

@@ -69,7 +69,7 @@ public class Controller {
 		// Heartbeat
 		scheduler.scheduleAtFixedRate(() -> {
 			this.cluster.heartbeat();
-		}, 5, 5, TimeUnit.SECONDS);
+		}, 5, 2, TimeUnit.SECONDS);
 	}
 
 	public void shutdown() {

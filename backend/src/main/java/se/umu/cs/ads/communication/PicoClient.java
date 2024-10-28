@@ -34,14 +34,11 @@ public class PicoClient {
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress(address.getIP(), address.getPort())
 			.usePlaintext()
-			// .keepAliveTimeout(60, TimeUnit.SECONDS)
-			// .keepAliveTime(60, TimeUnit.SECONDS)
-			// .enableRetry()
+			.enableRetry()
 			.build();
 
 		RpcServiceBlockingStub stub = RpcServiceGrpc
-			.newBlockingStub(channel)
-			.withDeadlineAfter(5, TimeUnit.MINUTES);
+			.newBlockingStub(channel);
 
 		channels.put(address, channel);
 		stubs.put(address, stub);
@@ -56,7 +53,7 @@ public class PicoClient {
 		long start = System.currentTimeMillis();
 		RpcNodes reply = null;
 		try {
-			reply = stub.join(msg);
+			reply = stub.withDeadlineAfter(10, TimeUnit.MINUTES).join(msg);
 		} catch (Exception e) {
 			String err = String.format("Received error from %s when sending JOIN_REQUEST: %s", remote, e.getMessage());
 			throw handleError(remote, err);
@@ -83,7 +80,7 @@ public class PicoClient {
 		logger.info("Sending LEAVE to {} ...", remote);
 		long start = System.currentTimeMillis();
 		try {
-			stub.leave(meta);
+			stub.withDeadlineAfter(10, TimeUnit.MINUTES).leave(meta);
 			stubs.remove(remote);
 		} catch (Exception e) {
 			String err = String.format("Received error from %s when sending LEAVE: %s", remote, e.getMessage());
@@ -105,7 +102,7 @@ public class PicoClient {
 		logger.info("Sending request to remove node {} to {}...", self, remote);
 		long start = System.currentTimeMillis();
 		try {
-			stub.removeNode(meta);
+			stub.withDeadlineAfter(10, TimeUnit.MINUTES).removeNode(meta);
 			long time = System.currentTimeMillis() - start;
 			logger.info("Received REMOVE_NODE reply from {} after {} ms", remote, time);
 		} catch (Exception e) {
@@ -119,7 +116,7 @@ public class PicoClient {
 		logger.info("Fetching performance from {}...", remote);		
 		try {
 			long start = System.currentTimeMillis();
-			RpcPerformance result = stub.fetchNodePerformance(RpcEmpty.newBuilder().build());
+			RpcPerformance result = stub.withDeadlineAfter(10, TimeUnit.MINUTES).fetchNodePerformance(RpcEmpty.newBuilder().build());
 			long time = System.currentTimeMillis() - start;
 			logger.info("Done fetching performance from {} after {} ms", remote, time);
 			return result;
@@ -149,7 +146,7 @@ public class PicoClient {
         logger.info("Sending FETCH_NODE to {}...", remote);
 		long start = System.currentTimeMillis();
         try {
-			RpcNode reply = stub.fetchNode(meta);
+			RpcNode reply = stub.withDeadlineAfter(10, TimeUnit.MINUTES).fetchNode(meta);
 			long time = System.currentTimeMillis() - start;
         	logger.info("Received reply from FETCH_NODE after {} ms", time);
         	return NodeSerializer.fromRPC(reply);
@@ -164,7 +161,7 @@ public class PicoClient {
 		logger.info("Sending evaluation request for {} to {} ...", container.getName(), remote);
 		long start = System.currentTimeMillis();
 		try {
-			RpcContainerEvaluation res = stub.elvaluateContainer(container);
+			RpcContainerEvaluation res = stub.withDeadlineAfter(10, TimeUnit.MINUTES).elvaluateContainer(container);
 			long time = System.currentTimeMillis() - start;
 			logger.info("Received evaluation reply ({}) from {} after {} ms", res.getScore(), remote, time);
 			return res;
@@ -192,7 +189,7 @@ public class PicoClient {
 		logger.info("Initiating CONTAINER_ELECTION_START for {} to {}", container.getName(), remote);
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(remote);
 		try {
-			stub.containerElectionStart(container);
+			stub.withDeadlineAfter(10, TimeUnit.MINUTES).containerElectionStart(container);
 		} catch (Exception e) {
 			String err = String.format("Received exception from CONTAINER_ELECTION_START: %s", e.getMessage());
 			throw handleError(remote, err);
@@ -204,7 +201,7 @@ public class PicoClient {
 		logger.info("Sending CREATE_CONTAINER for container {} to {} ...", 
 			container.getName(), remote);
 		try {
-			stub.createContainer(container);
+			stub.withDeadlineAfter(10, TimeUnit.MINUTES).createContainer(container);
 		} catch (Exception e) {
 			String err = String.format("Received error from remote %s when creating container %s: %s", 
 				remote, container.getName(), e.getMessage());
@@ -222,7 +219,7 @@ public class PicoClient {
 		RpcServiceBlockingStub stub = addRemoteIfNotConnected(to);
 		try {
 			logger.info("Sending ELECTION_END for container {} to {} ...", container.getName(), to);
-			stub.containerElectionEnd(msg);
+			stub.withDeadlineAfter(10, TimeUnit.MINUTES).containerElectionEnd(msg);
 		} catch (Exception e) {
 			throw handleError(to, 
 				String.format("Failed to send ELECTION_END for container %s to %s: %s",
@@ -237,7 +234,7 @@ public class PicoClient {
 
 			logger.info("Sending {} command to {} for container {}", 
 				command.getCommand().toString(), remote, command.getContainer().getName());
-			return stub.containerCommand(command).getPayload();
+			return stub.withDeadlineAfter(10, TimeUnit.MINUTES).containerCommand(command).getPayload();
 		} catch (Exception e) {
 			throw handleError(remote, e.getMessage());
 		}
@@ -248,7 +245,7 @@ public class PicoClient {
 
 		try {
 			long start = System.currentTimeMillis();
-			Node node = NodeSerializer.fromRPC(stub.heartbeat(RpcEmpty.newBuilder().build()));
+			Node node = NodeSerializer.fromRPC(stub.withDeadlineAfter(10, TimeUnit.MINUTES).heartbeat(RpcEmpty.newBuilder().build()));
 			long time = System.currentTimeMillis() - start;
 			logger.info("Successfully sent HEARTBEAT to {} after {} ms", remote, time);
 			return node;
@@ -271,7 +268,7 @@ public class PicoClient {
 			.build();
 
 		try {
-			return stub.isSuspect(meta).getValue();
+			return stub.withDeadlineAfter(10, TimeUnit.MINUTES).isSuspect(meta).getValue();
 		} catch (Exception e) {
 			throw handleError(remote, String.format("Failed to send ISSUSPECT to %s: %s", remote, e.getMessage()));
 		}
@@ -282,6 +279,9 @@ public class PicoClient {
 	private PicoException handleError(PicoAddress remote, String msg) {
 		logger.error(msg);
 		ManagedChannel channel = channels.get(remote);
+		if (channel == null)
+			return new PicoException(msg);
+		
 		channel.shutdownNow();
 		channels.remove(remote);
 		stubs.remove(remote);
