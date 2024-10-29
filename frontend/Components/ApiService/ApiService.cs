@@ -45,7 +45,7 @@ namespace k8_pico_frontend.Components.ApiService {
             throw new System.Exception("Failed to fetch data");
         }
 
-        public async Task<T> Post<T>(string endpoint, object data) {
+        public async Task<T> Post<T>(string endpoint, object data, bool deserialize = true) {
             if (client == null) {
                 throw new System.Exception("Client not initialized");
             }
@@ -53,6 +53,9 @@ namespace k8_pico_frontend.Components.ApiService {
             var response = await client.PostAsJsonAsync(endpoint, data);
 
             if (response.IsSuccessStatusCode) {
+                if (!deserialize)
+                    throw new System.ArgumentException("No serialization done");
+
                 string json = await response.Content.ReadAsStringAsync();
 
                 T? responseData = JsonSerializer.Deserialize<T>(
@@ -63,9 +66,8 @@ namespace k8_pico_frontend.Components.ApiService {
                     }
                 );
 
-                if (responseData == null) {
+                if (responseData == null)
                     throw new System.Exception("Failed to deserialize response");
-                }
 
                 return responseData;
             }

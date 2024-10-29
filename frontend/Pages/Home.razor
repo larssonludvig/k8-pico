@@ -21,7 +21,7 @@
 @if (hasConnection)
 {
     <div style="height: 20rem; overflow-y: scroll;">
-        <button @onclick="FetchNodes">Update node data</button>
+        <button @onclick="FetchNodes">Reload Node Data</button>
 
         @if (!String.IsNullOrEmpty(nodesErrorStr))
         {
@@ -48,14 +48,26 @@
             <input type="text" @bind="envs" placeholder="k=v, k=v..." />
             <button @onclick="CreateContainer" disabled="@(String.IsNullOrEmpty(image) || String.IsNullOrEmpty(containerName))">Create</button>
         </div>
+        @if (!String.IsNullOrEmpty(containerStr))
+        {
+            <p style="color: limegreen;">@containerStr</p>
+        }
     </div>
 
 	<h2>Cluster overview</h2>
-	@if (containers != null) 
-	{
-		<p>Number of containers: @containers.Count()</p>
-	}
 	<div style="height: 20rem; overflow-y: scroll; margin-bottom: 75px;">
+        <button @onclick="FetchContainers">Reload Container Data</button>
+
+        @if (!String.IsNullOrEmpty(containerErrorStr))
+        {
+            <p style="color: red;">@containerErrorStr</p>
+        }
+        
+        @if (containers != null) 
+        {
+            <p>Number of containers: @containers.Count()</p>
+        }
+
         <QuickGrid Items="@containers">
             <PropertyColumn Property="@(x => x.Name)" Sortable="true"/>
             <PropertyColumn Property="@(x => x.Image)" Sortable="true" />
@@ -79,6 +91,8 @@
     private string? port = "8080";
     private string? connectionErrorStr = null;
     private string? nodesErrorStr = null;
+    private string? containerStr = null;
+    private string? containerErrorStr = null;
     private bool hasConnection = false;
 
     private string? image = null;
@@ -103,8 +117,8 @@
             StateHasChanged();
         } catch (HttpRequestException e) {
             nodes = null;
-            nodesErrorStr = "Unable to fetch nodes information";
-            Console.WriteLine(e);
+            nodesErrorStr = "Unable to fetch nodes";
+            Console.WriteLine("Could not fetch nodes: " + e.Message);
             StateHasChanged();
         }
     }
@@ -112,13 +126,19 @@
 	private async Task FetchContainers() {
 		try {
 			containers = null;
+            containerErrorStr = null;
+            containerStr = null;
+            StateHasChanged();
+
 			if (hasConnection) {
 				containers = (await Api.Get<List<PicoContainer>>("containers")).AsQueryable();
 			}
+
 			StateHasChanged();
 		} catch (HttpRequestException e) {
 			containers = null;
-			Console.WriteLine("Could not fetch nodes: " + e.Message);
+            containerErrorStr = "Unable to fetch containers";
+			Console.WriteLine("Could not fetch containers: " + e.Message);
 		}
 	}
 
@@ -158,11 +178,14 @@
             List<String> env = this.envs != null ? Regex.Replace(this.envs, @"\s+", "").Split(',').ToList() : new List<String>();
             container.Env = env;
 
-            container = await Api.Post<PicoContainer>("containers", container);
+            container = await Api.Post<PicoContainer>("containers", container, deserialize: false);
 
-            Console.WriteLine("Created new container. Result: " + container.Name + " " + container.Image);
+        } catch (ArgumentException e) {
+            containerStr = "Request sent to start container: " + containerName + ". Refresh containers in a few seconds...";
+            Console.WriteLine("Created new container. Result: " + containerName + " " + image);
+            StateHasChanged();
         } catch (Exception e) {
-            nodesErrorStr = "Unable to send POST request to service.";
+            containerStr = "Unable to send POST request to service.";
             Console.WriteLine(e);
             StateHasChanged();
         }
